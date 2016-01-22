@@ -24,7 +24,10 @@ import static org.apache.hadoop.yarn.webapp.view.JQueryUI.DATATABLES_ID;
 import static org.apache.hadoop.yarn.webapp.view.JQueryUI.initID;
 import static org.apache.hadoop.yarn.webapp.view.JQueryUI.tableInit;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.NodeState;
@@ -43,15 +46,14 @@ import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 
 import com.google.inject.Inject;
 
-class NodesPage extends RmView {
+class LabelsPage extends RmView {
 
-  static class NodesBlock extends HtmlBlock {
+  static class LabelsBlock extends HtmlBlock {
     final RMContext rmContext;
     final ResourceManager rm;
-    private static final long BYTES_IN_MB = 1024 * 1024;
 
     @Inject
-    NodesBlock(RMContext context, ResourceManager rm, ViewContext ctx) {
+    LabelsBlock(RMContext context, ResourceManager rm, ViewContext ctx) {
       super(ctx);
       this.rmContext = context;
       this.rm = rm;
@@ -63,24 +65,12 @@ class NodesPage extends RmView {
 
       ResourceScheduler sched = rm.getResourceScheduler();
       String type = $(NODE_STATE);
-      TBODY<TABLE<Hamlet>> tbody = html.table("#nodes").
+      TBODY<TABLE<Hamlet>> tbody = html.table("#labels").
           thead().
           tr().
-          th(".nodelabels", "Node Labels").
-          th(".rack", "Rack").
-          th(".state", "Node State").
-          th(".nodeaddress", "Node Address").
-          th(".nodehttpaddress", "Node HTTP Address").
-          th(".lastHealthUpdate", "Last health-update").
-          th(".healthReport", "Health-report").
-          th(".containers", "Containers").
-          th(".mem", "Mem Used").
-          th(".mem", "Mem Avail").
-          th(".vcores", "VCores Used").
-          th(".vcores", "VCores Avail").
-          //th(".vaccs", "VAccs Used").
-          //th(".vaccs", "VAccs Avail").
-          th(".nodeManagerVersion", "Version").
+          th(".nodeids", "Node Ids").
+          th(".devices", "Devices").
+          th(".accelerators", "Accelerators").
           _()._().
           tbody();
       NodeState stateFilter = null;
@@ -113,34 +103,17 @@ class NodesPage extends RmView {
           }
         }
         NodeInfo info = new NodeInfo(ni, sched);
-        int usedMemory = (int)info.getUsedMemory();
-        int availableMemory = (int)info.getAvailableMemory();
-        TR<TBODY<TABLE<Hamlet>>> row = tbody.tr().
-            td(StringUtils.join(",", info.getNodeLabels())).
-            td(info.getRack()).
-            td(info.getState()).
-            td(info.getNodeId());
-        if (isInactive) {
-          row.td()._("N/A")._();
-        } else {
-          String httpAddress = info.getNodeHTTPAddress();
-          row.td().a("//" + httpAddress,
-              httpAddress)._();
+        HashMap<String, HashSet<String>> labelRelations = info.getNodeLabelRelations();
+        for (String parentLabel : labelRelations.keySet()) {
+          HashSet<String> labels = labelRelations.get(parentLabel);
+          for(String label : labels) {
+            TR<TBODY<TABLE<Hamlet>>> row = tbody.tr().
+              td(info.getNodeId()).
+              td(parentLabel).
+              td(label);
+            row._();
+          }
         }
-        row.td().br().$title(String.valueOf(info.getLastHealthUpdate()))._().
-              _(Times.format(info.getLastHealthUpdate()))._().
-            td(info.getHealthReport()).
-            td(String.valueOf(info.getNumContainers())).
-            td().br().$title(String.valueOf(usedMemory))._().
-              _(StringUtils.byteDesc(usedMemory * BYTES_IN_MB))._().
-            td().br().$title(String.valueOf(availableMemory))._().
-              _(StringUtils.byteDesc(availableMemory * BYTES_IN_MB))._().
-              td(String.valueOf(info.getUsedVirtualCores())).
-              td(String.valueOf(info.getAvailableVirtualCores())).
-              //td(String.valueOf(info.getUsedVirtualAccs())).
-              //td(String.valueOf(info.getAvailableVirtualAccs())).
-            td(ni.getNodeManagerVersion()).
-            _();
       }
       tbody._()._();
     }
@@ -149,28 +122,23 @@ class NodesPage extends RmView {
   @Override protected void preHead(Page.HTML<_> html) {
     commonPreHead(html);
     String type = $(NODE_STATE);
-    String title = "Nodes of the cluster";
+    String title = "Labels of the cluster";
     if(type != null && !type.isEmpty()) {
       title = title+" ("+type+")";
     }
     setTitle(title);
-    set(DATATABLES_ID, "nodes");
-    set(initID(DATATABLES, "nodes"), nodesTableInit());
-    setTableStyles(html, "nodes", ".healthStatus {width:10em}",
-                   ".healthReport {width:10em}");
+    set(DATATABLES_ID, "labels");
+    set(initID(DATATABLES, "labels"), labelsTableInit());
+    setTableStyles(html, "labels", ".nodeids {width:10em}", ".devices {width:10em}",
+        ".accelerators {width:20em}");
   }
 
   @Override protected Class<? extends SubView> content() {
-    return NodesBlock.class;
+    return LabelsBlock.class;
   }
 
-  private String nodesTableInit() {
-    StringBuilder b = tableInit().append(", aoColumnDefs: [");
-    b.append("{'bSearchable': false, 'aTargets': [ 6 ]}");
-    b.append(", {'sType': 'title-numeric', 'bSearchable': false, " +
-        "'aTargets': [ 7, 8 ] }");
-    b.append(", {'sType': 'title-numeric', 'aTargets': [ 4 ]}");
-    b.append("]}");
+  private String labelsTableInit() {
+    StringBuilder b = tableInit().append(", aoColumnDefs: []}");
     return b.toString();
   }
 }

@@ -29,6 +29,11 @@ public:
   // remove a shared block from all platforms
   void removeShared(int64_t block_id);
 
+<<<<<<< HEAD
+=======
+  Platform_ptr create(std::string id);
+
+>>>>>>> b1c71b8b5bd2e6244da4090975b65e18704e1d76
   std::vector<std::pair<std::string, std::string> > getLabels();
 
 private:
