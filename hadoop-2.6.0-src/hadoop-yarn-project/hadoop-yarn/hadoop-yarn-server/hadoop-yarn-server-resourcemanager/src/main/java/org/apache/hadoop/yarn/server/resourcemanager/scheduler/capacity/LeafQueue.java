@@ -811,16 +811,17 @@ public class LeafQueue extends AbstractCSQueue {
 
           // Inform the application it is about to get a scheduling opportunity
           application.addSchedulingOpportunity(priority);
-          
+
           // Try to schedule
           CSAssignment assignment =  
             assignContainersOnNode(clusterResource, node, application, priority, 
-                null, needToUnreserve);
+                null, needToUnreserve, requestedNodeLabels);
 
           // Did the application skip this node?
           if (assignment.getSkipped()) {
             // Don't count 'skipped nodes' as a scheduling opportunity!
             application.subtractSchedulingOpportunity(priority);
+
             continue;
           }
           
@@ -843,7 +844,7 @@ public class LeafQueue extends AbstractCSQueue {
               }
               application.resetSchedulingOpportunities(priority);
             }
-            
+
             // Done
             return assignment;
           } else {
@@ -876,7 +877,7 @@ public class LeafQueue extends AbstractCSQueue {
 
     // Try to assign if we have sufficient resources
     assignContainersOnNode(clusterResource, node, application, priority, 
-        rmContainer, false);
+        rmContainer, false, null);
     
     // Doesn't matter... since it's already charged for at time of reservation
     // "re-reservation" is *free*
@@ -1219,7 +1220,8 @@ public class LeafQueue extends AbstractCSQueue {
 
   private CSAssignment assignContainersOnNode(Resource clusterResource,
       FiCaSchedulerNode node, FiCaSchedulerApp application, Priority priority,
-      RMContainer reservedContainer, boolean needToUnreserve) {
+      RMContainer reservedContainer, boolean needToUnreserve,
+      Set<String> requestedNodeLabels) {
     Resource assigned = Resources.none();
 
     // Data-local
@@ -1228,7 +1230,8 @@ public class LeafQueue extends AbstractCSQueue {
     if (nodeLocalResourceRequest != null) {
       assigned = 
           assignNodeLocalContainers(clusterResource, nodeLocalResourceRequest, 
-              node, application, priority, reservedContainer, needToUnreserve); 
+              node, application, priority, reservedContainer, needToUnreserve,
+              requestedNodeLabels); 
       if (Resources.greaterThan(resourceCalculator, clusterResource, 
           assigned, Resources.none())) {
         return new CSAssignment(assigned, NodeType.NODE_LOCAL);
@@ -1245,7 +1248,8 @@ public class LeafQueue extends AbstractCSQueue {
       
       assigned = 
           assignRackLocalContainers(clusterResource, rackLocalResourceRequest, 
-              node, application, priority, reservedContainer, needToUnreserve);
+              node, application, priority, reservedContainer, needToUnreserve,
+              requestedNodeLabels);
       if (Resources.greaterThan(resourceCalculator, clusterResource, 
           assigned, Resources.none())) {
         return new CSAssignment(assigned, NodeType.RACK_LOCAL);
@@ -1262,7 +1266,8 @@ public class LeafQueue extends AbstractCSQueue {
 
       return new CSAssignment(
           assignOffSwitchContainers(clusterResource, offSwitchResourceRequest,
-              node, application, priority, reservedContainer, needToUnreserve), 
+              node, application, priority, reservedContainer, needToUnreserve,
+              requestedNodeLabels), 
               NodeType.OFF_SWITCH);
     }
     
@@ -1346,16 +1351,16 @@ public class LeafQueue extends AbstractCSQueue {
     return true;
   }
 
-
   private Resource assignNodeLocalContainers(Resource clusterResource,
       ResourceRequest nodeLocalResourceRequest, FiCaSchedulerNode node,
       FiCaSchedulerApp application, Priority priority,
-      RMContainer reservedContainer, boolean needToUnreserve) {
+      RMContainer reservedContainer, boolean needToUnreserve,
+      Set<String> requestedNodeLabels) {
     if (canAssign(application, priority, node, NodeType.NODE_LOCAL, 
-        reservedContainer)) {
+        reservedContainer, requestedNodeLabels)) {
       return assignContainer(clusterResource, node, application, priority,
           nodeLocalResourceRequest, NodeType.NODE_LOCAL, reservedContainer,
-          needToUnreserve);
+          needToUnreserve, requestedNodeLabels);
     }
     
     return Resources.none();
@@ -1364,12 +1369,13 @@ public class LeafQueue extends AbstractCSQueue {
   private Resource assignRackLocalContainers(
       Resource clusterResource, ResourceRequest rackLocalResourceRequest,  
       FiCaSchedulerNode node, FiCaSchedulerApp application, Priority priority,
-      RMContainer reservedContainer, boolean needToUnreserve) {
+      RMContainer reservedContainer, boolean needToUnreserve,
+      Set<String> requestedNodeLabels) {
     if (canAssign(application, priority, node, NodeType.RACK_LOCAL, 
-        reservedContainer)) {
+        reservedContainer, requestedNodeLabels)) {
       return assignContainer(clusterResource, node, application, priority,
           rackLocalResourceRequest, NodeType.RACK_LOCAL, reservedContainer,
-          needToUnreserve);
+          needToUnreserve, requestedNodeLabels);
     }
     
     return Resources.none();
@@ -1378,12 +1384,13 @@ public class LeafQueue extends AbstractCSQueue {
   private Resource assignOffSwitchContainers(
       Resource clusterResource, ResourceRequest offSwitchResourceRequest,
       FiCaSchedulerNode node, FiCaSchedulerApp application, Priority priority, 
-      RMContainer reservedContainer, boolean needToUnreserve) {
+      RMContainer reservedContainer, boolean needToUnreserve,
+      Set<String> requestedNodeLabels) {
     if (canAssign(application, priority, node, NodeType.OFF_SWITCH, 
-        reservedContainer)) {
+        reservedContainer, requestedNodeLabels)) {
       return assignContainer(clusterResource, node, application, priority,
           offSwitchResourceRequest, NodeType.OFF_SWITCH, reservedContainer,
-          needToUnreserve);
+          needToUnreserve, requestedNodeLabels);
     }
     
     return Resources.none();
@@ -1424,8 +1431,7 @@ public class LeafQueue extends AbstractCSQueue {
       long missedOpportunities = application.getSchedulingOpportunities(priority);
       return (
           Math.min(scheduler.getNumClusterNodes(), getNodeLocalityDelay()) < 
-          missedOpportunities
-          );
+          missedOpportunities); 
     }
 
     // Check if we need containers on this host
@@ -1434,7 +1440,118 @@ public class LeafQueue extends AbstractCSQueue {
       ResourceRequest nodeLocalRequest = 
         application.getResourceRequest(priority, node.getNodeName());
       if (nodeLocalRequest != null) {
-        return nodeLocalRequest.getNumContainers() > 0;
+        return (nodeLocalRequest.getNumContainers() > 0);
+      }
+    }
+
+    return false;
+  }
+
+  private boolean canAssignWithAccLocality(FiCaSchedulerNode node,
+      long missedAccOpportunities,
+      Set<String> requestedNodeLabels) {
+    // skip acc locality scheduling restrictions ASAP
+    if (requestedNodeLabels.size() == 0) return true;
+
+    // get acc affinity on this node
+    float affinity = node.getAccAffinity(requestedNodeLabels);
+
+    // get acc scheduling threshold for this application 
+    // A good threshold function is calcualted as follows:
+    //   4 nodes, their accAffinity to the requestedNodeLabels is +infinity, 0.8, 0.8, 0.5, then
+    //   f(1) = +infinity
+    //   f(2) = 0.8
+    //   f(3) = 0.8
+    //   f(4) = 0.5
+    // However this function is pretty complex to calculate. We hereby use a simplified linear one.
+    // TODO (mhhuang) use a better threshold calculation policy
+    int numNodes = scheduler.getNumClusterNodes();
+    float threshold = 1 - (float) missedAccOpportunities / numNodes;
+
+    LOG.info("canAssignWithAccLocality <node, missedAccOpportunities, labels> is <"
+        + node.getNodeName() + ", " + missedAccOpportunities + ", "
+        + requestedNodeLabels.toString());
+    LOG.info("<affinity, threshold> is <" + affinity + ", "
+        + threshold + "> " + "decision? " + (affinity >= threshold));
+
+    return affinity > threshold;
+  }
+
+
+  boolean canAssign(FiCaSchedulerApp application, Priority priority, 
+      FiCaSchedulerNode node, NodeType type, RMContainer reservedContainer,
+      Set<String> requestedNodeLabels) {
+
+    // Clearly we need containers for this application...
+    if (type == NodeType.OFF_SWITCH) {
+      if (reservedContainer != null) {
+        return true;
+      }
+
+      // 'Delay' off-switch
+      ResourceRequest offSwitchRequest = 
+          application.getResourceRequest(priority, ResourceRequest.ANY);
+      long missedOpportunities = application.getSchedulingOpportunities(priority);
+      long requiredContainers = offSwitchRequest.getNumContainers(); 
+      
+      float localityWaitFactor = 
+        application.getLocalityWaitFactor(priority, 
+            scheduler.getNumClusterNodes());
+      
+      // (mhhuang)
+      boolean canAssignAcc = canAssignWithAccLocality(node,
+          application.getFailedAccSchedulingOpportunities(priority),
+          requestedNodeLabels);
+      if (!canAssignAcc) {
+        application.addFailedAccSchedulingOpportunity(priority);
+      }
+
+      return ((requiredContainers * localityWaitFactor) < missedOpportunities)
+        && canAssignAcc;
+    }
+
+    // Check if we need containers on this rack 
+    ResourceRequest rackLocalRequest = 
+      application.getResourceRequest(priority, node.getRackName());
+    if (rackLocalRequest == null || rackLocalRequest.getNumContainers() <= 0) {
+      return false;
+    }
+      
+    // If we are here, we do need containers on this rack for RACK_LOCAL req
+    if (type == NodeType.RACK_LOCAL) {
+      // 'Delay' rack-local just a little bit...
+      long missedOpportunities = application.getSchedulingOpportunities(priority);
+
+      // (mhhuang)
+      boolean canAssignAcc = canAssignWithAccLocality(node,
+          application.getFailedAccSchedulingOpportunities(priority),
+          requestedNodeLabels);
+      if (!canAssignAcc) {
+        application.addFailedAccSchedulingOpportunity(priority);
+      }
+
+      return (
+          Math.min(scheduler.getNumClusterNodes(), getNodeLocalityDelay()) < 
+          missedOpportunities
+          ) && canAssignAcc;
+    }
+
+    // Check if we need containers on this host
+    if (type == NodeType.NODE_LOCAL) {
+      // Now check if we need containers on this host...
+      ResourceRequest nodeLocalRequest = 
+        application.getResourceRequest(priority, node.getNodeName());
+      if (nodeLocalRequest != null) {
+
+        // (mhhuang)
+        boolean canAssignAcc = canAssignWithAccLocality(node,
+            application.getFailedAccSchedulingOpportunities(priority),
+            requestedNodeLabels);
+        if (!canAssignAcc) {
+          application.addFailedAccSchedulingOpportunity(priority);
+        }
+
+        return (nodeLocalRequest.getNumContainers() > 0) && canAssignAcc;
       }
     }
 
@@ -1463,11 +1580,10 @@ public class LeafQueue extends AbstractCSQueue {
     return container;
   }
 
-
   private Resource assignContainer(Resource clusterResource, FiCaSchedulerNode node, 
       FiCaSchedulerApp application, Priority priority, 
       ResourceRequest request, NodeType type, RMContainer rmContainer,
-      boolean needToUnreserve) {
+      boolean needToUnreserve, Set<String> requestedNodeLabels) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("assignContainers: node=" + node.getNodeName()
         + " application=" + application.getApplicationId()
@@ -1573,7 +1689,7 @@ public class LeafQueue extends AbstractCSQueue {
       }
 
       // Inform the node
-      node.allocateContainer(allocatedContainer);
+      node.allocateContainer(allocatedContainer, requestedNodeLabels);
 
       LOG.info("assignedContainer" +
           " application attempt=" + application.getApplicationAttemptId() +

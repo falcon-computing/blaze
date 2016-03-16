@@ -615,4 +615,15 @@ public class SchedulerApplicationAttempt {
     // schedulingOpportunities
     // lastScheduledContainer
   }
+
+  // FCS code starts here
+  Multiset<Priority> failedAccSchedulingOpportunities = HashMultiset.create();
+  public synchronized void addFailedAccSchedulingOpportunity(Priority priority) {
+    failedAccSchedulingOpportunities.setCount(priority,
+        failedAccSchedulingOpportunities.count(priority) + 1);
+  }
+  public synchronized int getFailedAccSchedulingOpportunities(Priority priority) {
+    return failedAccSchedulingOpportunities.count(priority);
+  }
+  // FCS code ends here
 }

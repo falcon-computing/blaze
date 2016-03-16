@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -53,6 +54,8 @@ public abstract class SchedulerNode {
   private Resource totalResourceCapability;
   private RMContainer reservedContainer;
   private volatile int numContainers;
+
+  private static final float MAX_ACC_AFFINITY = 2.0f; // needs number larger than 1
 
 
   /* set of containers that are allocated containers */
@@ -206,6 +209,34 @@ public abstract class SchedulerNode {
         + ", which currently has " + numContainers + " containers, "
         + getUsedResource() + " used and " + getAvailableResource()
         + " available" + ", release resources=" + true);
+
+    // FCS code starts here
+    // update 2 maps
+    Set<String> labels = containerIdToLabels.get(container.getId());
+    for (String label : labels) {
+      int num = labelToNumContainers.get(label) - 1;
+      if (num < 0) {
+        LOG.error("corrupted status in containerIdToLabels. label: "
+            + label + ": " + num);
+      }
+      if (num == 0) {
+        labelToNumContainers.remove(label);
+      } else {
+        labelToNumContainers.put(label, num);
+      }
+    }
+    {
+      String s = "container status change: removed a container on " + rmNode.getHostName(); 
+      s += (", total: " + Integer.toString(numContainers) + ", ");
+      for (Map.Entry<String, Integer> entry : labelToNumContainers.entrySet()) {
+        String label = entry.getKey();
+        int number = entry.getValue();
+        s += ("<" + label + ", " + Integer.toString(number) + ">, ");
+      }
+      LOG.info(s);
+    }
+    containerIdToLabels.remove(container.getId());
+    // FCS code ends here
   }
 
   private synchronized void addAvailableResource(Resource resource) {
@@ -274,5 +305,76 @@ public abstract class SchedulerNode {
       return;
     }
     allocateContainer(rmContainer);
+  }
+
+  public float getAccAffinity(Set<String> requestedNodeLabels) {
+    //TODO (mhhuang)
+    // numerator: number of containers that use requestedNodeLabels /
+    // denominator: total number of containers on this node
+    // returns:
+    //   a number between 0 to 1 inclusive, if denominator > 0
+    //   MAX_ACC_AFFINITY, if denominator == 0
+
+    // skip acc locality scheduling restrictions
+    if (requestedNodeLabels.size() == 0) {
+      return MAX_ACC_AFFINITY;
+    }
+
+    int denominator = launchedContainers.size();
+    // idle node: idea node to schedule
+    if (denominator == 0) {
+      return MAX_ACC_AFFINITY;
+    }
+
+    int numerator = 0;
+    // get averate affinities if multiple labels are requested
+    for (String label : requestedNodeLabels) {
+      if (labelToNumContainers.containsKey(label)) {
+        numerator += labelToNumContainers.get(label);
+      }
+    }
+    numerator = numerator / requestedNodeLabels.size();
+
+    return (float) numerator / denominator;
+  }
+
+  // FCS code starts here
+  // 2 Maps:
+  // label --> # of containers
+  private final Map<String, Integer> labelToNumContainers =
+    new HashMap<String, Integer>();
+  // containerId --> their requestedLabels
+  private final Map<ContainerId, Set<String>> containerIdToLabels =
+    new HashMap<ContainerId, Set<String>>();
+
+  // Update 2 maps when allocating containers
+  public synchronized void allocateContainer(RMContainer rmContainer,
+      Set<String> requestedNodeLabels) {
+    allocateContainer(rmContainer);
+
+    if (requestedNodeLabels != null) {
+      // update containerIdToLabels
+      containerIdToLabels.put(rmContainer.getContainer().getId(), requestedNodeLabels);
+
+      // update labelToNumContainers
+      for (String label : requestedNodeLabels) {
+        if (labelToNumContainers.containsKey(label)) {
+          labelToNumContainers.put(label, labelToNumContainers.get(label) + 1);
+        } else {
+          labelToNumContainers.put(label, 1);
+        }
+        LOG.info("label: " + label + " updated");
+      }
+    }
+    {
+      String s = "container status change: allocated a container on " + rmNode.getHostName(); 
+      s += (", total: " + Integer.toString(numContainers) + ", ");
+      for (Map.Entry<String, Integer> entry : labelToNumContainers.entrySet()) {
+        String label = entry.getKey();
+        int number = entry.getValue();
+        s += ("<" + label + ", " + Integer.toString(number) + ">, ");
+      }
+      LOG.info(s);
+    }
   }
 }
