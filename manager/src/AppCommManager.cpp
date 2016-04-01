@@ -28,6 +28,7 @@ void AppCommManager::process(socket_ptr sock) {
   // set socket buffer size to be 4MB
   socket_base::receive_buffer_size option(4*1024*1024);
   sock->set_option(option); 
+
   
   try {
     // 1. Handle ACCREQUEST
@@ -36,6 +37,8 @@ void AppCommManager::process(socket_ptr sock) {
 
     std::string app_id;
     std::string acc_id;
+
+    OccupancyCounter seat(this);
 
     // a table containing information of each input block
     // - partition_id: cached, sampled
@@ -229,6 +232,12 @@ void AppCommManager::process(socket_ptr sock) {
               // 1.3.2.2.2 if the input block is not cached
               else {
 
+                // Experimental: if block manager is almost full, reject request
+                if (block_manager->isFull() &&
+                    occupancy.load() > 4) {
+                  throw AccReject("Cache is full, and too many tasks are queueing");
+                }
+
                 // do not add block to task input table if data is sampled
                 block = NULL_DATA_BLOCK;
 
@@ -371,8 +380,9 @@ void AppCommManager::process(socket_ptr sock) {
                   align_width = stoi(task->getConfig(i, "align_width"));
                 }
 
-                if ( cache_table.find(blockId) != cache_table.end() &&
-                    !cache_table[blockId]) 
+                if ( block_manager->isFull() || (
+                     cache_table.find(blockId) != cache_table.end() &&
+                    !cache_table[blockId]))
                 {
                   DLOG(INFO) << "Skip cache for block " << blockId;
 

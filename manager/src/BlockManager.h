@@ -63,6 +63,16 @@ public:
   // remove a block from scratch table
   virtual void remove(int64_t tag);
 
+  // Experimental:
+  bool isFull() {
+    if (cacheSize > 0.9*maxCacheSize) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
 private:
   // internal cache operations
   void do_add(int64_t tag, DataBlock_ptr block);

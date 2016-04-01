@@ -1,6 +1,7 @@
 #ifndef COMM_H
 #define COMM_H
 
+#include <boost/atomic.hpp>
 #include <google/protobuf/message.h>
 
 #include "proto/task.pb.h"
@@ -53,20 +54,43 @@ private:
   boost::thread_group comm_threads;
 };
 
+class OccupancyCounter;
 // Manage communication with Application
 class AppCommManager : public CommManager 
 {
+  friend class OccupancyCounter;
   TEST_FRIENDS_LIST
 public:
   AppCommManager(
       PlatformManager* _platform,
       std::string address = "127.0.0.1",
-      int ip_port = 1027
-    ): CommManager(_platform, address, ip_port, 24) {;}
+      int ip_port = 1027): 
+    CommManager(_platform, address, ip_port, 24),
+    occupancy(0) {}
 private:
+  mutable boost::atomic<int> occupancy;
+
   void process(socket_ptr);
   void handleAccRegister(TaskMsg &msg);
   void handleAccDelete(TaskMsg &msg);
+  void addSeat() {occupancy.fetch_add(1);}
+  void removeSeat() {occupancy.fetch_sub(1);}
+};
+
+class OccupancyCounter
+{
+public:
+  OccupancyCounter(AppCommManager *comm): comm_(comm) 
+  {
+    DLOG(INFO) << "Added a seat";
+    comm_->addSeat(); 
+  }
+  ~OccupancyCounter() {
+    DLOG(INFO) << "Removed a seat";
+    comm_->removeSeat();
+  }
+private:
+  AppCommManager* comm_;
 };
 
 class AccReject : public std::logic_error {
@@ -80,6 +104,7 @@ public:
   explicit AccFailure(const std::string& what_arg):
     std::logic_error(what_arg) {;}
 };
+
 
 // Manager communication with GAM
 class GAMCommManager : public CommManager 
