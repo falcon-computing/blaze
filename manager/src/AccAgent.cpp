@@ -106,7 +106,7 @@ void AccAgent::writeInput(
 
   int64_t block_id = block_idx;
 
-  if (task->input_table.count(block_id)) {
+  if (!task->input_table.count(block_id)) {
     if (num_items == 1 && item_length == 1) {
       if (data_width > 8) {
         LOG(WARNING) << "Scalar input cannot be larger than 8 bytes, "
