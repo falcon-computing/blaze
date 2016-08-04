@@ -19,12 +19,16 @@ class AccAgent {
   
   void writeInput(Task_ptr task,
                   std::string acc_id,
+                  int block_idx,
                   void* data_ptr,
                   int num_items, 
                   int item_length, 
                   int data_width);
 
+  void startTask(Task_ptr task, std::string acc_id);
+
   void readOutput(Task_ptr task,
+                  int      block_idx,
                   void*    data_ptr,
                   size_t   data_size);
 
