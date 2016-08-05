@@ -82,7 +82,7 @@ OpenCLPlatform::OpenCLPlatform(
 
   // Create a command commands
   cl_command_queue cmd_queue = clCreateCommandQueue(
-      context, device_id, 0, &err);
+      context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
 
   if (!cmd_queue) {
     throw std::runtime_error(
