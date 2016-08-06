@@ -111,11 +111,6 @@ void CaffeQueueManager::do_start() {
           // start execution
           task->execute();
 
-		  std::cout << caffe_platform_->getNet() << std::endl;
-		  std::cout << caffe_platform_->getNet()->input_blobs()[0]->channels() << std::endl;
-		  std::cout << caffe_platform_->getNet()->input_blobs()[0]->width()<< std::endl;
-		  std::cout << caffe_platform_->getNet()->input_blobs()[0]->height()<< std::endl;
-
           // record task execution time
           uint64_t delay_time = getUs() - start_time;
 

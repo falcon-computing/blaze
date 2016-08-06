@@ -1,0 +1,115 @@
+import Array._
+import scala.math._
+import scala.util.Random
+import java.net._
+import org.apache.spark.rdd._
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+import org.apache.spark.blaze._
+
+import org.opencv.core._
+import org.opencv.highgui._
+//import org.opencv.highgui.Highgui
+import org.opencv.imgproc._
+
+class CaffeCPPClassification() 
+  extends Accelerator[Array[Float], Array[Float]] {
+
+  val id: String = "VGG-16"
+
+  def getArgNum(): Int = 0
+
+  def getArg(idx: Int): Option[_] = None
+
+	/*
+  override def call(in: Array[Double]): Array[Double] = {
+    (in, v.data).zipped.map(_ + _)
+  }
+  */
+}
+
+object Transformer { 
+	def Name2Mat(img_name: String): Mat = {
+
+		val img = Highgui.imread(img_name)
+		img
+	}
+
+	def Mat2BlazeInput(mat: Mat): Array[Float] = {
+	   val height = mat.rows()
+	   val width = mat.cols()
+	   val chanl = mat.channels()
+	   val arr = new Array[Float](height * width * chanl)
+
+	   for (i <- 0 until height) {
+		   for (j <- 0 until width) {
+			   val rgb = mat.get(i, j)
+				for (k <- 0 until chanl) {
+					arr(i * width * chanl + j * chanl + k) = rgb(k).toFloat
+				}
+		   }
+	   }
+
+	   arr
+   }
+}
+
+object TestApp {
+  def main(args : Array[String]) {
+
+	  System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+
+		  /*
+		  val path = System.getProperty("java.library.path")
+
+		  println(path)
+		  */
+
+    val conf = new SparkConf()
+    conf.setAppName("TestApp")
+
+    val sc = new SparkContext(conf)
+    val acc = new BlazeRuntime(sc)
+
+    var num_images = 16
+    var num_part = 2
+
+	/*
+    if (args.size == 2) {
+      num_images = args(0).toInt
+      num_part = args(1).toInt
+    }
+	*/
+
+	val img_list = args(0)
+	println(img_list)
+	val rdd_img_names = sc.textFile(img_list)
+
+	rdd_img_names.collect().map(println)
+
+	val rdd_img_handlers = rdd_img_names.map(Transformer.Name2Mat)
+
+	rdd_img_handlers.collect().map(println)
+
+//	val rdd_img_data = rdd_img_handlers.map(Transformer.Mat2BlazeInput)
+	/*
+    val data_rdd_acc = acc.wrap(data_rdd)
+    val res_acc = data_rdd_acc.map_acc(new CaffeCPPClassification).collect
+	*/
+
+	/*
+	var img_fname = "/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg"
+	val img = Highgui.imread(img_fname)
+	val im_height = img.rows()
+	val im_width = img.cols()
+	var im_size = im_height * im_width * 3
+
+	println(im_height)
+	println(im_width)
+	println(im_size)
+	*/
+
+    acc.stop()
+  }
+}
+

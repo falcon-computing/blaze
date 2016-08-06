@@ -8,6 +8,7 @@
 #include <string>
 #include <stdexcept>
 
+
 namespace blaze 
 {
 class CaffePlatform : public Platform 
@@ -22,13 +23,13 @@ class CaffePlatform : public Platform
 
     void changeNetwork(std::string id);
 
-	boost::shared_ptr<caffe::Net<float>> getNet();
-
   private:
     TaskEnv_ptr env_ptr_;
     std::string curr_network_;
     std::map<std::string, std::string> model_def_;
     std::map<std::string, std::string> model_wt_;
+    std::map<std::string, std::string> model_mn_;
+    std::map<std::string, std::string> model_lb_;
 
     boost::shared_ptr<caffe::Net<float> > net_;
 };

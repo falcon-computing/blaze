@@ -1,4 +1,4 @@
-include ../../Makefile.config
+include ../../../Makefile.config
 
 # check all variables
 ifeq ($(BOOST_DIR),)
@@ -8,7 +8,10 @@ ifeq ($(PROTOBUF_DIR),)
 $(error PROTOBUF_DIR not set properly in Makefile.config)
 endif
 
-MANAGER_DIR := ../../manager
+BLAZE_DIR := /curr/xuechao/prog/blaze
+
+MANAGER_DIR := $(BLAZE_DIR)/manager
+PLATFORM_DIR := $(BLAZE_DIR)/platforms/caffe_classification
 CAFFE_DIR   := /curr/xuechao/tools/caffe
 
 CFLAGS := -MMD -MP -pthread -fPIC -std=c++0x \
@@ -22,8 +25,8 @@ CFLAGS := $(CFLAGS) -O2 -DNDEBUG
 endif
 
 COMPILE := -c $(CFLAGS) \
-	   -I$(MANAGER_DIR)/include \
 	   -I$(MANAGER_DIR)/src \
+	   -I$(PLATFORM_DIR) \
 	   -I$(BOOST_DIR)/include \
 	   -I$(PROTOBUF_DIR)/include \
 	   -I$(GLOG_DIR)/include \
@@ -31,29 +34,22 @@ COMPILE := -c $(CFLAGS) \
 	   -I$(CAFFE_DIR)/include \
 	   -I$(CAFFE_DIR)/src \
 	   -I$(CAFFE_DIR)/.build_release/src \
+	   -I$(OCV_DIR)/include  \
 	   -I$(CUDA_DIR)/include
 
-				 
 LINK    := -L$(MANAGER_DIR)/lib -lblaze \
 	   -L$(CAFFE_DIR)/build/lib -lcaffe \
-		   -lpthread -lm -ldl
+	   -L$(OCV_DIR)/lib -lopencv_core -lopencv_highgui -lopencv_imgproc \
+	   -lpthread -lm -ldl
 
-DEPS	:= CaffePlatform.o \
-	   CaffeQueueManager.o
+all: classification.so
 
-DST= caffe_platform.so
+classification.so: classification.o
+	$(PP) -shared -o $@ $< $(LINK) 
 
-all: $(DST)
-
-package: 
-	cp $(DST) ../../package/nam/lib
-
-$(DST): $(DEPS)
-	$(PP) -shared -o $@ $(DEPS) $(LINK) 
-
-%.o: %.cpp *.h
+%.o: %.cpp
 	$(PP) $(COMPILE) $< -o $@
 
 clean:
-	rm -rf *.o
-	rm -rf $(DST)
+	rm -rf *.o *.d
+	rm -rf classification.so

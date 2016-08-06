@@ -22,7 +22,8 @@ COMPILE := $(CFLAGS) \
 				 	 -I$(BOOST_DIR)/include \
 				 	 -I$(PROTOBUF_DIR)/include \
 				 	 -I$(GLOG_DIR)/include \
-				 	 -I$(GFLAGS_DIR)/include
+				 	 -I$(GFLAGS_DIR)/include \
+				 	 -I$(OCV_DIR)/include
 
 LINK		:= -L$(MANAGER_DIR)/lib -lblaze \
 					 -L$(BOOST_DIR)/lib \
@@ -30,11 +31,12 @@ LINK		:= -L$(MANAGER_DIR)/lib -lblaze \
 					 -L$(PROTOBUF_DIR)/lib -lprotobuf \
 					 -L$(GLOG_DIR)/lib -lglog \
 					 -L$(GFLAGS_DIR)/lib -lgflags \
+					 -L$(OCV_DIR)/lib -lopencv_core -lopencv_highgui -lopencv_imgproc \
 					 -lpthread -lm -ldl
 
-all: app
+all: app.out
 
-app: main.o 
+app.out: main.o 
 	$(PP) -o $@ main.o $(LINK) 
 
 %.o: %.cpp Makefile
@@ -42,4 +44,4 @@ app: main.o
 
 clean:
 	rm -rf *.o
-	rm -rf app 
+	rm -rf app.out

@@ -28,6 +28,7 @@ COMPILE := -c $(CFLAGS) \
 	   -I$(PROTOBUF_DIR)/include \
 	   -I$(GLOG_DIR)/include \
 	   -I$(GFLAGS_DIR)/include \
+	   -I$(OCV_DIR)/include \
 	   -I$(CAFFE_DIR)/include \
 	   -I$(CAFFE_DIR)/src \
 	   -I$(CAFFE_DIR)/.build_release/src \
@@ -36,9 +37,10 @@ COMPILE := -c $(CFLAGS) \
 				 
 LINK    := -L$(MANAGER_DIR)/lib -lblaze \
 	   -L$(CAFFE_DIR)/build/lib -lcaffe \
+	   -L$(OCV_DIR)/lib -lopencv_core -lopencv_highgui -lopencv_imgproc \
 		   -lpthread -lm -ldl
 
-DEPS	:= CaffePlatform.o \
+DEPS	:= CaffeEnv.o CaffePlatform.o \
 	   CaffeQueueManager.o
 
 DST= caffe_platform.so
@@ -55,5 +57,5 @@ $(DST): $(DEPS)
 	$(PP) $(COMPILE) $< -o $@
 
 clean:
-	rm -rf *.o
+	rm -rf *.o *.d
 	rm -rf $(DST)

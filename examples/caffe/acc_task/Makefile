@@ -1,4 +1,4 @@
-include ../../Makefile.config
+include ../../../Makefile.config
 
 # check all variables
 ifeq ($(BOOST_DIR),)
@@ -8,7 +8,8 @@ ifeq ($(PROTOBUF_DIR),)
 $(error PROTOBUF_DIR not set properly in Makefile.config)
 endif
 
-MANAGER_DIR := ../../manager
+MANAGER_DIR := ../../../manager
+PLATFORM_DIR := ../../../platforms/caffe
 CAFFE_DIR   := /curr/xuechao/tools/caffe
 
 CFLAGS := -MMD -MP -pthread -fPIC -std=c++0x \
@@ -22,8 +23,8 @@ CFLAGS := $(CFLAGS) -O2 -DNDEBUG
 endif
 
 COMPILE := -c $(CFLAGS) \
-	   -I$(MANAGER_DIR)/include \
 	   -I$(MANAGER_DIR)/src \
+	   -I$(PLATFORM_DIR) \
 	   -I$(BOOST_DIR)/include \
 	   -I$(PROTOBUF_DIR)/include \
 	   -I$(GLOG_DIR)/include \
@@ -33,27 +34,18 @@ COMPILE := -c $(CFLAGS) \
 	   -I$(CAFFE_DIR)/.build_release/src \
 	   -I$(CUDA_DIR)/include
 
-				 
 LINK    := -L$(MANAGER_DIR)/lib -lblaze \
 	   -L$(CAFFE_DIR)/build/lib -lcaffe \
 		   -lpthread -lm -ldl
 
-DEPS	:= CaffePlatform.o \
-	   CaffeQueueManager.o
+all: vgg.so
 
-DST= caffe_platform.so
+vgg.so: vgg.o
+	$(PP) -shared -o $@ $< $(LINK) 
 
-all: $(DST)
-
-package: 
-	cp $(DST) ../../package/nam/lib
-
-$(DST): $(DEPS)
-	$(PP) -shared -o $@ $(DEPS) $(LINK) 
-
-%.o: %.cpp *.h
+%.o: %.cpp
 	$(PP) $(COMPILE) $< -o $@
 
 clean:
-	rm -rf *.o
-	rm -rf $(DST)
+	rm -rf *.o *.d
+	rm -rf vgg.so

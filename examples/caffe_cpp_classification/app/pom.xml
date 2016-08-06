@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <groupId>LoopBack</groupId>
-  <artifactId>LoopBack</artifactId>
+  <groupId>fcs_runtime.example</groupId>
+  <artifactId>caffecppclassification</artifactId>
   <packaging>jar</packaging>
-  <name>"LoopBack"</name>
+  <name>"CaffeCPPClassification"</name>
   <version>1.0</version>
   <modelVersion>4.0.0</modelVersion>
   
@@ -18,10 +18,15 @@
       <name>Falcon Computing Solutions Repository</name>
       <url>http://support.falcon-computing.com/mvn-repo</url>
     </repository>
+    <repository>
+      <id>local.repo</id>
+      <name>Local Repository</name>
+      <url>file:///curr/xuechao/repo</url>
+    </repository>
   </repositories>
 
   <properties>
-		<java.version>1.7</java.version>
+		<java.version>1.8</java.version>
     <scala.version>2.10.4</scala.version>
     <scala.binary.version>2.10</scala.binary.version>
 		<scala.tools.version>2.10</scala.tools.version>
@@ -58,6 +63,18 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>blaze_${scala.binary.version}</artifactId>
       <version>1.0</version>
+    </dependency>
+	<!--
+    <dependency>
+      <groupId>nu.pattern</groupId>
+      <artifactId>opencv</artifactId>
+      <version>2.4.9-7</version>
+    </dependency>
+	-->
+    <dependency>
+      <groupId>org</groupId>
+      <artifactId>opencv</artifactId>
+      <version>2.4.12</version>
     </dependency>
   </dependencies>
 

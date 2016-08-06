@@ -19,7 +19,8 @@ CFLAGS 	  := -c -fPIC -std=c++0x
 
 INCLUDES  := -I$(BOOST_DIR)/include \
 				     -I$(PROTOBUF_DIR)/include \
-				  	 -I$(GLOG_DIR)/include 
+				  	 -I$(GLOG_DIR)/include  \
+				  	 -I$(GFLAGS_DIR)/include 
 
 LINK		  := -L../lib -lblaze \
 						 -L$(BOOST_DIR)/lib \
@@ -30,6 +31,7 @@ LINK		  := -L../lib -lblaze \
 						 	 -lboost_regex \
 						 -L$(PROTOBUF_DIR)/lib -lprotobuf \
 						 -L$(GLOG_DIR)/lib -lglog \
+						 -L$(GFLAGS_DIR)/lib -lgflags \
 						 -lpthread -lm \
 						 -Wl,--no-as-needed -ldl
 

@@ -5,3 +5,7 @@
 *.err
 target
 Makefile.config
+
+tags
+
+*.out

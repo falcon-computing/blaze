@@ -27,10 +27,12 @@ COMPILE= $(CFLAGS) \
 				 -I$(BOOST_DIR)/include \
 				 -I$(PROTOBUF_DIR)/include \
 				 -I$(GLOG_DIR)/include \
+				 -I$(GFLAGS_DIR)/include \
 				 -I$(XILINX_OPENCL_DIR)/runtime/include/1_2 \
 				 
 LINK= -L$(MANAGER_DIR)/lib -lblaze \
 			-L$(XILINX_OPENCL_DIR)/runtime/lib/x86_64 -lOpenCL \
+			-L$(GFLAGS_DIR)/lib -lgflags \
 			-lpthread -lm -ldl
 
 DEPS= OpenCLPlatform.o \
