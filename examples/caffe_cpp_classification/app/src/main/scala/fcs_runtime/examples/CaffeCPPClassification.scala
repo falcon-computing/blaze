@@ -64,6 +64,9 @@ object Transformer {
 	 */
 
 	def Name2BlazeInput(img_name: String): Array[Float] = {
+
+	  System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+
 		val img = Highgui.imread(img_name)
 
 	   val height = img.rows()
