@@ -82,6 +82,7 @@ Task_ptr AccAgent::createTask(std::string acc_id) {
 void AccAgent::writeInput(
     Task_ptr    task, 
     std::string acc_id,
+    int         block_idx,
     void*       data_ptr,
     int         num_items, 
     int         item_length, 
@@ -94,46 +95,67 @@ void AccAgent::writeInput(
     DLOG(ERROR) << num_items << ", "
                 << item_length << ", "
                 << data_width;
-    throw invalidParam("Invalid input parameters");
+    throw invalidParam("Invalid block dimensions");
+  }
+  if (block_idx >= task->num_input) {
+    throw invalidParam("Invalid block index");
   }
 
   // create data block
   DataBlock_ptr block;
 
-  if (num_items == 1 && item_length == 1) {
-    if (data_width > 8) {
-      LOG(WARNING) << "Scalar input cannot be larger than 8 bytes, "
-                   << "force it to be 8 bytes";
-      // since scalar variable uses a long long type in the message,
-      // force data width to be 8 for safety
-      data_width = 8; 
+  int64_t block_id = block_idx;
+
+  if (!task->input_table.count(block_id)) {
+    if (num_items == 1 && item_length == 1) {
+      if (data_width > 8) {
+        LOG(WARNING) << "Scalar input cannot be larger than 8 bytes, "
+                     << "force it to be 8 bytes";
+        // since scalar variable uses a long long type in the message,
+        // force data width to be 8 for safety
+        data_width = 8; 
+      }
+      // create a normal block for scalar data
+      DataBlock_ptr new_block(new DataBlock(num_items, 
+            item_length, item_length*data_width));
+      block = new_block;
     }
-    // create a normal block for scalar data
-    DataBlock_ptr new_block(new DataBlock(num_items, 
-          item_length, item_length*data_width));
-    block = new_block;
+    else {
+      Platform* platform = platform_manager_->getPlatformByAccId(acc_id);
+      // create a platform block for normal input
+      block = platform->createBlock(
+          num_items, item_length, item_length*data_width);
+    }
+
+    // add this block to task's input_table
+    task->input_table[block_id] = block;
   }
   else {
-    Platform* platform = platform_manager_->getPlatformByAccId(acc_id);
-    // create a platform block for normal input
-    block = platform->createBlock(
-        num_items, item_length, item_length*data_width);
+    block = task->input_table[block_id];
   }
+  // write data to block
   block->writeData(data_ptr, num_items*item_length*data_width);
+}
 
-  // add the block to task's input list, block should be ready
-  task->addInputBlock(task->input_blocks.size(), block);
+void AccAgent::startTask(Task_ptr task, std::string acc_id) {
 
-  if (task->isReady()) {
-    TaskManager_ref task_manager = platform_manager_->getTaskManager(acc_id);
-    // skip the check on task_manager for now
-    // use acc_id instead of app_id for application queue for efficiency
-    task_manager.lock()->enqueue(acc_id, task.get());
+  // Force task status to ready
+  task->status = Task::READY;
+
+  // Fix task->input_blocks if this is the first time to start task
+  for (int64_t i = 0; i < task->num_input; i++) {
+    task->input_blocks.push_back(i);
   }
+
+  TaskManager_ref task_manager = platform_manager_->getTaskManager(acc_id);
+  // skip the check on task_manager for now
+  // use acc_id instead of app_id for application queue for efficiency
+  task_manager.lock()->enqueue(acc_id, task.get());
 }
 
 void AccAgent::readOutput(
     Task_ptr task, 
+    int      block_idx,
     void*    data_ptr,
     size_t   data_size) 
 {
@@ -147,11 +169,13 @@ void AccAgent::readOutput(
   if (task->status == Task::FINISHED) {
     VLOG(1) << "Task finished, starting to read output";
 
-    DataBlock_ptr block;
-    if (!task->getOutputBlock(block)) {
+    if (block_idx < task->output_blocks.size()) {
+      DataBlock_ptr block = task->output_blocks[block_idx];
+      block->readData(data_ptr, data_size);
+    }
+    else {
       throw internalError("No more output blocks");
     }
-    block->readData(data_ptr, data_size);
   }
   else {
     throw internalError("Task failed");
