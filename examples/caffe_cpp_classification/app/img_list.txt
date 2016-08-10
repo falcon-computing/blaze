@@ -3,3 +3,8 @@
 /curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
 /curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
 /curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
+/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
+/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
+/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
+/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg
+/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/cpp_app/cat.jpg

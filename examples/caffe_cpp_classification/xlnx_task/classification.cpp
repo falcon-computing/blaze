@@ -74,11 +74,12 @@ void VGG::compute() {
 
 	// Just work around
 	std::string mean_file = "/curr/xuechao/prog/caffe_fcs/data/ilsvrc12/imagenet_mean.binaryproto";
-	std::string label_file = "/curr/xuechao/prog/caffe_fcs/data/ilsvrc12/synset_words.txt";
+//	std::string label_file = "/curr/xuechao/prog/caffe_fcs/data/ilsvrc12/synset_words.txt";
 	std::string bitstream = "/curr/xuechao/prog/caffe_fcs/fcs/examples/cpp_classification/sdaccel/myproj_resyn_16_xfcn/impl/vgg16.xclbin";
 //	std::string bitstream = "/curr/xuechao/prog/caffe_falcon/examples/cpp_classification_driverTest/sdaccel/vgg16_unroll8.xclbin";
 
-	Classifier Classifier(mean_file, label_file, bitstream, net);
+//	Classifier Classifier(mean_file, label_file, bitstream, net);
+	Classifier Classifier(mean_file,  bitstream, net);
 
 	// get the pointer to input/output data
 	float* im   = (float*)getInput(0);
@@ -93,19 +94,6 @@ void VGG::compute() {
 	for (int h = 0;  h < num_images; h += batch_size) {
 		float* input  = im + image_size * h;
 		float* output = feat + feature_size * h;
-
-	//	for (int j = 0; j < /*image_size*/ 10; j++) {
-	//		std::cout << input[j] << std::endl;
-	//	}
-	
-		/*
-		cv::Mat img;
-		std::string file = "/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/client/cat.jpg";
-		img = cv::imread(file, -1);	
-		CHECK(!img.empty()) << "Unable to decode image " << file;
-		*/
-	
-
 
 		for (int i = 0; i < im_height; i++) {
 			for (int j = 0; j < im_width; j++) {
@@ -123,7 +111,16 @@ void VGG::compute() {
 		start_ts = getMs();
 		*/
 
-		std::vector<Prediction> predictions = Classifier.Classify(sample_resized);
+//		std::vector<Prediction> predictions = Classifier.Classify(sample_resized);
+		std::vector<float> output_vec;
+#if USE_FPGA
+		output_vec = Classifier.FPGA_Predict(sample_resized);
+#else
+		output_vec = Classifier.Predict(sample_resized);
+#endif
+		for (int i = 0; i < feature_size; i++) {
+			output[i] = output_vec[i];
+		}
 
 		/*
 		stop_ts = getMs();
@@ -134,11 +131,13 @@ void VGG::compute() {
 		*/
 
 		/* Print the top N predictions. */
+		/*
 		for (size_t i = 0; i < predictions.size(); ++i) {
 			Prediction p = predictions[i];
 			std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
 				<< p.first << "\"" << std::endl;
 		}
+		*/
 	}
 }
 
@@ -148,8 +147,13 @@ Classifier::Classifier(const std::string& mean_file,
                        const std::string& bitstream,
 					   boost::shared_ptr<caffe::Net<float>> net)
 					   */
+/*
 Classifier::Classifier(const std::string& mean_file,
                        const std::string& label_file,
+                       const std::string& bitstream,
+					   caffe::Net<float> *net)
+					   */
+Classifier::Classifier(const std::string& mean_file,
                        const std::string& bitstream,
 					   caffe::Net<float> *net)
 {
@@ -187,6 +191,7 @@ Classifier::Classifier(const std::string& mean_file,
   SetMean(mean_file);
 
   /* Load labels. */
+  /*
   std::ifstream labels(label_file.c_str());
   CHECK(labels) << "Unable to open labels file " << label_file;
   std::string line;
@@ -196,6 +201,7 @@ Classifier::Classifier(const std::string& mean_file,
   caffe::Blob<float>* output_layer = net_->output_blobs()[0];
   CHECK_EQ(labels_.size(), output_layer->channels())
     << "Number of labels is different from the output layer dimension.";
+	*/
 }
 
 static bool PairCompare(const std::pair<float, int>& lhs,
@@ -238,6 +244,7 @@ std::vector<Prediction> Classifier::Classify(const cv::Mat& sample_resized, int 
 #endif
 //  std::vector<float> output = Predict(img);
 
+  /*
   N = std::min<int>(labels_.size(), N);
   std::vector<int> maxN = Argmax(output, N);
   std::vector<Prediction> predictions;
@@ -247,6 +254,7 @@ std::vector<Prediction> Classifier::Classify(const cv::Mat& sample_resized, int 
   }
 
   return predictions;
+  */
 }
 
 /* Load the mean file in binaryproto format. */

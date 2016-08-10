@@ -1,4 +1,10 @@
-./cat.jpg
-./cat.jpg
-./cat.jpg
-./cat.jpg
+/curr/xuechao/prog/caffe_fcs/examples/images/wolf.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/gila.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/gila.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/gila.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/gila.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/wolf.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/gila.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/gila.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/wolf.JPEG
+/curr/xuechao/prog/caffe_fcs/examples/images/fish-bike.jpg

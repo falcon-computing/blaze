@@ -141,7 +141,7 @@ object TestApp {
     val acc = new BlazeRuntime(sc)
 
     var num_images = 2
-    var num_part = 3
+    var num_part = 1
 
 
 	/*
@@ -165,8 +165,12 @@ object TestApp {
 //	rdd_img_data.collect().map(PrintRDDElems.Print)
 
 //	rdd_img_data.repartition(num_part)
+
+	val start_ts = System.nanoTime()
     val rdd_img_data_acc = acc.wrap(rdd_img_data)
     val res_acc = rdd_img_data_acc.map_acc(new CaffeCPPClassification).collect
+	val stop_ts = System.nanoTime()
+	println("Elapsed time: " + (stop_ts - start_ts) / 1e6 + "ms")
 
     acc.stop()
   }

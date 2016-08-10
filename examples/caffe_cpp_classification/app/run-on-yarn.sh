@@ -18,8 +18,8 @@ $SPARK_HOME/bin/spark-submit --class TestApp \
 		--conf spark.executor.extraLibraryPath="${LD_LIBRARY_PATH}" \
 		--driver-memory 8G \
 		--executor-memory 8G \
-		--executor-cores 1 \
-		--num-executors 1 \
+		--executor-cores 2 \
+		--num-executors 2 \
 		--conf spark.app.name="caffe" \
 		--conf spark.yarn.executor.nodeLabelExpression="VGG-16" \
 		--master yarn-cluster \

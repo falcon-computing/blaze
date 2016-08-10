@@ -15,6 +15,7 @@ using namespace blaze;
 VGG::VGG()
 	:Task(1)
 {
+	std::cout << "You've arrived at VGG's default constructor." << std::endl;
 }
 
 void VGG::compute() {
@@ -52,20 +53,19 @@ void VGG::compute() {
 
 	// Just work around
 	std::string mean_file = "/curr/xuechao/tools/caffe/data/ilsvrc12/imagenet_mean.binaryproto";
-	std::string label_file = "/curr/xuechao/tools/caffe/data/ilsvrc12/synset_words.txt";
+//	std::string label_file = "/curr/xuechao/tools/caffe/data/ilsvrc12/synset_words.txt";
 
 //	cv::Mat mean = caffe_env->getMean();
 //	std::vector<std::string> labels = caffe_env->getLabels();
 //	Classifier Classifier(mean_file, label_file, net);
-	Classifier Classifier(mean_file, label_file, net, batch_size);
+//	Classifier Classifier(mean_file, label_file, net, batch_size);
 //	Classifier Classifier(mean, labels, net, batch_size);
+	Classifier Classifier(mean_file, net, batch_size);
 
 	// get the pointer to input/output data
 	float* im   = (float*)getInput(0);
-	/*
 	float* feat = (float*)getOutput(0, 
 			feature_size, num_images, sizeof(float));
-			*/
 
 	std::cout << "num_images=" << num_images << std::endl;
 	std::cout << "image_size=" << image_size << std::endl;
@@ -76,23 +76,15 @@ void VGG::compute() {
 
 	std::vector<cv::Mat> sample_resized_batch;
 //	cv::Mat sample_resized;
-	cv::Mat sample_resized(im_height, im_width, CV_8UC3);
 	// perform computation
-//	int img_idx = 0;
 	for (int i = 0; i < num_batches; i++) {
-//		float* input  = im + image_size * i;
-//		float* output = feat + feature_size*i;
 		for (int j = 0; j < batch_size; j++) {
 
 			std::cout << "#img=" << (i * batch_size + j) << std::endl;
 			float* input  = im + (i * batch_size + j) * image_size;
+		//	float* output  = feat + (i * batch_size + j) * feature_size;
 
-			//	std::string file = "/curr/xuechao/prog/blaze/examples/caffe_cpp_classification/client/cat.jpg";
-			// TODO: convert im into img
-			//	CvtStringcvMat(im, &img);
-			//	img = cv::imread(file, -1);	
-			//		CHECK(!img.empty()) << "Unable to decode image " << file;
-
+			cv::Mat sample_resized(im_height, im_width, CV_8UC3);
 			for (int i = 0; i < im_height; i++) {
 				for (int j = 0; j < im_width; j++) {
 					for (int k = 0; k < im_num_channels; k++) {
@@ -104,8 +96,15 @@ void VGG::compute() {
 
 			sample_resized_batch.push_back(sample_resized);
 		}
-		std::vector< std::vector<Prediction> > predictions_batch = Classifier.Classify(sample_resized_batch);
+	//	std::vector< std::vector<Prediction> > predictions_batch = Classifier.Classify(sample_resized_batch);
+		std::vector<float> output_vec_batch = Classifier.Predict(sample_resized_batch);
 
+		float* output  = feat + i * batch_size * feature_size;
+		int j = 0;
+		for (std::vector<float>::iterator it = output_vec_batch.begin(); it != output_vec_batch.end(); it++) {
+			output[j++] = *it;
+		}
+		/*
 		for (std::vector< std::vector<Prediction> >::iterator it = predictions_batch.begin(); it != predictions_batch.end(); it++) {
 			std::vector<Prediction> predictions = *it;
 			for (size_t i = 0; i < predictions.size(); ++i) {
@@ -115,10 +114,12 @@ void VGG::compute() {
 			}
 			std::cout << std::endl;
 		}
+		*/
 	}
 //	std::cout << "img_idx=" << img_idx << std::endl;
 	// Process the marginal images
 	Classifier.set_batch_size(1);
+	cv::Mat sample_resized(im_height, im_width, CV_8UC3);
 //	float *cur_im = im + num_batches * batch_size * image_size;
 	for (int h = num_batches * batch_size; h < num_images; h++) {
 		std::cout << "#img=" << h << std::endl;
@@ -134,13 +135,22 @@ void VGG::compute() {
 			}
 		}
 
-		std::vector<Prediction> predictions = Classifier.Classify(sample_resized);
+	//	std::vector<Prediction> predictions = Classifier.Classify(sample_resized);
+		std::vector<float> output_vec = Classifier.Predict(sample_resized);
 
+		float* output  = feat + h * feature_size;
+		int i = 0;
+		for (std::vector<float>::iterator it = output_vec.begin(); it != output_vec.end(); it++) {
+			output[i++] = *it;
+		}
+
+		/*
 		for (size_t i = 0; i < predictions.size(); ++i) {
 			Prediction p = predictions[i];
 			std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
 				<< p.first << "\"" << std::endl;
 		}
+		*/
 	}
 
 	/*
@@ -163,8 +173,13 @@ Classifier::Classifier(const std::string& mean_file,
 		boost::shared_ptr<caffe::Net<float>> net,
 		const int batch_size)
 		*/
+/*
 Classifier::Classifier(const std::string& mean_file,
 		const std::string& label_file,
+		caffe::Net<float> *net,
+		const int batch_size)
+		*/
+Classifier::Classifier(const std::string& mean_file,
 		caffe::Net<float> *net,
 		const int batch_size)
 {
@@ -202,7 +217,7 @@ Classifier::Classifier(const std::string& mean_file,
   caffe::Blob<float>* input_layer = net_->input_blobs()[0];
   num_channels_ = input_layer->channels();
 
-  std::cout << "num_channels=" << num_channels_ << std::endl;
+//  std::cout << "num_channels=" << num_channels_ << std::endl;
 
   CHECK(num_channels_ == 3 || num_channels_ == 1)
     << "Input layer should have 1 or 3 channels.";
@@ -213,19 +228,23 @@ Classifier::Classifier(const std::string& mean_file,
 
 
   /* Load labels. */
+  /*
   std::ifstream labels(label_file.c_str());
   CHECK(labels) << "Unable to open labels file " << label_file;
   std::string line;
   while (std::getline(labels, line))
     labels_.push_back(std::string(line));
+	*/
 
 
   caffe::Blob<float>* output_layer = net_->output_blobs()[0];
 
-  std::cout << "output_layer->channels()=" <<  output_layer->channels() << std::endl;
+//  std::cout << "output_layer->channels()=" <<  output_layer->channels() << std::endl;
 
+  /*
   CHECK_EQ(labels_.size(), output_layer->channels())
     << "Number of labels is different from the output layer dimension.";
+	*/
 }
 
 static bool PairCompare(const std::pair<float, int>& lhs,
@@ -247,6 +266,7 @@ static std::vector<int> Argmax(const std::vector<float>& v, int N) {
 }
 
 /* Return the top N predictions. */
+/*
 std::vector<Prediction> Classifier::Classify(const cv::Mat& sample_resized, int N) {
 	std::vector<float> output = Predict(sample_resized);
 
@@ -281,6 +301,7 @@ std::vector< std::vector<Prediction> > Classifier::Classify(const std::vector<cv
 
 	return predictions_batch;
 }
+*/
 
 /* Load the mean file in binaryproto format. */
 void Classifier::SetMean(const std::string& mean_file) {

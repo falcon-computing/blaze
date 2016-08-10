@@ -27,8 +27,13 @@ class Classifier {
              const std::string& bitstream,
 			 boost::shared_ptr<caffe::Net<float>> net);
 			 */
+	 /*
   Classifier(const std::string& mean_file,
              const std::string& label_file,
+             const std::string& bitstream,
+			 caffe::Net<float> *net);
+			 */
+  Classifier(const std::string& mean_file,
              const std::string& bitstream,
 			 caffe::Net<float> *net);
 
@@ -78,15 +83,15 @@ class Classifier {
   }
 #endif
 
-
- private:
-  void SetMean(const std::string& mean_file);
-
   std::vector<float> Predict(const cv::Mat& sample_resized);
 
 #if USE_FPGA
   std::vector<float> FPGA_Predict(const cv::Mat& sample_resized);
 #endif
+
+ private:
+  void SetMean(const std::string& mean_file);
+
 
   void WrapInputLayer(std::vector<cv::Mat>* input_channels);
 
@@ -100,7 +105,7 @@ class Classifier {
   cv::Size input_geometry_;
   int num_channels_;
   cv::Mat mean_;
-  std::vector<std::string> labels_;
+//  std::vector<std::string> labels_;
 };
 
 class VGG : public Task {
