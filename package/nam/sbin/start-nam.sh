@@ -38,7 +38,8 @@ if [ ! -f $CONF_FNAME ]; then
 fi
 
 # Start the node manager daemon
-nohup $DIR/../bin/nam_daemon $CONF_FNAME > $LOG_FNAME 2>&1&
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+    $DIR/../bin/nam_daemon $CONF_FNAME > $LOG_FNAME 2>&1 &
 PID=$!
 echo $PID > $PID_FNAME
 

@@ -47,67 +47,74 @@ void Admin::sendMessage(TaskMsg &msg) {
 
 bool Admin::registerAcc(ManagerConf &conf) {
 
+  try {
+    for (int i=0; i<conf.platform_size(); i++) {
+      AccPlatform platform = conf.platform(i);
+      for (int j=0; j<platform.acc_size(); j++) {
+        AccWorker acc = platform.acc(j); 
 
-  for (int i=0; i<conf.platform_size(); i++) {
-    AccPlatform platform = conf.platform(i);
-    for (int j=0; j<platform.acc_size(); j++) {
-      AccWorker acc = platform.acc(j); 
+        TaskMsg req_msg;
+        req_msg.set_type(ACCREGISTER);
 
-      TaskMsg req_msg;
-      req_msg.set_type(ACCREGISTER);
+        VLOG(1) << "Registering " << acc.id()
+          << " on platform " << platform.id();
 
-      VLOG(1) << "Registering " << acc.id()
-              << " on platform " << platform.id();
+        AccMsg* acc_msg = req_msg.mutable_acc();
+        acc_msg->set_acc_id(acc.id());
+        acc_msg->set_platform_id(platform.id());
+        //acc_msg->set_task_impl(readFile(acc.path()));
+        acc_msg->set_task_impl(acc.path());
 
-      AccMsg* acc_msg = req_msg.mutable_acc();
-      acc_msg->set_acc_id(acc.id());
-      acc_msg->set_platform_id(platform.id());
-      //acc_msg->set_task_impl(readFile(acc.path()));
-      acc_msg->set_task_impl(acc.path());
+        for (int k=0; k<acc.param_size(); k++) {
+          AccWorker::KeyValue kval = acc.param(k);
+          AccMsg::KeyValue *kval_item = acc_msg->add_param();
+          kval_item->set_key(kval.key());
 
-      for (int k=0; k<acc.param_size(); k++) {
-        AccWorker::KeyValue kval = acc.param(k);
-        AccMsg::KeyValue *kval_item = acc_msg->add_param();
-        kval_item->set_key(kval.key());
-
-        //if (kval.key().length() > 5 && 
-        //    kval.key().substr(kval.key().length()-5, 5) == "_path")
-        //{
-        //  kval_item->set_value(readFile(kval.value()));
-        //  DLOG(INFO) << "Setting " << kval.key() << " to contents of " 
-        //             << kval.value();
-        //} 
-        //else 
-        {
-          kval_item->set_value(kval.value());
-          DLOG(INFO) << "Setting " << kval.key() << " to " << kval.value();
+          //if (kval.key().length() > 5 && 
+          //    kval.key().substr(kval.key().length()-5, 5) == "_path")
+          //{
+          //  kval_item->set_value(readFile(kval.value()));
+          //  DLOG(INFO) << "Setting " << kval.key() << " to contents of " 
+          //             << kval.value();
+          //} 
+          //else 
+          {
+            kval_item->set_value(kval.value());
+            DLOG(INFO) << "Setting " << kval.key() << " to " << kval.value();
+          }
         }
-      }
 
-      sendMessage(req_msg);
+        sendMessage(req_msg);
+      }
     }
+  } catch (std::runtime_error &e) {
+    LOG(ERROR) << "Error during delete ACC:" << e.what();
   }
 }
 
 bool Admin::deleteAcc(ManagerConf &conf) {
 
-  for (int i=0; i<conf.platform_size(); i++) {
-    AccPlatform platform = conf.platform(i);
-    for (int j=0; j<platform.acc_size(); j++) {
-      AccWorker acc = platform.acc(j); 
+  try {
+    for (int i=0; i<conf.platform_size(); i++) {
+      AccPlatform platform = conf.platform(i);
+      for (int j=0; j<platform.acc_size(); j++) {
+        AccWorker acc = platform.acc(j); 
 
-      TaskMsg req_msg;
-      req_msg.set_type(ACCDELETE);
+        TaskMsg req_msg;
+        req_msg.set_type(ACCDELETE);
 
-      VLOG(1) << "Deleting " << acc.id()
-              << " on platform " << platform.id();
+        VLOG(1) << "Deleting " << acc.id()
+          << " on platform " << platform.id();
 
-      AccMsg* acc_msg = req_msg.mutable_acc();
-      acc_msg->set_acc_id(acc.id());
-      acc_msg->set_platform_id(platform.id());
+        AccMsg* acc_msg = req_msg.mutable_acc();
+        acc_msg->set_acc_id(acc.id());
+        acc_msg->set_platform_id(platform.id());
 
-      sendMessage(req_msg);
+        sendMessage(req_msg);
+      }
     }
+  } catch (std::runtime_error &e) {
+    LOG(ERROR) << "Error during delete ACC:" << e.what();
   }
 }
 } // namespace blaze
