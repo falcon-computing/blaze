@@ -96,6 +96,7 @@ void VGG::compute() {
 
 			sample_resized_batch.push_back(sample_resized);
 		}
+		std::cout << "sample_resized_batch.size()=" << sample_resized_batch.size() << std::endl;
 	//	std::vector< std::vector<Prediction> > predictions_batch = Classifier.Classify(sample_resized_batch);
 		std::vector<float> output_vec_batch = Classifier.Predict(sample_resized_batch);
 
@@ -104,6 +105,7 @@ void VGG::compute() {
 		for (std::vector<float>::iterator it = output_vec_batch.begin(); it != output_vec_batch.end(); it++) {
 			output[j++] = *it;
 		}
+		sample_resized_batch.clear();
 		/*
 		for (std::vector< std::vector<Prediction> >::iterator it = predictions_batch.begin(); it != predictions_batch.end(); it++) {
 			std::vector<Prediction> predictions = *it;

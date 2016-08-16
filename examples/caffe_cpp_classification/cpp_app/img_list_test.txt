@@ -1,0 +1,1 @@
+/curr/xuechao/prog/caffe_fcs/examples/images/wolf.JPEG

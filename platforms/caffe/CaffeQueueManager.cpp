@@ -31,14 +31,14 @@ void CaffeQueueManager::start() {
 
 void CaffeQueueManager::do_start() {
   VLOG(1) << "Start a executor for CaffeQueueManager";
-  caffe::Caffe::set_mode(caffe::Caffe::GPU);
-//  caffe::Caffe::set_mode(caffe::Caffe::CPU);
+//  caffe::Caffe::set_mode(caffe::Caffe::GPU);
+  caffe::Caffe::set_mode(caffe::Caffe::CPU);
 
   std::list<std::pair<std::string, TaskManager_ptr> > ready_queues;
 
   // TODO: need to switch if the accelerator defines other devices
-  caffe::Caffe::set_mode(caffe::Caffe::GPU);
-//  caffe::Caffe::set_mode(caffe::Caffe::CPU);
+//  caffe::Caffe::set_mode(caffe::Caffe::GPU);
+  caffe::Caffe::set_mode(caffe::Caffe::CPU);
 
   while (1) {
     if (queue_table.empty()) {
