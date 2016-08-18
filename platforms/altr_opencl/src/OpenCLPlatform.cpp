@@ -14,9 +14,7 @@ namespace blaze {
 OpenCLPlatform::OpenCLPlatform(
     std::map<std::string, std::string> &conf_table
     ): 
-  Platform(conf_table),
-  curr_program(NULL), 
-  curr_kernel(NULL)
+  Platform(conf_table)
 {
   // start platform setting up
   int err;
@@ -139,7 +137,7 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
   std::string program_path;
   std::string kernel_name;
 
-  for (int i=0; i<conf.param_size(); i++) {
+  for (int i = 0; i < conf.param_size(); i++) {
     if (conf.param(i).key().compare("program_path")==0) {
       program_path = conf.param(i).value();
     }
@@ -147,8 +145,8 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
       kernel_name = conf.param(i).value();
     }
   }
-  if (program_path.empty() || kernel_name.empty()) {
-    throw invalidParam("Invalid configuration");
+  if (program_path.empty()) {
+    throw invalidParam("Missing conf 'program_path'");
   }
 
   DLOG(INFO) << "Load Bitstream from file " << program_path.c_str();
@@ -168,14 +166,16 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
   bitstreams[conf.id()] = std::make_pair(n_i, kernelbinary);
 
   // save kernel name
-  kernel_list[conf.id()] = kernel_name;
+  if (!kernel_name.empty()) {
+    kernel_list[conf.id()] = kernel_name;
+  }
 
   // add a TaskManager, and the scheduler should be started
-  // NOTE: this must come after bitstreams.insert() otherwise
-  // changeProgram() will not find correct bitstream
   queue_manager->add(conf.id(), conf.path());
 
-  // changeProgram to switch to current accelerator
+  // Switch to current accelerator
+  // NOTE: this must come after bitstreams.insert() otherwise
+  // changeProgram() will not find correct bitstream
   try {
     changeProgram(conf.id());
   }
@@ -183,7 +183,6 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
 
     // if there is error, then remove acc from queue
     removeQueue(conf.id());
-
 
     throw e;
   }
@@ -206,27 +205,14 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
   // NOTE: current version reprograms FPGA everytime a new kernel
   // is required
-  // NOTE: there is an assumption that kernel and program are one-to-one mapped
   cl_int err;
   cl_int status;
 
   uint64_t start_t, elapse_t;
 
   // check if corresponding kernel is current
+  // TODO: check program path
   if (curr_acc_id.compare(acc_id) != 0) {
-
-    start_t = getUs();
-
-    // release previous kernel
-    if (curr_program && curr_kernel) {
-      // (mhhuang) change the order
-      clReleaseKernel(curr_kernel);
-      clReleaseProgram(curr_program);
-    }
-
-    elapse_t = getUs() - start_t;
-    DLOG(INFO) << "Releasing program and kernel takes " << 
-      elapse_t << "us.";
 
     if (bitstreams.find(acc_id) == bitstreams.end() ||
         kernel_list.find(acc_id) == kernel_list.end()) 
@@ -237,7 +223,6 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
     // load bitstream from memory
     std::pair<int, unsigned char*> bitstream = bitstreams[acc_id];
-    std::string kernel_name = kernel_list[acc_id];
 
     cl_context context = env->getContext();
     cl_device_id device_id = env->getDeviceId();
@@ -266,46 +251,45 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
       throw internalError("clCreateProgramWithBinary fails");
     }
 
-    if ((!program) || (err!=CL_SUCCESS)) {
+    if ((!program) || (err != CL_SUCCESS)) {
       LOG(ERROR) << "clCreateProgramWithBinary error, ret=" << err;
       throw internalError(
           "Failed to create compute program from binary");
     }
 
-    elapse_t = getUs() - start_t;
-    VLOG(1) << "clCreateProgramWithBinary takes " << 
-      elapse_t << "us.";
-
-    start_t = getUs();
-
-    // Create the compute kernel in the program we wish to run
-    cl_kernel kernel = clCreateKernel(
-        program, kernel_name.c_str(), &err);
-
-    if (!kernel || err != CL_SUCCESS) {
-      LOG(ERROR) << "clCreateKernel error, ret=" << err;
-      throw internalError(
-          "Failed to create compute kernel");
-    }
-
-    elapse_t = getUs() - start_t;
-    DLOG(INFO) << "clCreateKernel takes " << elapse_t << "us.";
-
-    // setup current accelerator info
-    curr_program = program;
-    curr_kernel = kernel;
-    curr_acc_id = acc_id;
+    VLOG(1) << "clCreateProgramWithBinary takes "
+            << getUs() - start_t << " us";
 
     // switch kernel handler to OpenCLEnv
-    env->changeKernel(kernel);
+    env->changeProgram(program);
+
+    // Create the compute kernel in the program we wish to run
+    if (kernel_list.count(acc_id)) {
+      start_t = getUs();
+
+      std::string kernel_name = kernel_list[acc_id];
+      cl_kernel kernel = clCreateKernel(
+          program, kernel_name.c_str(), &err);
+
+      if (!kernel || err != CL_SUCCESS) {
+        LOG(ERROR) << "clCreateKernel error, ret=" << err;
+        throw internalError(
+            "Failed to create compute kernel");
+      }
+
+      DLOG(INFO) << "clCreateKernel takes " << getUs() - start_t << " us";
+      
+      env->addKernel(kernel_name, kernel);
+    }
+
+    // setup current accelerator info
+    //curr_program = program;
+    //curr_kernel = kernel;
+    curr_acc_id = acc_id;
 
     LOG(INFO) << "Switched to new accelerator: " << acc_id;
   }
 }  
-
-cl_kernel& OpenCLPlatform::getKernel() {
-  return curr_kernel;
-}
 
 TaskEnv_ptr OpenCLPlatform::getEnv(std::string id) {
   return env_ptr; 

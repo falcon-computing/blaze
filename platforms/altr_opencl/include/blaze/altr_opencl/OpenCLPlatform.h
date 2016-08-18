@@ -8,9 +8,9 @@
 
 #include <CL/opencl.h>
 
-#include "OpenCLCommon.h"
-#include "OpenCLBlock.h"
-#include "OpenCLEnv.h"
+#include "blaze/altr_opencl/OpenCLCommon.h"
+#include "blaze/altr_opencl/OpenCLBlock.h"
+#include "blaze/altr_opencl/OpenCLEnv.h"
 #include "blaze/Platform.h"
 
 namespace blaze {
@@ -40,8 +40,6 @@ public:
 
   void changeProgram(std::string acc_id);
 
-  cl_kernel& getKernel();
-
 private:
 
   int load_file(const char* filename, char** result);
@@ -50,8 +48,8 @@ private:
   TaskEnv_ptr env_ptr;
 
   std::string curr_acc_id;
-  cl_program  curr_program;
-  cl_kernel   curr_kernel;
+  //cl_program  curr_program;
+  //cl_kernel   curr_kernel;
 
   std::map<std::string, std::pair<int, unsigned char*> > bitstreams;
   std::map<std::string, std::string> kernel_list;

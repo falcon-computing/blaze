@@ -32,6 +32,7 @@ OpenCLQueueManager::OpenCLQueueManager(
   executors.create_thread(
       boost::bind(&OpenCLQueueManager::do_start, this));
 }
+
 OpenCLQueueManager::~OpenCLQueueManager() {
   // interrupt all executors
   executors.interrupt_all();

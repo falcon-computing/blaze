@@ -21,20 +21,16 @@ class OpenCLEnv :
 {
   friend class OpenCLPlatform;
 
-public:
-  OpenCLEnv(
-      cl_context _context,
-      cl_command_queue _queue,
-      cl_device_id _device_id): 
-    context(_context), 
-    cmd_queue(_queue),
-    device_id(_device_id)
-  {;}
+ public:
+  OpenCLEnv(cl_context  context,
+      cl_command_queue  queue,
+      cl_device_id      device_id);
 
-  cl_device_id& getDeviceId() { return device_id; }
-  cl_context& getContext() { return context; }
-  cl_command_queue& getCmdQueue() { return cmd_queue; }
-  cl_kernel& getKernel() { return kernel; }
+  cl_device_id& getDeviceId();
+  cl_context& getContext();
+  cl_command_queue& getCmdQueue();
+  cl_kernel& getKernel();
+  cl_kernel& getKernel(std::string name);
 
   virtual DataBlock_ptr createBlock(
       int num_items, 
@@ -43,13 +39,15 @@ public:
       int align_width = 0, 
       int flag = BLAZE_OUTPUT_BLOCK);
 
-private:
-  void changeKernel(cl_kernel& _kernel);
+ private:
+  void addKernel(std::string name, cl_kernel& kernel);
+  void changeProgram(cl_program& program);
 
-  cl_device_id     device_id;
-  cl_context       context;
-  cl_command_queue cmd_queue;
-  cl_kernel        kernel;
+  cl_device_id     device_id_;
+  cl_context       context_;
+  cl_command_queue cmd_queue_;
+  cl_program       program_;
+  std::map<std::string, cl_kernel> kernels_;
 };
 }
 #endif
