@@ -29,6 +29,7 @@ class OpenCLEnv :
   cl_device_id& getDeviceId();
   cl_context& getContext();
   cl_command_queue& getCmdQueue();
+  cl_program& getProgram();
   cl_kernel& getKernel();
   cl_kernel& getKernel(std::string name);
 
@@ -41,7 +42,8 @@ class OpenCLEnv :
 
  private:
   void addKernel(std::string name, cl_kernel& kernel);
-  void changeProgram(cl_program& program);
+  void releaseProgram();
+  void setProgram(cl_program& program);
 
   cl_device_id     device_id_;
   cl_context       context_;

@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdexcept>
 
-#include "blaze/Task.h" 
 #include "blaze/altr_opencl/OpenCLEnv.h" 
+#include "blaze/Task.h" 
 
 using namespace blaze;
 
@@ -23,7 +23,7 @@ public:
 
     // get OpenCL context
     cl_context       context = ocl_env->getContext();
-    cl_kernel        kernel  = ocl_env->getKernel();
+    cl_program       program = ocl_env->getProgram();
     cl_command_queue command = ocl_env->getCmdQueue();
 
     // get input data length
@@ -44,6 +44,12 @@ public:
     int err;
     cl_event event;
 
+    cl_kernel kernel = clCreateKernel(program,
+        "__merlinkernel_kernel_0", &err);
+    if (err != CL_SUCCESS) {
+      throw std::runtime_error("Cannot create kernel");
+    }
+
     // execute OpenCL kernel, with the equivalent function of: 
     // memcpy(dst_data, src_data, data_length*sizeof(double))
     err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &dst_data);
@@ -56,9 +62,10 @@ public:
     if (err) {
       throw("Failed to execute kernel!");
     }
-
     // wait for kernel to finish
     clWaitForEvents(1, &event);
+
+    clReleaseKernel(kernel);
   }
 };
 

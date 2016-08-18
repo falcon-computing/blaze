@@ -24,6 +24,10 @@ cl_command_queue& OpenCLEnv::getCmdQueue() {
   return cmd_queue_;
 }
 
+cl_program& OpenCLEnv::getProgram() {
+  return program_;
+}
+
 cl_kernel& OpenCLEnv::getKernel() { 
   if (kernels_.empty()) {
     throw invalidParam("Kernel has not initialized");
@@ -56,7 +60,7 @@ void OpenCLEnv::addKernel(std::string name, cl_kernel& kernel) {
   kernels_[name] = kernel;
 }
 
-void OpenCLEnv::changeProgram(cl_program& program) {
+void OpenCLEnv::releaseProgram() {
 
   uint64_t start_t = getUs();
   // First release all the kernels related to this program
@@ -64,6 +68,7 @@ void OpenCLEnv::changeProgram(cl_program& program) {
   for (iter = kernels_.begin(); iter != kernels_.end(); iter++) {
     clReleaseKernel(iter->second);
   } 
+  kernels_.clear();
 
   // Then release the old cl_program
   if (program_) {
@@ -71,7 +76,9 @@ void OpenCLEnv::changeProgram(cl_program& program) {
   }
   DLOG(INFO) << "Releasing program and kernel takes "
              << getUs() - start_t << " us.";
+}
 
+void OpenCLEnv::setProgram(cl_program& program) {
   program_ = program;
 }
 }

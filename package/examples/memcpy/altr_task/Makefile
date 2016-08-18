@@ -9,18 +9,19 @@ ifeq ($(ALTERA_OPENCL_DIR),)
 $(error ALTERA_OPENCL_DIR should be set for compilation)
 endif
 
-PP=g++
-CFLAGS= -shared -fPIC -std=c++0x -m64
-COMPILE= $(CFLAGS) \
-				 -I$(FCS_RT_ROOT)/include \
-				 -I$(FCS_RT_ROOT)/extern/boost_1_55_0/include \
-				 -I$(FCS_RT_ROOT)/extern/googletools/include \
-	 -I$(ALTERA_OPENCL_DIR)/include 
-LINK= -L$(ALTERA_OPENCL_DIR)/linux64/lib -lalteracl
+PP	:= g++
+CFLAGS	:= -shared -fPIC -std=c++0x -m64
+COMPILE	:= $(CFLAGS) \
+	   -I$(FCS_RT_ROOT)/include \
+	   -I$(FCS_RT_ROOT)/extern/boost_1_55_0/include \
+	   -I$(FCS_RT_ROOT)/extern/googletools/include \
+	   -I$(ALTERA_OPENCL_DIR)/include 
+LINK	:= -L$(FCS_RT_ROOT)/nam/lib -l:altr_opencl.so \
+	   -L$(ALTERA_OPENCL_DIR)/linux64/lib -lalteracl
 
-ACC = Memcpy
+ACC 	:= Memcpy
 
-OBJS= $(addsuffix .so, $(ACC))
+OBJS	:= $(addsuffix .so, $(ACC))
 
 all: $(OBJS)
 

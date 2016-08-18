@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdexcept>
 
+#include "blaze/altr_opencl/OpenCLEnv.h" 
 #include "blaze/Task.h" 
-#include "OpenCLEnv.h" 
 
 using namespace blaze;
 
@@ -23,9 +23,11 @@ public:
 
     // get OpenCL context
     cl_context       context = ocl_env->getContext();
-    cl_kernel        kernel  = ocl_env->getKernel();
     cl_command_queue command = ocl_env->getCmdQueue();
-
+    cl_program       program = ocl_env->getProgram();
+    cl_kernel kernel = ocl_env->getKernel("__merlinkernel_kernel_0");
+    //cl_kernel        kernel  = ocl_env->getKernel();
+    
     // get input data length
     int data_length = getInputLength(0);
 

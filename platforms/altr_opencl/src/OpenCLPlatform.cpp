@@ -168,6 +168,8 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
   // save kernel name
   if (!kernel_name.empty()) {
     kernel_list[conf.id()] = kernel_name;
+    DLOG(INFO) << "Setting kernel[" << conf.id() << "]"
+               << " = " << kernel_name; 
   }
 
   // add a TaskManager, and the scheduler should be started
@@ -214,9 +216,7 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
   // TODO: check program path
   if (curr_acc_id.compare(acc_id) != 0) {
 
-    if (bitstreams.find(acc_id) == bitstreams.end() ||
-        kernel_list.find(acc_id) == kernel_list.end()) 
-    {
+    if (!bitstreams.count(acc_id)) {
       DLOG(ERROR) << "Bitstream not setup correctly";
       throw internalError("Cannot find bitstream information");
     }
@@ -236,6 +236,8 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
     // lock OpenCL Context
     boost::lock_guard<OpenCLEnv> guard(*env);
+
+    env->releaseProgram();
 
     start_t = getUs();
 
@@ -261,7 +263,7 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
             << getUs() - start_t << " us";
 
     // switch kernel handler to OpenCLEnv
-    env->changeProgram(program);
+    env->setProgram(program);
 
     // Create the compute kernel in the program we wish to run
     if (kernel_list.count(acc_id)) {
