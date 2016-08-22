@@ -1,1 +1,1 @@
-/curr/xuechao/prog/caffe_fcs/examples/images/wolf.JPEG
+/curr/xuechao/tools/caffe/examples/images/cat.jpg

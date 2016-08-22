@@ -16,3 +16,5 @@ export LD_LIBRARY_PATH=$MKL_DIR/lib/intel64:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$BLAZE_HOME/manager/lib:$LD_LIBRARY_PATH
 export PATH=$PROTOBUF_DIR/bin:$PATH
 export PATH=$MAVEN/bin:$PATH
+
+export LD_LIBRARY_PATH=/curr/xuechao/prog/caffe_fcs_test/examples/cpp_classification:$LD_LIBRARY_PATH

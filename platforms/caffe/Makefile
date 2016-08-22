@@ -9,7 +9,8 @@ $(error PROTOBUF_DIR not set properly in Makefile.config)
 endif
 
 MANAGER_DIR := ../../manager
-CAFFE_DIR   := /curr/xuechao/tools/caffe
+#CAFFE_DIR   := /curr/xuechao/tools/caffe
+CAFFE_DIR   := /curr/xuechao/tools/caffe-cpuonly
 
 CFLAGS := -MMD -MP -pthread -fPIC -std=c++0x \
 	  -DCAFFE_VERSION=1.0.0-rc3 \
@@ -19,6 +20,10 @@ ifeq ($(NDEBUG),)
 CFLAGS := $(CFLAGS) -g
 else
 CFLAGS := $(CFLAGS) -O2 -DNDEBUG
+endif
+
+ifeq ($(USE_GPU),1)
+	CFLAGS += -DUSE_GPU
 endif
 
 COMPILE := -c $(CFLAGS) \
@@ -41,7 +46,12 @@ LINK    := -L$(MANAGER_DIR)/lib -lblaze \
 DEPS	:= CaffePlatform.o \
 	   CaffeQueueManager.o
 
+ifeq ($(USE_GPU),1)
 DST= caffe_platform.so
+else
+DST= caffe_platform_cpuonly.so
+endif
+
 
 all: $(DST)
 

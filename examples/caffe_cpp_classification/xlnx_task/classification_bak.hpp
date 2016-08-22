@@ -33,14 +33,8 @@ class Classifier {
              const std::string& bitstream,
 			 caffe::Net<float> *net);
 			 */
-	 /*
   Classifier(const std::string& mean_file,
              const std::string& bitstream,
-			 caffe::Net<float> *net);
-			 */
-	 Classifier(const cv::Mat& mean,
-			 CNN4FPGA cnn_model,
-			 OpenCLFPGAModel fpga,
 			 caffe::Net<float> *net);
 
   ~Classifier();

@@ -31,20 +31,14 @@ void CaffeQueueManager::start() {
 
 void CaffeQueueManager::do_start() {
   VLOG(1) << "Start a executor for CaffeQueueManager";
-#ifdef USE_GPU
-  caffe::Caffe::set_mode(caffe::Caffe::GPU);
-#else
+//  caffe::Caffe::set_mode(caffe::Caffe::GPU);
   caffe::Caffe::set_mode(caffe::Caffe::CPU);
-#endif
 
   std::list<std::pair<std::string, TaskManager_ptr> > ready_queues;
 
   // TODO: need to switch if the accelerator defines other devices
-#ifdef USE_GPU
-  caffe::Caffe::set_mode(caffe::Caffe::GPU);
-#else
+//  caffe::Caffe::set_mode(caffe::Caffe::GPU);
   caffe::Caffe::set_mode(caffe::Caffe::CPU);
-#endif
 
   while (1) {
     if (queue_table.empty()) {
@@ -116,11 +110,6 @@ void CaffeQueueManager::do_start() {
 
           // start execution
           task->execute();
-
-		  std::cout << caffe_platform_->getNet() << std::endl;
-		  std::cout << caffe_platform_->getNet()->input_blobs()[0]->channels() << std::endl;
-		  std::cout << caffe_platform_->getNet()->input_blobs()[0]->width()<< std::endl;
-		  std::cout << caffe_platform_->getNet()->input_blobs()[0]->height()<< std::endl;
 
           // record task execution time
           uint64_t delay_time = getUs() - start_time;

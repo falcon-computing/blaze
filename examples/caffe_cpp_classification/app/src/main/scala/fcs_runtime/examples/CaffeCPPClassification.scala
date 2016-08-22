@@ -12,6 +12,8 @@ import org.opencv.highgui._
 //import org.opencv.highgui.Highgui
 import org.opencv.imgproc._
 
+import scala.io
+
 class CaffeCPPClassification() 
   extends Accelerator[Array[Float], Array[Float]] {
 
@@ -116,9 +118,29 @@ object Transformer {
 
 object PrintRDDElems {
 
-	def Print(arr: Array[Float]) {
+	def PrintTest(arr: Array[Float]) {
 		for (i <- 0 until 10) {
 			println(arr(i))
+		}
+	}
+
+	def PrintPredictions(arr: Array[Float]) {
+		val label_file = "/curr/xuechao/tools/caffe/data/ilsvrc12/synset_words.txt"
+		val feature_size = 1000
+		val labels = io.Source.fromFile(label_file).getLines.toList
+		val pairs = scala.collection.mutable.Map[Float, Int]()
+
+		for (i <- 0 until feature_size) {
+			pairs += (arr(i) -> i)
+		}
+
+		val pairs_sorted = scala.collection.immutable.ListMap(pairs.toSeq.sortWith(_._1 > _._1):_*)
+
+		val maxN = pairs_sorted.take(5)
+		for ((k, v) <- maxN) {
+			val first = labels(v)
+			val second = arr(v)
+			println(s"$second - $first")
 		}
 	}
 }
@@ -142,6 +164,7 @@ object TestApp {
 
     var num_images = 2
     var num_part = 1
+	var feature_size = 1000
 
 
 	/*
@@ -162,7 +185,7 @@ object TestApp {
 	val rdd_img_data = rdd_img_names.map(Transformer.Name2BlazeInput)
 
 	rdd_img_data.collect().map(println)
-//	rdd_img_data.collect().map(PrintRDDElems.Print)
+//	rdd_img_data.collect().map(PrintRDDElems.PrintTest)
 
 //	rdd_img_data.repartition(num_part)
 
@@ -171,6 +194,8 @@ object TestApp {
     val res_acc = rdd_img_data_acc.map_acc(new CaffeCPPClassification).collect
 	val stop_ts = System.nanoTime()
 	println("Elapsed time: " + (stop_ts - start_ts) / 1e6 + "ms")
+
+	res_acc.map(PrintRDDElems.PrintPredictions)
 
     acc.stop()
   }

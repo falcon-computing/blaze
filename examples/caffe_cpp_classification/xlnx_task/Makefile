@@ -10,8 +10,10 @@ endif
 
 
 MANAGER_DIR := ../../../manager
-PLATFORM_DIR := ../../../platforms/caffe
-CAFFE_DIR   := /curr/xuechao/prog/caffe_fcs
+#PLATFORM_DIR := ../../../platforms/caffe_fcs
+PLATFORM_DIR := /curr/xuechao/prog/blaze/platforms/caffe_fcs
+CAFFE_DIR   := /curr/xuechao/tools/caffe-cpuonly
+CAFFE_FCS_DIR := /curr/xuechao/prog/caffe_fcs_test
 SDACCEL_DIR := /curr/software/Xilinx/SDAccel/2015.4
 
 PP = $(SDACCEL_DIR)/lnx64/tools/gcc/bin/gcc
@@ -38,25 +40,32 @@ COMPILE := -c $(CFLAGS) \
 	   -I$(GFLAGS_DIR)/include \
 	   -I$(CAFFE_DIR)/include \
 	   -I$(CAFFE_DIR)/src \
-	   -I$(CAFFE_DIR)/.build_debug/src \
-	   -I$(OCV_DIR)/include
+	   -I$(CAFFE_DIR)/build/src \
+	   -I$(OCV_DIR)/include \
 #  -I$(CUDA_DIR)/include
 
 COMPILE += -I$(CAFFE_DIR)/fcs/examples/cpp_classification \
 		   -I$(SDACCEL_DIR)/runtime/include/1_2 \
 		   -I$(SDACCEL_DIR)/Vivado_HLS/include
 
+COMPILE += -I$(CAFFE_FCS_DIR)/examples/cpp_classification
 
 LINK    := -L$(MANAGER_DIR)/lib -lblaze \
 	   -L$(CAFFE_DIR)/build/lib -lcaffe \
 	   -L$(OCV_DIR)/lib -lopencv_core -lopencv_highgui -lopencv_imgproc \
-	   -lpthread -lm -ldl
+	   -lpthread -lm -ldl \
+		-L$(PLATFORM_DIR) -l:caffe_platform.so
 
 LINK += -L/curr/hanhu/sdaccel_library/pkg_ku3_2015.4_2ddr/pcie -L$(SDACCEL_DIR)/runtime/lib/x86_64 -lxilinxopencl
 
-all: classification.so
+LINK += -L$(CAFFE_FCS_DIR)/examples/cpp_classification/ -lfalconMLlib
+
+all: classification_bak.so classification.so
 
 classification.so: classification.o
+	$(PP) -shared -o $@ $< $(LINK) 
+
+classification_bak.so: classification_bak.o
 	$(PP) -shared -o $@ $< $(LINK) 
 
 %.o: %.cpp
@@ -64,4 +73,4 @@ classification.so: classification.o
 
 clean:
 	rm -rf *.o *.d
-	rm -rf classification.so
+	rm -rf classification.so classification_bak.so

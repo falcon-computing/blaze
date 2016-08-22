@@ -8,7 +8,7 @@
 
 #include "CaffeEnv.h"
 
-#include "classification.hpp" 
+#include "classification_bak.hpp" 
 
 using namespace blaze;
 
@@ -73,14 +73,13 @@ void VGG::compute() {
 //	boost::shared_ptr<caffe::Net<float>> net(caffe_env->getNet());
 
 	// Just work around
-//	std::string mean_file = "/curr/xuechao/prog/caffe_fcs/data/ilsvrc12/imagenet_mean.binaryproto";
+	std::string mean_file = "/curr/xuechao/prog/caffe/data/ilsvrc12/imagenet_mean.binaryproto";
 //	std::string label_file = "/curr/xuechao/prog/caffe_fcs/data/ilsvrc12/synset_words.txt";
-//	std::string bitstream = "/curr/xuechao/prog/caffe_fcs/fcs/examples/cpp_classification/sdaccel/myproj_resyn_16_xfcn/impl/vgg16.xclbin";
+	std::string bitstream = "/curr/xuechao/prog/caffe_fcs_test/examples/cpp_classification/sdaccel/myproj_resyn_16_xfcn/impl/vgg16.xclbin";
 //	std::string bitstream = "/curr/xuechao/prog/caffe_falcon/examples/cpp_classification_driverTest/sdaccel/vgg16_unroll8.xclbin";
 
 //	Classifier Classifier(mean_file, label_file, bitstream, net);
-//	Classifier Classifier(mean_file,  bitstream, net);
-	Classifier Classifier(caffe_env->getMean(), caffe_env->getCNNModel(), caffe_env->getFPGAModel(), net);
+	Classifier Classifier(mean_file,  bitstream, net);
 
 	// get the pointer to input/output data
 	float* im   = (float*)getInput(0);
@@ -154,27 +153,20 @@ Classifier::Classifier(const std::string& mean_file,
                        const std::string& bitstream,
 					   caffe::Net<float> *net)
 					   */
-Classifier::Classifier(const cv::Mat& mean,
-                       CNN4FPGA cnn_model,
-					   OpenCLFPGAModel fpga,
-					   caffe::Net<float> *net)
+Classifier::Classifier(const std::string& mean_file,
+		const std::string& bitstream,
+		caffe::Net<float> *net)
 {
 
-	mean_ = mean;
-	cnn_model_ = cnn_model;
-	fpga_ = fpga;
 	net_ = net;
 //	std::cout << net_->num_inputs() << std::endl;
 //	std::cout << net_->num_outputs() << std::endl;
 
 #if USE_FPGA
-	/*
-  cnn_model.setCNNModel(net_);
-  fpga.setFPGAModel(bitstream.c_str(), cnn_model);
-  fpga.FPGAinit();
+  cnn_model_.setCNNModel(net_);
+  fpga_.setFPGAModel(bitstream.c_str(), cnn_model_);
+  fpga_.FPGAinit();
   printf("finish FPGA initilization\n");
-  */
-//	std::cout << "cnn_model_.infm_len()=" << cnn_model_.infm_len() << std::endl;
 #endif
 #if USE_PTHD
   param_flag = 0;
@@ -196,7 +188,7 @@ Classifier::Classifier(const cv::Mat& mean,
   input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
 
   /* Load the binaryproto mean file. */
-//  SetMean(mean_file);
+  SetMean(mean_file);
 
   /* Load labels. */
   /*
