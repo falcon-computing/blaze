@@ -323,6 +323,22 @@ DataBlock_ptr OpenCLPlatform::createBlock(
   return block;
 }
 
+DataBlock_ptr OpenCLPlatform::createBlock( 
+    char bankID,
+    int num_items, 
+    int item_length,
+    int item_size, 
+    int align_width,
+    int flag)
+{
+  DataBlock_ptr block(new OpenCLBlock(env,
+        bankID,
+        num_items, item_length, item_size, 
+        align_width, flag));  
+
+  return block;
+}
+
 int OpenCLPlatform::load_file(
     const char *filename, 
     char **result)

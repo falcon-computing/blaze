@@ -11,6 +11,11 @@ public:
       int num_items, int item_length, int item_size, 
       int align_width = 0, int flag = BLAZE_INPUT_BLOCK);
 
+  virtual DataBlock_ptr createBlock(char bankID,
+      int num_items, int item_length, int item_size, 
+      int align_width = 0, int flag = BLAZE_INPUT_BLOCK);
+
+
   virtual DataBlock_ptr createBlock(const DataBlock& block);
 };
 }

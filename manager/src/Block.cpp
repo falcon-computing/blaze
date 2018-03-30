@@ -50,6 +50,51 @@ DataBlock::DataBlock(
 
   // NOTE: lazy allocation
   //data = new char[_size];
+
+  //default bank ID is 0
+  bankID = 0;
+}
+
+DataBlock::DataBlock(
+    char _bankID,
+    int _num_items, 
+    int _item_length,
+    int _item_size,
+    int _align_width,
+    int _flag):
+  num_items(_num_items),
+  item_length(_item_length),
+  align_width(_align_width),
+  flag(_flag),
+  bankID(_bankID),
+  allocated(false),
+  ready(false),
+  copied(false),
+  data(NULL)
+{
+
+  data_width = _item_size / _item_length;
+
+  if (_align_width == 0 ||
+      _item_size % _align_width == 0) 
+  {
+    item_size = _item_size;
+    aligned = false;
+  }
+  else {
+    item_size = (_item_length*data_width + _align_width - 1) /
+      _align_width * _align_width;
+    aligned = true;
+  }
+  length = num_items * item_length;
+  size   = num_items * item_size;
+
+  if (length <= 0 || size <= 0 || data_width < 1) {
+    throw std::runtime_error("Invalid parameters");
+  }
+
+  // NOTE: lazy allocation
+  //data = new char[_size];
 }
 
 DataBlock::DataBlock(const DataBlock &block) {

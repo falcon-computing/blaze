@@ -31,6 +31,23 @@ Task_ptr TaskManager::create() {
   return task;
 }
 
+uint64_t TaskManager::get_queue_delay(){
+    return queue_delay.load(boost::memory_order_acq_rel);
+}
+
+void TaskManager::modify_queue_delay(uint64_t cur_delay, bool add_or_sub){
+    if(add_or_sub){
+        fprintf(stderr, "queueing delay increases from %lld", get_queue_delay());
+        queue_delay.fetch_add(cur_delay, boost::memory_order_acq_rel);
+        fprintf(stderr, "to %lld\n", get_queue_delay());
+    }
+    else{
+        fprintf(stderr, "queueing delay decreases from %lld", get_queue_delay());
+        queue_delay.fetch_sub(cur_delay, boost::memory_order_acq_rel);
+        fprintf(stderr, "to %lld\n", get_queue_delay());
+    }
+}
+
 void TaskManager::enqueue(std::string app_id, Task* task) {
 
   if (!task->isReady()) {
@@ -127,7 +144,6 @@ bool TaskManager::execute() {
     // start execution
     task->execute();
     uint64_t delay_time = getUs() - start_time;
-
     VLOG(1) << "Task finishes in " << delay_time << " us";
   } 
   catch (std::runtime_error &e) {

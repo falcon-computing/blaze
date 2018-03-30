@@ -28,7 +28,7 @@ Client::Client(
 
   // setup app_id
   std::stringstream ss;
-  ss << "native-app-" << getTid() << rand()%1024;
+  ss << "native-app-" << getTid();
   app_id = ss.str();
 }
 
@@ -39,6 +39,7 @@ void* Client::createInput(
     int data_width, 
     int type) 
 {
+
   if (idx >= num_inputs) {
     LOG(ERROR) << "Index out of range: idx=" << idx
                << ", num_inputs=" << num_inputs;
@@ -92,6 +93,70 @@ void* Client::createInput(
 
   return block->getData();
 }
+
+
+void* Client::createInput(
+    char bankID,
+    int idx,
+    int num_items, 
+    int item_length, 
+    int data_width, 
+    int type) 
+{
+  if (idx >= num_inputs) {
+    LOG(ERROR) << "Index out of range: idx=" << idx
+               << ", num_inputs=" << num_inputs;
+    throw invalidParam("index out of range");
+  }
+  else if (input_blocks[idx]) {
+    LOG(WARNING) << "Block with idx=" << idx
+                 << " is already allocated, returning data ptr";
+    return (void*)input_blocks[idx]->getData();
+  }
+  if (num_items <= 0 || 
+      item_length <= 0 || 
+      data_width <= 0 ||
+      type > BLAZE_SHARED)
+  {
+    LOG(ERROR) << num_items << ", "
+               << item_length << ", "
+               << data_width << ", "
+               << type;
+    throw invalidParam("Invalid input parameters");
+  }
+
+  if (num_items == 1 && item_length == 1) {
+    if (data_width > 8) {
+      LOG(WARNING) << "Scalar input cannot be larger than 8 bytes, "
+                   << "force it to be 8 bytes";
+    }
+    // since scalar variable uses a long long type in the message,
+    // force data width to be 8 for safety
+    data_width = 8; 
+  }
+
+  // create a new block and add it to input table
+  DataBlock_ptr block(new DataBlock(bankID, num_items, 
+        item_length, item_length*data_width));
+
+  input_blocks[idx] = block;
+
+  // generate block info include (id, cached)
+  int64_t block_id = ((int64_t)getTid()<<10) + idx;
+  bool    cached   = false;
+
+  if (type==BLAZE_INPUT_CACHED) {
+    cached = true;
+  }
+  else if (type==BLAZE_SHARED) {
+    block_id = 0 - block_id; // broadcast id is negative
+    cached = true;
+  }
+  block_info[idx] = std::make_pair(block_id, cached);
+
+  return block->getData();
+}
+
 
 void* Client::createOutput(
     int idx,
@@ -149,6 +214,41 @@ void Client::setInput(int idx, void* src,
       throw invalidParam("Invalid input parameters");
     }
     void *dst = createInput(idx, num_items, item_length, data_width, type);
+    memcpy(dst, src, num_items*item_length*data_width);
+  }
+  else {
+    DataBlock_ptr block = input_blocks[idx];
+    if (num_items !=  block->getNumItems() ||
+        item_length != block->getItemLength() ||
+        item_length*data_width != block->getItemSize()) 
+    {
+      throw invalidParam("Block size does not match");
+    }
+    memcpy((void*)block->getData(), src, 
+        input_blocks[idx]->getSize());
+  }
+}
+
+
+// experimental feature
+void Client::setInput(char bankID, int idx, void* src,
+    int num_items, 
+    int item_length, 
+    int data_width, 
+    int type) 
+{
+  if (idx >= num_inputs) {
+    throw invalidParam("Invalid input block");
+  }
+  if (!input_blocks[idx]) {
+    if (num_items <= 0 || 
+        item_length <= 0 || 
+        data_width <= 0 ||
+        type >= BLAZE_SHARED)
+    {
+      throw invalidParam("Invalid input parameters");
+    }
+    void *dst = createInput(bankID, idx, num_items, item_length, data_width, type);
     memcpy(dst, src, num_items*item_length*data_width);
   }
   else {
@@ -335,6 +435,7 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
       data_msg->set_num_elements(block->getNumItems());
       data_msg->set_element_length(block->getItemLength());
       data_msg->set_element_size(block->getItemSize());
+      data_msg->set_bankID(block->getBankID());
 
       VLOG(1) << "Finish writing " << i;
     }

@@ -24,6 +24,12 @@ public:
       int _item_size,
       int _align_width = 0,
       int _flag = BLAZE_INPUT_BLOCK);
+
+   DataBlock(char _bankID, int _num_items, 
+      int _item_length,
+      int _item_size,
+      int _align_width = 0,
+      int _flag = BLAZE_INPUT_BLOCK);
     
   DataBlock(const DataBlock &block);
 
@@ -60,6 +66,8 @@ public:
   int getSize() { return size; }
   int getFlag() { return flag; }
 
+  char getBankID() { return bankID; }
+
   // status check of DataBlock needs to be exclusive
   bool isAllocated();
   bool isReady();
@@ -73,6 +81,8 @@ protected:
   int align_width;  /* align data width per data item */
   int length;       /* total number of elements */
   int64_t size;     /* total byte size of the data block */
+
+  char bankID; /*DRAM bank id*/
 
   bool allocated;
   bool aligned;

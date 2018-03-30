@@ -256,7 +256,19 @@ void AppCommManager::process(socket_ptr sock) {
         }
       }
 
-      // 1.4 decide to reject the task if wait time is too long
+// 1.4 decide to reject the task if wait time is too long
+      uint64_t client_time = task->estimateClientTime();
+      uint64_t delay_time = task_manager.lock()->get_queue_delay();
+      uint64_t task_time = task->estimateTaskTime();
+      if(task_time + delay_time > client_time){
+        VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
+            << "task time = " << task_time * 1e-9 << "secs, " 
+            << "client time = " << client_time * 1e-9 << "secs.";
+        throw AccReject("Queueing delay is too long");
+      }
+      else{
+        task_manager.lock()->modify_queue_delay(task_time, true);
+      }
 #if 0
       int task_time = task_manager.lock()->estimateTime(task.get());
       int task_speedup = task->estimateSpeedup();
@@ -276,6 +288,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
       }
 #endif
+
 
       // 1.5 send msg back to client
       reply_msg.set_type(ACCGRANT);
@@ -361,9 +374,15 @@ void AppCommManager::process(socket_ptr sock) {
                   throw AccFailure("Missing block size in ACCDATA");
                 }
 
+                if (!recv_block.has_bankID()){
+                  throw AccFailure("Missing block bank ID in ACCDATA");
+                }
+
+
                 int num_elements    = recv_block.num_elements();
                 int element_length  = recv_block.element_length();
                 int element_size    = recv_block.element_size();
+                char bankID         = recv_block.bankID();
 
                 // check task config table to see if task is aligned
                 int align_width = 0;
@@ -377,7 +396,7 @@ void AppCommManager::process(socket_ptr sock) {
                   DLOG(INFO) << "Skip cache for block " << blockId;
 
                   // the block should skip cache
-                  block = platform->createBlock(
+                  block = platform->createBlock(bankID,
                       num_elements, element_length, element_size,
                       align_width);
                 }
@@ -454,6 +473,9 @@ void AppCommManager::process(socket_ptr sock) {
         }
       } // 2. Finish handling ACCDATA
 
+
+
+
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(
@@ -485,6 +507,8 @@ void AppCommManager::process(socket_ptr sock) {
       TaskMsg finish_msg;
 
       if (task->status == Task::FINISHED) {
+        uint64_t expected_delay_time = task->estimateTaskTime();
+        task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
         VLOG(1) << "Task finished, starting to read output";
         // add block information to finish message 

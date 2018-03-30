@@ -35,6 +35,16 @@ public:
       int align_width = 0, 
       int flag = BLAZE_INPUT_BLOCK);
 
+  // create a block object for the specific platform
+  virtual DataBlock_ptr createBlock(
+      char bankID,
+      int num_items, 
+      int item_length,
+      int item_size, 
+      int align_width = 0, 
+      int flag = BLAZE_INPUT_BLOCK);
+
+
   virtual DataBlock_ptr createBlock(const DataBlock&);
 
   virtual void remove(int64_t block_id);

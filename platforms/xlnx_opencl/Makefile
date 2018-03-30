@@ -11,12 +11,8 @@ ifeq ($(PROTOBUF_DIR),)
 $(error PROTOBUF_DIR not set properly in Makefile.config)
 endif
 
-PP=$(XILINX_OPENCL_DIR)/lnx64/tools/gcc/bin/g++
-CC=$(XILINX_OPENCL_DIR)/lnx64/tools/gcc/bin/gcc
-
-ifeq ("$(wildcard $(PP))","")
-$(error XILINX_OPENCL_DIR not set properly)
-endif
+PP=g++
+CC=gcc
 
 MANAGER_DIR	:=../../manager
 

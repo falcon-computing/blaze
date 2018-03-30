@@ -33,6 +33,14 @@ public:
                      int data_width, 
                      int type = BLAZE_INPUT);
 
+  void* createInput( char bankID,
+                     int idx,
+                     int num_items, 
+                     int item_length, 
+                     int data_width, 
+                     int type = BLAZE_INPUT);
+
+
   void* createOutput(int idx,
                      int num_items, 
                      int item_length, 
@@ -41,6 +49,12 @@ public:
   // copy data to an input block from a pointer,
   // allocate the space if the block has not been created
   void setInput(int idx, void* src, 
+                int num_items = 0,
+                int item_length = 0, 
+                int data_width = 0,
+                int type = BLAZE_INPUT);
+
+  void setInput(char bankID, int idx, void* src, 
                 int num_items = 0,
                 int item_length = 0, 
                 int data_width = 0,
