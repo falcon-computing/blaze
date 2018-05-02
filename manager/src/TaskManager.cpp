@@ -73,7 +73,7 @@ void TaskManager::enqueue(std::string app_id, Task* task) {
   // push task to queue
   bool enqueued = queue->push(task);
   while (!enqueued) {
-    boost::this_thread::sleep_for(boost::chrono::microseconds(100)); 
+    boost::this_thread::sleep_for(boost::chrono::microseconds(0)); 
     enqueued = queue->push(task);
   }
 }

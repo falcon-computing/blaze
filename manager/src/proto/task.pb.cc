@@ -56,7 +56,7 @@ void protobuf_AssignDesc_task_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataMsg, file_size_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataMsg, file_offset_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataMsg, mask_path_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataMsg, bankID_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataMsg, bankid_),
   };
   DataMsg_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -166,25 +166,26 @@ void protobuf_AddDesc_task_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\ntask.proto\022\005blaze\"\350\001\n\007DataMsg\022\024\n\014parti"
+    "\n\ntask.proto\022\005blaze\"\370\001\n\007DataMsg\022\024\n\014parti"
     "tion_id\030\001 \001(\003\022\016\n\006cached\030\002 \001(\010\022\017\n\007sampled"
     "\030\003 \001(\010\022\026\n\016element_length\030\004 \001(\005\022\024\n\014elemen"
     "t_size\030\005 \001(\005\022\024\n\014num_elements\030\006 \001(\005\022\024\n\014sc"
     "alar_value\030\007 \001(\003\022\021\n\tfile_path\030\010 \001(\t\022\021\n\tf"
     "ile_size\030\t \001(\003\022\023\n\013file_offset\030\n \001(\003\022\021\n\tm"
-    "ask_path\030\013 \001(\t\"\216\001\n\007TaskMsg\022\034\n\004type\030\001 \002(\016"
-    "2\016.blaze.MsgType\022\016\n\006app_id\030\002 \001(\t\022\016\n\006acc_"
-    "id\030\003 \001(\t\022\034\n\004data\030\004 \003(\0132\016.blaze.DataMsg\022\032"
-    "\n\003acc\030\005 \001(\0132\r.blaze.AccMsg\022\013\n\003msg\030\006 \001(\t\""
-    "\217\001\n\006AccMsg\022\016\n\006acc_id\030\001 \002(\t\022\023\n\013platform_i"
-    "d\030\002 \002(\t\022\021\n\ttask_impl\030\003 \001(\014\022%\n\005param\030\004 \003("
-    "\0132\026.blaze.AccMsg.KeyValue\032&\n\010KeyValue\022\013\n"
-    "\003key\030\001 \002(\t\022\r\n\005value\030\002 \002(\014*\241\001\n\007MsgType\022\016\n"
-    "\nACCREQUEST\020\000\022\014\n\010ACCGRANT\020\001\022\r\n\tACCREJECT"
-    "\020\002\022\r\n\tACCFINISH\020\003\022\013\n\007ACCDATA\020\004\022\016\n\nACCFAI"
-    "LURE\020\005\022\020\n\014ACCBROADCAST\020\006\022\013\n\007ACCTERM\020\007\022\017\n"
-    "\013ACCREGISTER\020\010\022\r\n\tACCDELETE\020\tB$\n\026org.apa"
-    "che.spark.blazeB\nAccMessage", 747);
+    "ask_path\030\013 \001(\t\022\016\n\006bankID\030\014 \001(\005\"\216\001\n\007TaskM"
+    "sg\022\034\n\004type\030\001 \002(\0162\016.blaze.MsgType\022\016\n\006app_"
+    "id\030\002 \001(\t\022\016\n\006acc_id\030\003 \001(\t\022\034\n\004data\030\004 \003(\0132\016"
+    ".blaze.DataMsg\022\032\n\003acc\030\005 \001(\0132\r.blaze.AccM"
+    "sg\022\013\n\003msg\030\006 \001(\t\"\217\001\n\006AccMsg\022\016\n\006acc_id\030\001 \002"
+    "(\t\022\023\n\013platform_id\030\002 \002(\t\022\021\n\ttask_impl\030\003 \001"
+    "(\014\022%\n\005param\030\004 \003(\0132\026.blaze.AccMsg.KeyValu"
+    "e\032&\n\010KeyValue\022\013\n\003key\030\001 \002(\t\022\r\n\005value\030\002 \002("
+    "\014*\241\001\n\007MsgType\022\016\n\nACCREQUEST\020\000\022\014\n\010ACCGRAN"
+    "T\020\001\022\r\n\tACCREJECT\020\002\022\r\n\tACCFINISH\020\003\022\013\n\007ACC"
+    "DATA\020\004\022\016\n\nACCFAILURE\020\005\022\020\n\014ACCBROADCAST\020\006"
+    "\022\013\n\007ACCTERM\020\007\022\017\n\013ACCREGISTER\020\010\022\r\n\tACCDEL"
+    "ETE\020\tB$\n\026org.apache.spark.blazeB\nAccMess"
+    "age", 763);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "task.proto", &protobuf_RegisterTypes);
   DataMsg::default_instance_ = new DataMsg();
@@ -241,6 +242,7 @@ const int DataMsg::kFilePathFieldNumber;
 const int DataMsg::kFileSizeFieldNumber;
 const int DataMsg::kFileOffsetFieldNumber;
 const int DataMsg::kMaskPathFieldNumber;
+const int DataMsg::kBankIDFieldNumber;
 #endif  // !_MSC_VER
 
 DataMsg::DataMsg()
@@ -270,7 +272,7 @@ void DataMsg::SharedCtor() {
   file_size_ = GOOGLE_LONGLONG(0);
   file_offset_ = GOOGLE_LONGLONG(0);
   mask_path_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  bankID_ = 0;
+  bankid_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -333,8 +335,8 @@ void DataMsg::Clear() {
         mask_path_->clear();
       }
     }
+    bankid_ = 0;
   }
-  bankID_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -518,7 +520,7 @@ bool DataMsg::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(100)) goto parse_bankID;
+        if (input->ExpectTag(96)) goto parse_bankID;
         break;
       }
 
@@ -529,8 +531,8 @@ bool DataMsg::MergePartialFromCodedStream(
          parse_bankID:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &bankID_)));
-          set_has_bankID();
+                 input, &bankid_)));
+          set_has_bankid();
         } else {
           goto handle_uninterpreted;
         }
@@ -620,8 +622,8 @@ void DataMsg::SerializeWithCachedSizes(
   }
 
   // optional int32 bankID = 12;
-  if (has_bankID()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(12, this->bankID(), output);
+  if (has_bankid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(12, this->bankid(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -698,8 +700,8 @@ void DataMsg::SerializeWithCachedSizes(
   }
 
   // optional int32 bankID = 12;
-  if (has_bankID()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(12, this->bankID(), target);
+  if (has_bankid()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(12, this->bankid(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -789,10 +791,10 @@ int DataMsg::ByteSize() const {
     }
 
     // optional int32 bankID = 12;
-    if (has_bankID()) {
+    if (has_bankid()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->bankID());
+          this->bankid());
     }
 
   }
@@ -857,8 +859,8 @@ void DataMsg::MergeFrom(const DataMsg& from) {
     if (from.has_mask_path()) {
       set_mask_path(from.mask_path());
     }
-    if (from.has_bankID()) {
-      set_bankID(from.bankID());
+    if (from.has_bankid()) {
+      set_bankid(from.bankid());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -894,7 +896,7 @@ void DataMsg::Swap(DataMsg* other) {
     std::swap(file_size_, other->file_size_);
     std::swap(file_offset_, other->file_offset_);
     std::swap(mask_path_, other->mask_path_);
-    std::swap(bankID_, other->bankID_);
+    std::swap(bankid_, other->bankid_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

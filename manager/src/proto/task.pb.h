@@ -210,13 +210,11 @@ class DataMsg : public ::google::protobuf::Message {
   inline void set_allocated_mask_path(::std::string* mask_path);
 
   // optional int32 bankID = 12;
-  inline bool has_bankID() const;
-  inline void clear_bankID();
+  inline bool has_bankid() const;
+  inline void clear_bankid();
   static const int kBankIDFieldNumber = 12;
-  inline ::google::protobuf::int32 bankID() const;
-  inline void set_bankID(::google::protobuf::int32 value);
-
-
+  inline ::google::protobuf::int32 bankid() const;
+  inline void set_bankid(::google::protobuf::int32 value);
 
   // @@protoc_insertion_point(class_scope:blaze.DataMsg)
  private:
@@ -242,9 +240,8 @@ class DataMsg : public ::google::protobuf::Message {
   inline void clear_has_file_offset();
   inline void set_has_mask_path();
   inline void clear_has_mask_path();
-
-  inline void set_has_bankID();
-  inline void clear_has_bankID();
+  inline void set_has_bankid();
+  inline void clear_has_bankid();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -259,10 +256,9 @@ class DataMsg : public ::google::protobuf::Message {
   ::google::protobuf::int64 file_size_;
   ::google::protobuf::int64 file_offset_;
   ::std::string* mask_path_;
-  ::google::protobuf::int32 bankID_;
+  ::google::protobuf::int32 bankid_;
 
   mutable int _cached_size_;
-  //::google::protobuf::uint32 _has_bits_[(11 + 31) / 32];
   ::google::protobuf::uint32 _has_bits_[(12 + 31) / 32];
 
   friend void  protobuf_AddDesc_task_2eproto();
@@ -1004,25 +1000,25 @@ inline void DataMsg::set_allocated_mask_path(::std::string* mask_path) {
 }
 
 // optional int32 bankID = 12;
-inline bool DataMsg::has_bankID() const {
+inline bool DataMsg::has_bankid() const {
   return (_has_bits_[0] & 0x00000800u) != 0;
 }
-inline void DataMsg::set_has_bankID() {
+inline void DataMsg::set_has_bankid() {
   _has_bits_[0] |= 0x00000800u;
 }
-inline void DataMsg::clear_has_bankID() {
+inline void DataMsg::clear_has_bankid() {
   _has_bits_[0] &= ~0x00000800u;
 }
-inline void DataMsg::clear_bankID() {
-  bankID_ = 0;
-  clear_has_bankID();
+inline void DataMsg::clear_bankid() {
+  bankid_ = 0;
+  clear_has_bankid();
 }
-inline ::google::protobuf::int32 DataMsg::bankID() const {
-  return bankID_;
+inline ::google::protobuf::int32 DataMsg::bankid() const {
+  return bankid_;
 }
-inline void DataMsg::set_bankID(::google::protobuf::int32 value) {
-  set_has_bankID();
-  bankID_ = value;
+inline void DataMsg::set_bankid(::google::protobuf::int32 value) {
+  set_has_bankid();
+  bankid_ = value;
 }
 
 // -------------------------------------------------------------------

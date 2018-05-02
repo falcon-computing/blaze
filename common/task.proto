@@ -28,6 +28,7 @@ message DataMsg {
   optional int64 file_size = 9;
   optional int64 file_offset = 10;
   optional string mask_path = 11;
+  optional int32 bankID = 12;
 }
 
 message TaskMsg {

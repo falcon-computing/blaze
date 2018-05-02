@@ -435,7 +435,7 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
       data_msg->set_num_elements(block->getNumItems());
       data_msg->set_element_length(block->getItemLength());
       data_msg->set_element_size(block->getItemSize());
-      data_msg->set_bankID(block->getBankID());
+      data_msg->set_bankid(block->getBankID());
 
       VLOG(1) << "Finish writing " << i;
     }

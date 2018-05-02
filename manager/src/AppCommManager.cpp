@@ -374,7 +374,7 @@ void AppCommManager::process(socket_ptr sock) {
                   throw AccFailure("Missing block size in ACCDATA");
                 }
 
-                if (!recv_block.has_bankID()){
+                if (!recv_block.has_bankid()){
                   throw AccFailure("Missing block bank ID in ACCDATA");
                 }
 
@@ -382,7 +382,7 @@ void AppCommManager::process(socket_ptr sock) {
                 int num_elements    = recv_block.num_elements();
                 int element_length  = recv_block.element_length();
                 int element_size    = recv_block.element_size();
-                char bankID         = recv_block.bankID();
+                char bankID         = recv_block.bankid();
 
                 // check task config table to see if task is aligned
                 int align_width = 0;
@@ -479,7 +479,7 @@ void AppCommManager::process(socket_ptr sock) {
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(
-            boost::chrono::microseconds(100)); 
+            boost::chrono::microseconds(0)); 
       }
 
       VLOG(2) << "Task ready, enqueue to be executed";
@@ -500,7 +500,7 @@ void AppCommManager::process(socket_ptr sock) {
           task->status != Task::FAILED) 
       {
         boost::this_thread::sleep_for(
-            boost::chrono::microseconds(100)); 
+            boost::chrono::microseconds(0)); 
       }
 
       // 3. Handle ACCFINISH message and output data
