@@ -374,15 +374,16 @@ void AppCommManager::process(socket_ptr sock) {
                   throw AccFailure("Missing block size in ACCDATA");
                 }
 
-                if (!recv_block.has_bankid()){
-                  throw AccFailure("Missing block bank ID in ACCDATA");
-                }
-
-
+                
                 int num_elements    = recv_block.num_elements();
                 int element_length  = recv_block.element_length();
                 int element_size    = recv_block.element_size();
-                char bankID         = recv_block.bankid();
+                std::map<std::string, int> ext_flags;
+                for ( int idx = 0; idx < recv_block.ext_flag_size(); ++idx) {
+                    DLOG(INFO) << "receive ext flag on this block, key is " << recv_block.ext_flag(idx).key() << " value is " << recv_block.ext_flag(idx).value() ;
+                    ext_flags[recv_block.ext_flag(idx).key()] = recv_block.ext_flag(idx).value();
+                }
+
 
                 // check task config table to see if task is aligned
                 int align_width = 0;
@@ -396,9 +397,13 @@ void AppCommManager::process(socket_ptr sock) {
                   DLOG(INFO) << "Skip cache for block " << blockId;
 
                   // the block should skip cache
-                  block = platform->createBlock(bankID,
+                  block = platform->createBlock(
                       num_elements, element_length, element_size,
                       align_width);
+                  for ( auto it = ext_flags.cbegin(); it != ext_flags.cend(); ++it ) {
+                    DLOG(INFO) << "add ext flag to a new data block, key is " << it->first << " value is " << it->second ;
+                    block->addExtFlag(*it);
+                  }
                 }
                 else {
                   // the block needs to be created and add to cache

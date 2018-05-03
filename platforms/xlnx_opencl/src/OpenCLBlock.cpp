@@ -85,6 +85,10 @@ void OpenCLBlock::readFromMem(std::string path) {
       (double)size /1024/1024 << "MB of data from mmap file takes " <<
       elapse_t << "us.";
 
+      bankID = this->getExtFlag("bankID");
+      if (bankID < 0 || bankID > 3) {
+          bankID = 0;
+      }
     // then write temp buffer to FPGA, will be serialized among all tasks
     writeData(temp_data, size);
 

@@ -80,7 +80,7 @@ DEPS		:= AccAgent.o \
 all: 	../bin/acc_manager \
 	../bin/acc_admin \
 	../lib/libblaze.so \
-	../lib/libblaze-client.a 
+	../lib/libblaze_client.a 
 
 package: 
 	cp ../bin/acc_manager ../../package/nam/bin/nam_daemon
@@ -95,7 +95,7 @@ package:
 release:
 	$(MAKE) RELEASE=1
 
-../lib/libblaze-client.a: $(CLIENT_DEPS)
+../lib/libblaze_client.a: $(CLIENT_DEPS)
 	$(AR) rvs $@ $(CLIENT_DEPS)
 
 ../lib/libblaze.so: $(DEPS)

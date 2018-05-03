@@ -2,6 +2,8 @@
 #define TASK_H
 
 #include "blaze/Common.h"
+#include <utility>
+#include <string>
 
 namespace blaze {
 
@@ -56,7 +58,7 @@ protected:
 
   char* getOutput(int idx, int item_length, int num_items, int data_width);
 
-  char* getOutput(char bankID, int idx, int item_length, int num_items, int data_width);
+  char* getOutput(int idx, int item_length, int num_items, int data_width, std::pair<std::string, int>& ext_flag);
   
   int getInputLength(int idx);
 

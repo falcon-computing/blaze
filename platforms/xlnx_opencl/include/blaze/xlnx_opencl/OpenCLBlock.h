@@ -18,28 +18,36 @@ public:
       int _align_width = 0,
       int _flag = BLAZE_INPUT_BLOCK):
     env(_env), 
-    DataBlock(bankID, _num_items, _item_length, _item_size, _align_width, _flag)
+    DataBlock(_num_items, _item_length, _item_size, _align_width, _flag)
   {
-      ;
+      bankID = 0;
   }
 
    OpenCLBlock(OpenCLEnv* _env, 
-      char _bankID,
       int _num_items, 
       int _item_length,
       int _item_size,
+      std::pair<std::string, int>& ext_flag,
       int _align_width = 0,
       int _flag = BLAZE_INPUT_BLOCK):
     env(_env), 
-    DataBlock(_bankID, _num_items, _item_length, _item_size, _align_width, _flag)
+    DataBlock(_num_items, _item_length, _item_size, ext_flag, _align_width, _flag)
   {
-      ;
+      bankID = this->getExtFlag("bankID");
+      if (bankID < 0 || bankID > 3) {
+          bankID = 0;
+      }
   } 
   // used to copy data from CPU memory
   OpenCLBlock(OpenCLEnv* _env, DataBlock *block):
     env(_env),
     DataBlock(*block)
   {
+
+      bankID = this->getExtFlag("bankID");
+      if (bankID < 0 || bankID > 3) {
+          bankID = 0;
+      }
     if (block->isAllocated()) {
       alloc(); 
     }
@@ -83,7 +91,7 @@ public:
 private:
   cl_mem data;
   OpenCLEnv *env;
-
+  int bankID;
 };
 }
 

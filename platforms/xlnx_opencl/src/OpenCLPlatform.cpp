@@ -324,16 +324,15 @@ DataBlock_ptr OpenCLPlatform::createBlock(
 }
 
 DataBlock_ptr OpenCLPlatform::createBlock( 
-    char bankID,
     int num_items, 
     int item_length,
     int item_size, 
+    std::pair<std::string, int>& ext_flag,
     int align_width,
     int flag)
 {
   DataBlock_ptr block(new OpenCLBlock(env,
-        bankID,
-        num_items, item_length, item_size, 
+        num_items, item_length, item_size, ext_flag, 
         align_width, flag));  
 
   return block;

@@ -2,6 +2,8 @@
 #define BLOCK_H
 
 #include <stdio.h>
+#include <utility>
+#include <map>
 
 #include "Common.h"
 
@@ -25,9 +27,10 @@ public:
       int _align_width = 0,
       int _flag = BLAZE_INPUT_BLOCK);
 
-   DataBlock(char _bankID, int _num_items, 
+  DataBlock(int _num_items, 
       int _item_length,
       int _item_size,
+      std::pair<std::string, int>& ext_flag,
       int _align_width = 0,
       int _flag = BLAZE_INPUT_BLOCK);
     
@@ -66,7 +69,12 @@ public:
   int getSize() { return size; }
   int getFlag() { return flag; }
 
-  char getBankID() { return bankID; }
+  int getExtFlag(std::string key) { return ext_flags[key]; }
+  void addExtFlag(const std::pair<std::string, int>& ext_flag) { ext_flags.insert(ext_flag); }
+  void clearExtFlag() { ext_flags.clear(); }
+  int extFlagSize() { return ext_flags.size(); }
+  std::map<std::string, int>::const_iterator getExtFlagsBegin() { return ext_flags.cbegin(); }
+  std::map<std::string, int>::const_iterator getExtFlagsEnd() { return ext_flags.cend(); }
 
   // status check of DataBlock needs to be exclusive
   bool isAllocated();
@@ -82,7 +90,7 @@ protected:
   int length;       /* total number of elements */
   int64_t size;     /* total byte size of the data block */
 
-  char bankID; /*DRAM bank id*/
+  std::map<std::string, int> ext_flags; /*DRAM bank id*/
 
   bool allocated;
   bool aligned;

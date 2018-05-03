@@ -33,10 +33,10 @@ public:
       int flag = BLAZE_INPUT_BLOCK);
 
   virtual DataBlock_ptr createBlock(
-      char bankID,
       int num_items, 
       int item_length,
-      int item_size, 
+      int item_size,
+      std::pair<std::string, int>& ext_flag,
       int align_width = 0,
       int flag = BLAZE_INPUT_BLOCK);
 

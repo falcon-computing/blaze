@@ -3,6 +3,8 @@
 
 #include "proto/task.pb.h"
 #include "Common.h"
+#include <string>
+#include <utility>
 
 #define BLAZE_INPUT         0
 #define BLAZE_INPUT_CACHED  1
@@ -33,11 +35,11 @@ public:
                      int data_width, 
                      int type = BLAZE_INPUT);
 
-  void* createInput( char bankID,
-                     int idx,
+  void* createInput( int idx,
                      int num_items, 
                      int item_length, 
                      int data_width, 
+                     std::pair<std::string, int>& ext_flag,
                      int type = BLAZE_INPUT);
 
 
@@ -54,7 +56,8 @@ public:
                 int data_width = 0,
                 int type = BLAZE_INPUT);
 
-  void setInput(char bankID, int idx, void* src, 
+  void setInput(int idx, void* src, 
+                std::pair<std::string, int>& ext_flag,
                 int num_items = 0,
                 int item_length = 0, 
                 int data_width = 0,

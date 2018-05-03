@@ -21,15 +21,15 @@ DataBlock_ptr TaskEnv::createBlock(
 }
 
 DataBlock_ptr TaskEnv::createBlock(
-    char bankID,
     int num_items, 
     int item_length,
     int item_size, 
+    std::pair<std::string, int>& ext_flag,
     int align_width, 
     int flag)
 {
-  DataBlock_ptr block(new DataBlock(bankID,
-        num_items, item_length, item_size, align_width, flag));
+  DataBlock_ptr block(new DataBlock(
+        num_items, item_length, item_size, ext_flag, align_width, flag));
   return block;
 }
 

@@ -96,12 +96,12 @@ void* Client::createInput(
 
 
 void* Client::createInput(
-    char bankID,
     int idx,
     int num_items, 
     int item_length, 
     int data_width, 
-    int type) 
+    std::pair<std::string, int>& ext_flag, 
+    int type)
 {
   if (idx >= num_inputs) {
     LOG(ERROR) << "Index out of range: idx=" << idx
@@ -136,8 +136,8 @@ void* Client::createInput(
   }
 
   // create a new block and add it to input table
-  DataBlock_ptr block(new DataBlock(bankID, num_items, 
-        item_length, item_length*data_width));
+  DataBlock_ptr block(new DataBlock(num_items, 
+        item_length, item_length*data_width, ext_flag));
 
   input_blocks[idx] = block;
 
@@ -231,11 +231,12 @@ void Client::setInput(int idx, void* src,
 
 
 // experimental feature
-void Client::setInput(char bankID, int idx, void* src,
+void Client::setInput(int idx, void* src,
+    std::pair<std::string, int>& ext_flag,
     int num_items, 
     int item_length, 
     int data_width, 
-    int type) 
+    int type)
 {
   if (idx >= num_inputs) {
     throw invalidParam("Invalid input block");
@@ -248,7 +249,7 @@ void Client::setInput(char bankID, int idx, void* src,
     {
       throw invalidParam("Invalid input parameters");
     }
-    void *dst = createInput(bankID, idx, num_items, item_length, data_width, type);
+    void *dst = createInput(idx, num_items, item_length, data_width, ext_flag, type);
     memcpy(dst, src, num_items*item_length*data_width);
   }
   else {
@@ -435,8 +436,11 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
       data_msg->set_num_elements(block->getNumItems());
       data_msg->set_element_length(block->getItemLength());
       data_msg->set_element_size(block->getItemSize());
-      data_msg->set_bankid(block->getBankID());
-
+      for ( auto it = block->getExtFlagsBegin(); it != block->getExtFlagsEnd(); ++it ) {
+        DataMsg_KeyValue* ext_flag = data_msg->add_ext_flag();
+        ext_flag->set_key(it->first);
+        ext_flag->set_value(it->second);
+      }
       VLOG(1) << "Finish writing " << i;
     }
     blockIdx ++;

@@ -3,6 +3,8 @@
 
 #include "proto/acc_conf.pb.h"
 #include "Common.h"
+#include <utility>
+#include <string>
 
 namespace blaze {
 
@@ -37,13 +39,12 @@ public:
 
   // create a block object for the specific platform
   virtual DataBlock_ptr createBlock(
-      char bankID,
       int num_items, 
       int item_length,
       int item_size, 
+      std::pair<std::string, int>& ext_flag,
       int align_width = 0, 
       int flag = BLAZE_INPUT_BLOCK);
-
 
   virtual DataBlock_ptr createBlock(const DataBlock&);
 

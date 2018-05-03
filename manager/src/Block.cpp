@@ -51,22 +51,19 @@ DataBlock::DataBlock(
   // NOTE: lazy allocation
   //data = new char[_size];
 
-  //default bank ID is 0
-  bankID = 0;
 }
 
 DataBlock::DataBlock(
-    char _bankID,
     int _num_items, 
     int _item_length,
     int _item_size,
+    std::pair<std::string, int>& ext_flag,
     int _align_width,
     int _flag):
   num_items(_num_items),
   item_length(_item_length),
   align_width(_align_width),
   flag(_flag),
-  bankID(_bankID),
   allocated(false),
   ready(false),
   copied(false),
@@ -95,6 +92,7 @@ DataBlock::DataBlock(
 
   // NOTE: lazy allocation
   //data = new char[_size];
+  addExtFlag(ext_flag);
 }
 
 DataBlock::DataBlock(const DataBlock &block) {

@@ -16,14 +16,14 @@ DataBlock_ptr OpenCLEnv::createBlock(
 }
 
 DataBlock_ptr OpenCLEnv::createBlock(
-      char bankID,
       int num_items, int item_length,
-      int item_size, int align_width, 
+      int item_size, 
+      std::pair<std::string, int>& ext_flag,
+      int align_width, 
       int flag) 
 {
   DataBlock_ptr block(new OpenCLBlock(this,
-        bankID,
-        num_items, item_length, item_size, 
+        num_items, item_length, item_size, ext_flag, 
         align_width, flag));
 
   return block;

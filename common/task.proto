@@ -17,6 +17,10 @@ enum MsgType {
 }
 
 message DataMsg {
+    message KeyValue {
+        required string key = 1;
+        required int32 value = 2;
+    }
   optional int64 partition_id = 1;
   optional bool cached = 2;
   optional bool sampled = 3;
@@ -28,7 +32,7 @@ message DataMsg {
   optional int64 file_size = 9;
   optional int64 file_offset = 10;
   optional string mask_path = 11;
-  optional int32 bankID = 12;
+  repeated KeyValue ext_flag = 12;
 }
 
 message TaskMsg {
