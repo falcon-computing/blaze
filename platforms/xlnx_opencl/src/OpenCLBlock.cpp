@@ -21,11 +21,23 @@ void OpenCLBlock::alloc() {
     cl_int err = 0;
 
     DLOG(INFO) << "Allocating OpenCLBlock of size " << 
-      (double)size /1024/1024 << "MB";
+      (double)size /1024/1024 << "MB on DRAM BANK " << bankID;
 
+    cl_mem_ext_ptr_t _ext;
+    _ext.param = 0;
+    _ext.obj = NULL;
+    if(bankID == 0)
+        _ext.flags = XCL_MEM_DDR_BANK0;
+    else if(bankID == 1)
+        _ext.flags = XCL_MEM_DDR_BANK1;
+    else if(bankID == 2)
+        _ext.flags = XCL_MEM_DDR_BANK2;
+    else
+        _ext.flags = XCL_MEM_DDR_BANK3;
+    
     data = clCreateBuffer(
-        context, CL_MEM_READ_ONLY,  
-        size, NULL, &err);
+        context, CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  
+        size, &_ext, &err);
 
     if (err != CL_SUCCESS) {
       throw std::runtime_error("Failed to allocate OpenCL block");
@@ -73,6 +85,10 @@ void OpenCLBlock::readFromMem(std::string path) {
       (double)size /1024/1024 << "MB of data from mmap file takes " <<
       elapse_t << "us.";
 
+      bankID = this->getExtFlag("bankID");
+      if (bankID < 0 || bankID > 3) {
+          bankID = 0;
+      }
     // then write temp buffer to FPGA, will be serialized among all tasks
     writeData(temp_data, size);
 

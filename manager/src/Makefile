@@ -52,6 +52,12 @@ endif
 
 COMPILE = $(CFLAGS) $(INCLUDES)
 
+CLIENT_DEPS	:= AccAgent.o \
+		   Block.o \
+		   Client.o \
+		   Common.o \
+		   task.pb.o
+
 DEPS		:= AccAgent.o \
 		   Admin.o \
 		   Block.o \
@@ -73,7 +79,8 @@ DEPS		:= AccAgent.o \
 
 all: 	../bin/acc_manager \
 	../bin/acc_admin \
-	../lib/libblaze.so
+	../lib/libblaze.so \
+	../lib/libblaze_client.a 
 
 package: 
 	cp ../bin/acc_manager ../../package/nam/bin/nam_daemon
@@ -87,6 +94,9 @@ package:
 
 release:
 	$(MAKE) RELEASE=1
+
+../lib/libblaze_client.a: $(CLIENT_DEPS)
+	$(AR) rvs $@ $(CLIENT_DEPS)
 
 ../lib/libblaze.so: $(DEPS)
 	$(PP) -shared -o $@ $(DEPS)

@@ -43,6 +43,15 @@ public:
       int align_width = 0, 
       int flag = BLAZE_OUTPUT_BLOCK);
 
+  virtual DataBlock_ptr createBlock(
+      int num_items, 
+      int item_length,
+      int item_size, 
+      std::pair<std::string, int>& ext_flag,
+      int align_width = 0, 
+      int flag = BLAZE_OUTPUT_BLOCK);
+
+
 private:
   void changeKernel(cl_kernel& _kernel);
 

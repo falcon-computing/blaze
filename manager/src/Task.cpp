@@ -53,6 +53,29 @@ char* Task::getOutput(
   }
 }
 
+char* Task::getOutput(
+    int idx, 
+    int item_length, 
+    int num_items,
+    int data_width,
+    std::pair<std::string, int>& ext_flag) 
+{
+  if (idx < output_blocks.size()) {
+    // if output already exists, return the pointer 
+    // to the existing block
+    return output_blocks[idx]->getData();
+  }
+  else {
+    // if output does not exist, create one
+    DataBlock_ptr block = env->createBlock(num_items, 
+        item_length, item_length*data_width, ext_flag, 0, BLAZE_OUTPUT_BLOCK);
+
+    output_blocks.push_back(block);
+
+    return block->getData();
+  }
+}
+
 int Task::getInputLength(int idx) { 
   if (idx < input_blocks.size() && 
       input_table.find(input_blocks[idx]) != input_table.end())

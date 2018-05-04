@@ -18,7 +18,7 @@ CC=gcc
 CFLAGS  := -shared -fPIC -std=c++0x -m64 -g 
 
 COMPILE := $(CFLAGS) \
-				 	 -I$(MANAGER_DIR)/src \
+				 	 -I$(MANAGER_DIR)/include \
 				 	 -I$(BOOST_DIR)/include \
 				 	 -I$(PROTOBUF_DIR)/include \
 				 	 -I$(GLOG_DIR)/include

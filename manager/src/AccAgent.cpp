@@ -142,7 +142,7 @@ void AccAgent::readOutput(
          task->status != Task::FAILED) 
   {
     boost::this_thread::sleep_for(
-        boost::chrono::microseconds(100)); 
+        boost::chrono::microseconds(0)); 
   }
   if (task->status == Task::FINISHED) {
     VLOG(1) << "Task finished, starting to read output";

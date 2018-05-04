@@ -2,6 +2,8 @@
 #define TASK_H
 
 #include "blaze/Common.h"
+#include <utility>
+#include <string>
 
 namespace blaze {
 
@@ -31,6 +33,8 @@ public:
 
   // main function to be overwritten by accelerator implementations
   virtual void compute() {;}
+  virtual uint64_t estimateClientTime() {;}
+  virtual uint64_t estimateTaskTime() {;}
 
   // wrapper around compute(), added indicator for task status
   void execute() {
@@ -53,6 +57,8 @@ public:
 protected:
 
   char* getOutput(int idx, int item_length, int num_items, int data_width);
+
+  char* getOutput(int idx, int item_length, int num_items, int data_width, std::pair<std::string, int>& ext_flag);
   
   int getInputLength(int idx);
 

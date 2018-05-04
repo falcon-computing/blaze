@@ -3,6 +3,7 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/atomic.hpp>
+#include <boost/memory_order.hpp>
 
 #include "Common.h"
 #include "TaskQueue.h"
@@ -50,6 +51,9 @@ public:
   // get best and worst cast wait time 
   std::pair<int, int> getWaitTime(Task* task);
 
+  uint64_t get_queue_delay();
+  void modify_queue_delay(uint64_t cur_delay, bool add_or_sub);
+
   void startExecutor();
   void startScheduler();
 
@@ -85,6 +89,9 @@ private:
   std::string acc_id;
 
   mutable boost::atomic<int> nextTaskId;
+
+  //estimated time for the current queue to finished, units: nanosecs
+  mutable boost::atomic<uint64_t> queue_delay;
 
   // Task implementation loaded from user acc_impl
   Task* (*createTask)();

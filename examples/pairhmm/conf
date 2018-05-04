@@ -1,0 +1,19 @@
+verbose : 0
+platform : {
+  id : "xlnx_opencl"
+  path : "[FCSROOT]/nam/lib/xlnx_opencl.so"
+  cache_limit: 8192
+  scratch_limit: 2048
+  acc : {
+    id : "PairhmmTest"
+    path : "PairhmmTest.so"
+    param : {
+      key : "program_path"
+      value : "[PWD]/ku115.xclbin"
+    }
+    param : {
+      key : "kernel_name" 
+      value : "computePairhmmFpgaMerlin" 
+    }
+  }
+}

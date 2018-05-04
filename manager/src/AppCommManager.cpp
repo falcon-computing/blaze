@@ -256,7 +256,19 @@ void AppCommManager::process(socket_ptr sock) {
         }
       }
 
-      // 1.4 decide to reject the task if wait time is too long
+// 1.4 decide to reject the task if wait time is too long
+      uint64_t client_time = task->estimateClientTime();
+      uint64_t delay_time = task_manager.lock()->get_queue_delay();
+      uint64_t task_time = task->estimateTaskTime();
+      if(task_time + delay_time > client_time){
+        VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
+            << "task time = " << task_time * 1e-9 << "secs, " 
+            << "client time = " << client_time * 1e-9 << "secs.";
+        throw AccReject("Queueing delay is too long");
+      }
+      else{
+        task_manager.lock()->modify_queue_delay(task_time, true);
+      }
 #if 0
       int task_time = task_manager.lock()->estimateTime(task.get());
       int task_speedup = task->estimateSpeedup();
@@ -276,6 +288,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
       }
 #endif
+
 
       // 1.5 send msg back to client
       reply_msg.set_type(ACCGRANT);
@@ -361,9 +374,16 @@ void AppCommManager::process(socket_ptr sock) {
                   throw AccFailure("Missing block size in ACCDATA");
                 }
 
+                
                 int num_elements    = recv_block.num_elements();
                 int element_length  = recv_block.element_length();
                 int element_size    = recv_block.element_size();
+                std::map<std::string, int> ext_flags;
+                for ( int idx = 0; idx < recv_block.ext_flag_size(); ++idx) {
+                    DLOG(INFO) << "receive ext flag on this block, key is " << recv_block.ext_flag(idx).key() << " value is " << recv_block.ext_flag(idx).value() ;
+                    ext_flags[recv_block.ext_flag(idx).key()] = recv_block.ext_flag(idx).value();
+                }
+
 
                 // check task config table to see if task is aligned
                 int align_width = 0;
@@ -380,6 +400,10 @@ void AppCommManager::process(socket_ptr sock) {
                   block = platform->createBlock(
                       num_elements, element_length, element_size,
                       align_width);
+                  for ( auto it = ext_flags.cbegin(); it != ext_flags.cend(); ++it ) {
+                    DLOG(INFO) << "add ext flag to a new data block, key is " << it->first << " value is " << it->second ;
+                    block->addExtFlag(*it);
+                  }
                 }
                 else {
                   // the block needs to be created and add to cache
@@ -454,10 +478,13 @@ void AppCommManager::process(socket_ptr sock) {
         }
       } // 2. Finish handling ACCDATA
 
+
+
+
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(
-            boost::chrono::microseconds(100)); 
+            boost::chrono::microseconds(0)); 
       }
 
       VLOG(2) << "Task ready, enqueue to be executed";
@@ -478,13 +505,15 @@ void AppCommManager::process(socket_ptr sock) {
           task->status != Task::FAILED) 
       {
         boost::this_thread::sleep_for(
-            boost::chrono::microseconds(100)); 
+            boost::chrono::microseconds(0)); 
       }
 
       // 3. Handle ACCFINISH message and output data
       TaskMsg finish_msg;
 
       if (task->status == Task::FINISHED) {
+        uint64_t expected_delay_time = task->estimateTaskTime();
+        task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
         VLOG(1) << "Task finished, starting to read output";
         // add block information to finish message 

@@ -51,6 +51,16 @@ DataBlock_ptr Platform::createBlock(
       item_size, align_width, flag);
 }
 
+// create a block object for the specific platform
+DataBlock_ptr Platform::createBlock(
+    int num_items, int item_length, int item_size, 
+    std::pair<std::string, int>& ext_flag,
+    int align_width, int flag)
+{
+  return env->createBlock(num_items, item_length, 
+      item_size, ext_flag, align_width, flag);
+}
+
 DataBlock_ptr Platform::createBlock(const DataBlock& block) 
 {
   return env->createBlock(block);

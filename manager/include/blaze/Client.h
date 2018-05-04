@@ -3,6 +3,8 @@
 
 #include "proto/task.pb.h"
 #include "Common.h"
+#include <string>
+#include <utility>
 
 #define BLAZE_INPUT         0
 #define BLAZE_INPUT_CACHED  1
@@ -33,6 +35,14 @@ public:
                      int data_width, 
                      int type = BLAZE_INPUT);
 
+  void* createInput( int idx,
+                     int num_items, 
+                     int item_length, 
+                     int data_width, 
+                     std::pair<std::string, int>& ext_flag,
+                     int type = BLAZE_INPUT);
+
+
   void* createOutput(int idx,
                      int num_items, 
                      int item_length, 
@@ -41,6 +51,13 @@ public:
   // copy data to an input block from a pointer,
   // allocate the space if the block has not been created
   void setInput(int idx, void* src, 
+                int num_items = 0,
+                int item_length = 0, 
+                int data_width = 0,
+                int type = BLAZE_INPUT);
+
+  void setInput(int idx, void* src, 
+                std::pair<std::string, int>& ext_flag,
                 int num_items = 0,
                 int item_length = 0, 
                 int data_width = 0,
