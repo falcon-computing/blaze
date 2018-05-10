@@ -78,12 +78,22 @@ namespace blaze {
 
   // get the user id from system env
   std::string getUid() {
-    return std::string(std::getenv("USER"));
+    if ( !std::getenv("USER") ) {
+      //if no user available
+      return std::string("null_user");
+    }
+    else
+      return std::string(std::getenv("USER"));
   }
 
   // get the hostid from machine
   std::string getHostname() {
-    return std::string(std::getenv("HOSTNAME"));
+    if ( !std::getenv("HOSTNAME") ) {
+        //if no host name available
+      return std::string("null_host_name");
+    }
+    else
+      return std::string(std::getenv("HOSTNAME"));
   }
 
   // receive one message, bytesize first
