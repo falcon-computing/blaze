@@ -12,7 +12,7 @@
 
 #include "blaze/CommManager.h"
 #include "blaze/PlatformManager.h"
-#include "proto/msgGamNam.pb.h"
+#include "msgGamNam.pb.h"
 
 namespace blaze {
 

@@ -1,7 +1,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#include "proto/acc_conf.pb.h"
+#include "acc_conf.pb.h"
 #include "Common.h"
 #include <utility>
 #include <string>

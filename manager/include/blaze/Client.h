@@ -1,7 +1,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "proto/task.pb.h"
+#include "task.pb.h"
 #include "Common.h"
 #include <string>
 #include <utility>

@@ -48,14 +48,47 @@ bool runArrayTest();
 bool runLoopBack(int data_size = 1024);
 bool runDelay(int data_size = 1024);
 
-// global variables
-static int app_port = 7777;
-static std::string platform_dir = "../../platforms";
-static std::string nv_opencl_path  = platform_dir + "/nv_opencl/nv_opencl.so";
-static std::string lnx_opencl_path = platform_dir + "/xlnx_opencl/xlnx_opencl.so";
-static std::string pathToArrayTest = "./tasks/cpu/arrayTest/arrayTest.so";
-static std::string pathToLoopBack = "./tasks/cpu/loopBack/loopBack.so";
-
+inline std::string get_absolute_path(std::string path) {
+  boost::filesystem::wpath file_path(path);
+  if (boost::filesystem::exists(file_path)) {
+    return boost::filesystem::canonical(file_path).string();
+  }
+  else {
+    if (file_path.is_absolute()) {
+      return path;
+    }
+    else {
+      file_path = boost::filesystem::current_path() / file_path;
+      return file_path.string();
+    }
+  }
 }
 
+inline std::string get_bin_dir() {
+  std::stringstream ss;
+  ss << "/proc/" << getpid() << "/exe";
+
+  boost::filesystem::wpath bin_path(get_absolute_path(ss.str()));
+  return bin_path.parent_path().string();
+}
+
+// global variables
+static int app_port = 7777;
+//std::string platform_dir = "../../platforms";
+//std::string nv_opencl_path  = platform_dir + "/nv_opencl/nv_opencl.so";
+//std::string lnx_opencl_path = platform_dir + "/xlnx_opencl/xlnx_opencl.so";
+
+inline std::string pathToArrayTest() {
+  return get_bin_dir() + "/tasks/arrayTest/libarrayTest.so";
+}
+
+inline std::string pathToDelay() {
+  return get_bin_dir() + "/tasks/delay/libdelay.so";
+}
+
+inline std::string pathToLoopBack() {
+  return get_bin_dir() + "/tasks/loopBack/libloopBack.so";
+}
+
+} // namespace blaze
 #endif

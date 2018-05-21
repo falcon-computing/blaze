@@ -119,7 +119,7 @@ TEST_F(ClientTests, CheckPrepareRequest) {
 
 TEST_F(ClientTests, AppTest_arrayTest) {
 
-  std::string path("./tasks/cpu/arrayTest/arrayTest.so");
+  std::string path = pathToArrayTest();
   boost::filesystem::wpath file(path);
   ASSERT_EQ(boost::filesystem::exists(file), true)
     << "Required acc task file does not exist, skipping test";
@@ -141,7 +141,7 @@ TEST_F(ClientTests, AppTest_arrayTest) {
 
 TEST_F(ClientTests, AppTest_loopBack) {
 
-  std::string path("./tasks/cpu/loopBack/loopBack.so");
+  std::string path = pathToLoopBack();
   boost::filesystem::wpath file(path);
   ASSERT_EQ(boost::filesystem::exists(file), true)
     << "Required acc task file does not exist, skipping test";
@@ -163,7 +163,7 @@ TEST_F(ClientTests, AppTest_loopBack) {
 
 TEST_F(ClientTests, AppTest_delay) {
 
-  std::string path("./tasks/cpu/delay/delay.so");
+  std::string path = pathToDelay();
   boost::filesystem::wpath file(path);
   ASSERT_EQ(boost::filesystem::exists(file), true)
     << "Required acc task file does not exist, skipping test";

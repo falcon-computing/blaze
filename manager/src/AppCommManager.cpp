@@ -16,7 +16,7 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
-#include "proto/acc_conf.pb.h"
+#include "acc_conf.pb.h"
 
 namespace blaze {
 

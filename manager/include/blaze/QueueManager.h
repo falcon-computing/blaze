@@ -1,7 +1,7 @@
 #ifndef QUEUE_MANAGER_H
 #define QUEUE_MANAGER_H
 
-#include "proto/acc_conf.pb.h"
+#include "acc_conf.pb.h"
 #include "Common.h"
 
 namespace blaze {

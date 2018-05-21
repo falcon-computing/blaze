@@ -3,7 +3,7 @@
 
 #include <google/protobuf/message.h>
 
-#include "proto/task.pb.h"
+#include "task.pb.h"
 #include "Common.h"
 
 // for testing purpose
