@@ -7,7 +7,9 @@
 #include <time.h>
 #include <vector>
 
+#ifdef NDEBUG
 #define LOG_HEADER "GAMCommManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/CommManager.h"

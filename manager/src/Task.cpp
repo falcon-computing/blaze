@@ -3,7 +3,9 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <stdio.h>
 
+#ifdef NDEBUG
 #define LOG_HEADER "Task"
+#endif
 #include <glog/logging.h>
 
 #ifdef USEHDFS

@@ -6,7 +6,9 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/lexical_cast.hpp>
 
+#ifdef NDEBUG
 #define LOG_HEADER "AppCommManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Block.h"
@@ -256,17 +258,17 @@ void AppCommManager::process(socket_ptr sock) {
         }
       }
 
-// 1.4 decide to reject the task if wait time is too long
+      // 1.4 decide to reject the task if wait time is too long
       uint64_t client_time = task->estimateClientTime();
       uint64_t delay_time = task_manager.lock()->get_queue_delay();
       uint64_t task_time = task->estimateTaskTime();
-      if(task_time + delay_time > client_time){
+      if (task_time > 0 && task_time + delay_time > client_time) {
         VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
             << "task time = " << task_time * 1e-9 << "secs, " 
             << "client time = " << client_time * 1e-9 << "secs.";
         throw AccReject("Queueing delay is too long");
       }
-      else{
+      else {
         task_manager.lock()->modify_queue_delay(task_time, true);
       }
 #if 0

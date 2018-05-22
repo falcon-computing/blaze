@@ -5,7 +5,9 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 
+#ifdef NDEBUG
 #define LOG_HEADER "Block"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Block.h"

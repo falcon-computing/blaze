@@ -1,7 +1,3 @@
-#define TEST_FRIENDS_LIST \
-          friend class ConfigTests; \
-          friend class ConfigTests_CheckCommHandler_Test; 
-
 #include "TestCommon.h"
 #include "blaze/Client.h"
 #include "blaze/CommManager.h"
@@ -95,6 +91,7 @@ TEST_F(ConfigTests, CheckCommHandler) {
   } catch (cpuCalled &e) {
     ASSERT_EQ(false, true) << "Client error";
   }
+  LOG(INFO) << "Finished ConfigTest";
 }
 
 } // namespace blaze

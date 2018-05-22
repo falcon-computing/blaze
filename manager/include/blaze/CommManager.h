@@ -2,14 +2,10 @@
 #define COMM_H
 
 #include <google/protobuf/message.h>
+#include <gtest/gtest_prod.h>
 
 #include "task.pb.h"
 #include "Common.h"
-
-// for testing purpose
-#ifndef TEST_FRIENDS_LIST
-#define TEST_FRIENDS_LIST
-#endif
 
 using namespace boost::asio;
 
@@ -21,7 +17,8 @@ namespace blaze {
 class CommManager
 : public boost::basic_lockable_adapter<boost::mutex>
 {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ConfigTests, CheckCommHandler);
+
 public:
   CommManager(
       PlatformManager* _platform,
@@ -56,7 +53,7 @@ private:
 // Manage communication with Application
 class AppCommManager : public CommManager 
 {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ConfigTests, CheckCommHandler);
 public:
   AppCommManager(
       PlatformManager* _platform,
@@ -84,7 +81,7 @@ public:
 // Manager communication with GAM
 class GAMCommManager : public CommManager 
 {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ConfigTests, CheckCommHandler);
 public:
   GAMCommManager(
       PlatformManager* _platform,

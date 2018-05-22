@@ -1,18 +1,23 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#include <gtest/gtest_prod.h>
+#include <string>
+#include <utility>
+
 #include "acc_conf.pb.h"
 #include "Common.h"
-#include <utility>
-#include <string>
 
 namespace blaze {
 
 class Platform {
   friend class PlatformManager;  
+  FRIEND_TEST(PlatformTest, RemovePlatformTest);
+  FRIEND_TEST(PlatformTest, ReopenPlatformTest);
 
 public:
   Platform(std::map<std::string, std::string> &conf_table);
+  ~Platform();
 
   virtual void addQueue(AccWorker &conf);
   virtual void removeQueue(std::string id);

@@ -1,6 +1,8 @@
 #include <climits>
 
+#ifdef NDEBUG
 #define LOG_HEADER "BlockManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Block.h"

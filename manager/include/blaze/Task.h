@@ -33,8 +33,8 @@ public:
 
   // main function to be overwritten by accelerator implementations
   virtual void compute() {;}
-  virtual uint64_t estimateClientTime() {;}
-  virtual uint64_t estimateTaskTime() {;}
+  virtual uint64_t estimateClientTime() { return 0;}
+  virtual uint64_t estimateTaskTime() { return 0; }
 
   // wrapper around compute(), added indicator for task status
   void execute() {

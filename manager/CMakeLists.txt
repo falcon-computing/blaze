@@ -25,10 +25,11 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     ${ProtobufIncludePath}
     ${MANAGER_DIR}/include
+    ${GTEST_DIR}/include
     ${GLOG_DIR}/include)
 
 link_directories(
-	  "${GLOG_DIR}/lib") 
+	  ${GLOG_DIR}/lib) 
 
 add_subdirectory(proto)
 

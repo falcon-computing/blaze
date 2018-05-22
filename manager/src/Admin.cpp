@@ -1,4 +1,6 @@
+#ifdef NDEBUG
 #define LOG_HEADER "Admin"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Admin.h"

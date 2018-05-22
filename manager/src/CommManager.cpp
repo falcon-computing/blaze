@@ -8,7 +8,9 @@
 #include <sys/time.h>
 #include <time.h>
 
+#ifdef NDEBUG
 #define LOG_HEADER "CommManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/CommManager.h"
@@ -56,8 +58,10 @@ CommManager::CommManager(
 }
 
 CommManager::~CommManager() {
-  DLOG(INFO) << "Destroyer called";
   ios->stop();
+  comm_threads.interrupt_all();
+  comm_threads.join_all();
+  DLOG(INFO) << "Stopped CommManager";
 }
 
 void CommManager::startAccept() {

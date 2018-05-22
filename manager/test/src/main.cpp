@@ -4,7 +4,9 @@
 #include "TestCommon.h"
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
+  ::testing::InitGoogleTest(&argc, argv);
+  //FLAGS_logtostderr = true;
+  //FLAGS_v = 3;
   return RUN_ALL_TESTS();
 }

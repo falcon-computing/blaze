@@ -43,6 +43,11 @@ class ConfigTests : public ::testing::Test {
     ConfigTests() { }
 };
 
+class PlatformTests : public ::testing::Test {
+  protected:
+    PlatformTests() { }
+};
+
 // worker function to run app tests using Client
 bool runArrayTest();
 bool runLoopBack(int data_size = 1024);

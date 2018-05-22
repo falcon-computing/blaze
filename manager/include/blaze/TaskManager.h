@@ -28,6 +28,7 @@ public:
      scheduler_idle(true),
      executor_idle(true),
      nextTaskId(0),
+     queue_delay(0),
      acc_id(_acc_id),
      createTask(create_func),
      destroyTask(destroy_func),
@@ -37,6 +38,7 @@ public:
   ~TaskManager() {
     power = false; 
     task_workers.join_all();
+    DLOG(INFO) << "TaskManager is destroyed";
   }
 
   // create a task and return the task pointer

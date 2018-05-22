@@ -1,19 +1,16 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "task.pb.h"
-#include "Common.h"
+#include <gtest/gtest_prod.h>
 #include <string>
 #include <utility>
+
+#include "task.pb.h"
+#include "Common.h"
 
 #define BLAZE_INPUT         0
 #define BLAZE_INPUT_CACHED  1
 #define BLAZE_SHARED        2
-
-// for testing purpose
-#ifndef TEST_FRIENDS_LIST
-#define TEST_FRIENDS_LIST
-#endif
 
 using namespace boost::asio;
 
@@ -22,7 +19,8 @@ namespace blaze {
 typedef boost::shared_ptr<boost::thread> client_event;
 
 class Client {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ClientTests, CheckBlockAllocation);
+  FRIEND_TEST(ClientTests, CheckPrepareRequest);
 public:
   Client(std::string _acc_id, 
          int _num_inputs, 

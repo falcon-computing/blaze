@@ -1,8 +1,3 @@
-#define TEST_FRIENDS_LIST \
-          friend class ClientTests; \
-          friend class ClientTests_CheckBlockAllocation_Test; \
-          friend class ClientTests_CheckPrepareRequest_Test; 
-
 #include "TestCommon.h"
 #include "blaze/Client.h"
 #include "blaze/CommManager.h"
@@ -11,7 +6,8 @@
 namespace blaze {
 
 class TestClient : public Client {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ClientTests, CheckBlockAllocation);
+  FRIEND_TEST(ClientTests, CheckPrepareRequest);
 public:
   TestClient(int ni, int no): Client("test", ni, no, app_port) {;}
   void compute() {

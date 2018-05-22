@@ -11,7 +11,9 @@
 #include <string>
 #include <stdexcept>
 
+#ifdef NDEBUG
 #define LOG_HEADER "Common"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Common.h"

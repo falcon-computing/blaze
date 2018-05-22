@@ -7,7 +7,9 @@
 #include <fstream>
 #include <stdexcept>
 
+#ifdef NDEBUG
 #define LOG_HEADER "QueueManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Task.h"

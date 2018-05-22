@@ -1,7 +1,9 @@
 #include <boost/atomic.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#ifdef NDEBUG
 #define LOG_HEADER "TaskManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/TaskEnv.h"
@@ -32,20 +34,22 @@ Task_ptr TaskManager::create() {
 }
 
 uint64_t TaskManager::get_queue_delay(){
-    return queue_delay.load(boost::memory_order_acq_rel);
+  return queue_delay.load(boost::memory_order_acq_rel);
 }
 
-void TaskManager::modify_queue_delay(uint64_t cur_delay, bool add_or_sub){
-    if(add_or_sub){
-        fprintf(stderr, "queueing delay increases from %lld", get_queue_delay());
-        queue_delay.fetch_add(cur_delay, boost::memory_order_acq_rel);
-        fprintf(stderr, "to %lld\n", get_queue_delay());
-    }
-    else{
-        fprintf(stderr, "queueing delay decreases from %lld", get_queue_delay());
-        queue_delay.fetch_sub(cur_delay, boost::memory_order_acq_rel);
-        fprintf(stderr, "to %lld\n", get_queue_delay());
-    }
+void TaskManager::modify_queue_delay(uint64_t cur_delay, bool add_or_sub) {
+  if (add_or_sub) {
+    uint64_t before = get_queue_delay();
+    queue_delay.fetch_add(cur_delay, boost::memory_order_acq_rel);
+    DLOG(INFO) << "Queueing delay increases from " << before
+      << " to " << get_queue_delay();
+  }
+  else {
+    uint64_t before = get_queue_delay();
+    queue_delay.fetch_sub(cur_delay, boost::memory_order_acq_rel);
+    DLOG(INFO) << "Queueing delay increases from " << before
+      << " to " << get_queue_delay();
+  }
 }
 
 void TaskManager::enqueue(std::string app_id, Task* task) {

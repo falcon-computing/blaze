@@ -5,7 +5,9 @@
 #include <google/protobuf/text_format.h>
 #include <stdio.h>
 
+#ifdef NDEBUG
 #define LOG_HEADER "AccAgent"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/AccAgent.h"
