@@ -25,11 +25,8 @@ template <typename U, typename T>
 friend class BlazeTest;
 
 public:
-  Task(int _num_args): 
-    status(NOTREADY), 
-    num_input(_num_args),
-    num_ready(0)
-  {; }
+  Task(int _num_args);
+  virtual ~Task();
 
   // main function to be overwritten by accelerator implementations
   virtual void compute() {;}

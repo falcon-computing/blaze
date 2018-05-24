@@ -15,6 +15,12 @@
 
 namespace blaze {
 
+TaskManager::~TaskManager() {
+  power = false; 
+  task_workers.join_all();
+  DLOG(INFO) << "TaskManager is destroyed";
+}
+
 bool TaskManager::isEmpty() {
   return execution_queue.empty();
 }

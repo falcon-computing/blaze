@@ -14,9 +14,8 @@ public:
   QueueManager(Platform *_platform): 
     platform(_platform)
   {;}
-  ~QueueManager() {
-    DLOG(INFO) << "QueueManager is destroyed";
-  }
+
+  virtual ~QueueManager();
 
   // add a new queue regarding an existing accelerator
   void add(std::string id, std::string lib_path);

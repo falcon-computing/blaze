@@ -35,11 +35,7 @@ public:
      platform(_platform)
   {;}
 
-  ~TaskManager() {
-    power = false; 
-    task_workers.join_all();
-    DLOG(INFO) << "TaskManager is destroyed";
-  }
+  virtual ~TaskManager();
 
   // create a task and return the task pointer
   Task_ptr create();

@@ -119,9 +119,7 @@ DataBlock::DataBlock(const DataBlock &block) {
 }
 
 DataBlock::~DataBlock() {
-
-  if (data && !copied) 
-  {
+  if (data && !copied) {
     delete data; 
   }
 }

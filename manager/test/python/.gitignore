@@ -1,2 +1,3 @@
+*.pyc
 task_pb2.py
 acc_conf_pb2.py

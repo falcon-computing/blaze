@@ -19,7 +19,6 @@ namespace blaze {
 PlatformManager::PlatformManager(ManagerConf *conf): 
     platform_table(),
     acc_table(),
-    cache_table(),
     platform_conf_table(),
     acc_conf_table()
 {
@@ -115,12 +114,15 @@ void PlatformManager::openPlatform(std::string id) {
 
   platform_table.insert(std::make_pair(id, platform));
 
-  // create block manager
-  if (cache_table.find(cache_loc) == cache_table.end())
-  {
+  // create block manager if this platform is 
+  // using its own cache
+  if (cache_loc.compare(id) != 0 && platform_table.count(cache_loc)) {
+    platform->block_manager = platform_table[cache_loc]->block_manager;
+    DLOG(INFO) << "Use block manager on " << cache_loc;
+  }
+  else {
     if (cache_loc.compare(id) != 0) {
-      LOG(WARNING) << "Unspecificed cache location, use private instead";
-      cache_loc = id;
+      LOG(WARNING) << "Unspecified cache location, use private instead";
     }
     // if the cache is not shared with another platform
     // create a block manager in current platform
@@ -128,16 +130,8 @@ void PlatformManager::openPlatform(std::string id) {
         (size_t)cache_limit << 20, 
         (size_t)scratch_limit << 20);
 
-    DLOG(INFO) << "Create a block manager for " << cache_loc;
+    DLOG(INFO) << "Create a block manager for platform " << id;
   }
-  else {
-    platform->block_manager = platform_table[cache_loc]->block_manager;
-    DLOG(INFO) << "Use block manager on " << cache_loc;
-  }
-
-  cache_table.insert(std::make_pair(id, cache_loc));
-  DLOG(INFO) << "Config platform " << id << 
-    " to use device memory on " << cache_loc;
 
   // print extend configs
   if (!conf_table.empty()) {
@@ -195,6 +189,7 @@ void PlatformManager::removePlatform(std::string id) {
   // add list of AccWorkers to acc_conf_table
   acc_conf_table[id] = workers;
 
+
   // erase platform from platform table
   // then when platform_ptr goes out-of-scope it should destruct
   platform_table.erase(id);
@@ -210,6 +205,15 @@ bool PlatformManager::accExists(std::string acc_id) {
 bool PlatformManager::platformExists(std::string platform_id) {
   // boost::lock_guard<PlatformManager> guard(*this);
   return platform_table.find(platform_id) != platform_table.end();
+}
+
+std::string PlatformManager::getPlatformIdByAccId(std::string acc_id) {
+  if (acc_table.count(acc_id)) {
+    return acc_table[acc_id];
+  }
+  else {
+    return std::string();
+  }
 }
 
 Platform* PlatformManager::getPlatformByAccId(std::string acc_id) {
@@ -271,10 +275,6 @@ void PlatformManager::registerAcc(
   acc_table.insert(std::make_pair(
         acc_conf.id(), platform_id));
 
-  // add cache mapping to table
-  cache_table.insert(std::make_pair(
-        acc_conf.id(), platform_id));
-
   VLOG(1) << "Added an accelerator queue "
           << "[" << acc_conf.id() << "] "
           << "for platform: " << platform_id;
@@ -301,7 +301,6 @@ void PlatformManager::removeAcc(
 
   // remove mappings of acc_id
   acc_table.erase(acc_id);
-  cache_table.erase(acc_id);
 
   // setup the task environment with ACC conf
   platform->removeQueue(acc_id);
@@ -353,12 +352,9 @@ Platform_ptr PlatformManager::create(
 void PlatformManager::removeShared(int64_t block_id)
 {
   try {
-    for (std::map<std::string, std::string>::iterator 
-        iter = cache_table.begin(); 
-        iter != cache_table.end(); 
-        iter ++) 
-    {
-      platform_table[iter->second]->remove(block_id);
+    // TODO: need to investigate further
+    for (auto it : platform_table) {
+      it.second->remove(block_id);
     }
   }
   catch (std::runtime_error &e) {

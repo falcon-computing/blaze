@@ -13,6 +13,7 @@
 #include <glog/logging.h>
 
 #include "blaze/CommManager.h"
+#include "blaze/GAMCommManager.h"
 #include "blaze/PlatformManager.h"
 #include "msgGamNam.pb.h"
 

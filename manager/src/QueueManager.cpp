@@ -20,6 +20,10 @@
 
 namespace blaze {
 
+QueueManager::~QueueManager() {
+  DLOG(INFO) << "QueueManager is destroyed";
+}
+
 void QueueManager::add(
     std::string id, 
     std::string lib_path)

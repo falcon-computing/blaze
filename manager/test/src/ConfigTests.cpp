@@ -1,6 +1,8 @@
 #include "TestCommon.h"
+#include "blaze/AppCommManager.h"
 #include "blaze/Client.h"
 #include "blaze/CommManager.h"
+#include "blaze/GAMCommManager.h"
 #include "blaze/PlatformManager.h"
 #include "acc_conf.pb.h"
 

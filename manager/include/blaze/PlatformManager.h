@@ -27,6 +27,8 @@ public:
   bool accExists(std::string acc_id);
   bool platformExists(std::string platform);
 
+  std::string getPlatformIdByAccId(std::string acc_id);
+
   Platform* getPlatformByAccId(std::string acc_id);
 
   Platform* getPlatformById(std::string platform_id);
@@ -62,10 +64,6 @@ private:
 
   // map acc_id to accelerator platform
   std::map<std::string, std::string> acc_table;
-
-  // map acc_id to BlockManager platform
-  // TODO: should be deprecated
-  std::map<std::string, std::string> cache_table;
 
   // map platform_id to platform configuration, in which
   // all AccWorkers will be ignored.

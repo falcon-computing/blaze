@@ -13,12 +13,13 @@ public:
       Platform* _platform,
       int _reconfig_timer = 500);
 
-  ~OpenCLQueueManager();
+  virtual ~OpenCLQueueManager();
 
   void start();
 
 private:
   OpenCLPlatform* ocl_platform;
+  bool power_;
 
   // thread body of executing tasks from children TaskManagers
   void do_start();

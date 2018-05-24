@@ -21,10 +21,12 @@
 #include "license.h"
 #endif
 
+#include "blaze/AppCommManager.h"
+#include "blaze/BlockManager.h"
 #include "blaze/CommManager.h"
+#include "blaze/GAMCommManager.h"
 #include "blaze/PlatformManager.h"
 #include "blaze/QueueManager.h"
-#include "blaze/BlockManager.h"
 #include "blaze/TaskManager.h"
 
 using namespace blaze;

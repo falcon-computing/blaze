@@ -17,7 +17,8 @@ class Platform {
 
 public:
   Platform(std::map<std::string, std::string> &conf_table);
-  ~Platform();
+  // we want the correct destroyer for derived class 
+  virtual ~Platform(); 
 
   virtual void addQueue(AccWorker &conf);
   virtual void removeQueue(std::string id);

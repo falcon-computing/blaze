@@ -19,6 +19,18 @@
 
 namespace blaze {
 
+Task::Task(int _num_args):
+    status(NOTREADY), 
+    num_input(_num_args),
+    num_ready(0)
+{
+  ; 
+}
+
+Task::~Task() {
+  DLOG(INFO) << "Task is destroyed";
+}
+
 TaskEnv* Task::getEnv() { 
   return env.get();
 }

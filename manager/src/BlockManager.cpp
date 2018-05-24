@@ -11,6 +11,10 @@
 
 namespace blaze {
 
+BlockManager::~BlockManager() {
+  DLOG(INFO) << "Destroying block manager";
+}
+
 // create a block if it does not exist in the manager
 // return true if a new block is created
 bool BlockManager::getAlloc(

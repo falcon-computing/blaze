@@ -1,4 +1,6 @@
+#ifdef NDEBUG
 #define LOG_HEADER "OpenCLPlatform"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/BlockManager.h"
@@ -106,10 +108,34 @@ OpenCLPlatform::OpenCLPlatform(
   queue_manager = queue;
 }
 
-OpenCLPlatform::~OpenCLPlatform() {
+#define checkCLRun(cmd) { \
+  cl_int err = cmd; \
+  if (err != CL_SUCCESS) \
+    DLOG(ERROR) << #cmd << " failed"; \
+  DLOG(INFO) << #cmd << " succeeded"; \
+}
 
-  clReleaseCommandQueue(env->getCmdQueue());
-  clReleaseContext(env->getContext());
+OpenCLPlatform::~OpenCLPlatform() {
+  checkCLRun(clFinish(env->getCmdQueue()));
+  
+  if (curr_program && curr_kernel) {
+    checkCLRun(clReleaseKernel(curr_kernel));
+    checkCLRun(clReleaseProgram(curr_program));
+  }
+  checkCLRun(clReleaseCommandQueue(env->getCmdQueue()));
+  checkCLRun(clReleaseContext(env->getContext()));
+  //checkCLRun(clReleaseDevice(env->getDeviceId()));
+  // reference device
+  cl_uint ref_count = 0;
+  size_t ret_size = 0;
+  clGetDeviceInfo(env->getDeviceId(),
+      CL_DEVICE_REFERENCE_COUNT,
+      sizeof(cl_uint),
+      (void*)&(ref_count),
+      &ret_size);
+  DLOG(INFO) << "CL_DEVICE_REFERENCE_COUNT = " << ref_count;
+
+  DLOG(INFO) << "OpenCLPlatform is destroyed";
 }
 
 void OpenCLPlatform::createBlockManager(
@@ -127,6 +153,11 @@ BlockManager* OpenCLPlatform::getBlockManager() {
 }
 
 void OpenCLPlatform::addQueue(AccWorker &conf) {
+
+  // Need to run the same thing in base class
+  if (acc_table.count(conf.id()) == 0) {
+    acc_table.insert(std::make_pair(conf.id(), conf));
+  }
 
   int err;
   int status = 0;
@@ -189,8 +220,11 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
 
 void OpenCLPlatform::removeQueue(std::string id) {
   // asynchronously call queue_manager->remove(id)
-  boost::thread executor(
-      boost::bind(&QueueManager::remove, queue_manager.get(), id));
+  //boost::thread executor(
+  //    boost::bind(&QueueManager::remove, queue_manager.get(), id));
+  
+  // do synchronous remove instead
+  queue_manager->remove(id);
 
   // remove bitstream from table
   delete [] bitstreams[id].second;

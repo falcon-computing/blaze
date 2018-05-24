@@ -1,12 +1,9 @@
-include_directories(
-    "${MANAGER_DIR}/include"
-    "${GLOG_DIR}/include" 
-    "${GTEST_DIR}/include" )
-
+#include_directories(
+#    "${GLOG_DIR}/include" 
+#    "${GTEST_DIR}/include" )
+#
 link_directories(
-    "${MANAGER_DIR}/lib"
-	  "${GLOG_DIR}/lib"
-	  "${GTEST_DIR}/lib")
+	  ${GTEST_DIR}/lib)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 add_executable(test_app ${SRC_LIST})
