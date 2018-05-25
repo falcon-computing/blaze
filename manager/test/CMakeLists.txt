@@ -7,6 +7,8 @@ link_directories(
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 add_executable(test_app ${SRC_LIST})
+add_dependencies(test_app glog-download)
+add_dependencies(test_app googletest)
 
 target_link_libraries(test_app
     blaze

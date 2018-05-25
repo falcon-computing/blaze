@@ -4,21 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef NDEBUG
 #define LOG_HEADER  "OpenCLBlock"
-#endif
 #include <glog/logging.h>
 
 #include "blaze/xlnx_opencl/OpenCLBlock.h"
 
 namespace blaze {
-
-OpenCLBlock::~OpenCLBlock() {
-  if (allocated) {
-    clReleaseMemObject(data);
-  }
-  DLOG(INFO) << "Destroyed one OpenCLBlock";
-}
 
 void OpenCLBlock::alloc() {
 
@@ -173,7 +164,7 @@ void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
 
   // get the command queue handler
   cl_command_queue command = env->getCmdQueue();
-  //cl_event event;
+  cl_event event;
 
   // use a lock on TaskEnv to guarantee single-thread access to command queues
   // NOTE: this is unnecessary if the OpenCL runtime is thread-safe
@@ -182,7 +173,7 @@ void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
 
   int err = clEnqueueWriteBuffer(
       command, data, CL_TRUE, offset, 
-      _size, src, 0, NULL, NULL);
+      _size, src, 0, NULL, &event);
   DLOG(INFO) << "clEnqueueWriteBuffer finished";
   //env->unlock();
 
@@ -205,7 +196,7 @@ void OpenCLBlock::readData(void* dst, size_t size) {
 
     // get the command queue handler
     cl_command_queue command = env->getCmdQueue();
-    //cl_event event;
+    cl_event event;
 
     // use a lock on TaskEnv to guarantee single-thread 
     // access to command queues
@@ -214,7 +205,7 @@ void OpenCLBlock::readData(void* dst, size_t size) {
 
     int err = clEnqueueReadBuffer(
       command, data, CL_TRUE, 0, 
-      size, dst, 0, NULL, NULL);
+      size, dst, 0, NULL, &event);
 
     if (err != CL_SUCCESS) {
       DLOG(ERROR) << "clEnqueueReadBuffer error: " << err;
@@ -258,7 +249,7 @@ DataBlock_ptr OpenCLBlock::sample(char* mask) {
   // array of cl_event to wait until all buffer copy is finished
   cl_event *events = new cl_event[num_items];
 
-  for (int i = 0; i < num_items; i++) {
+  for (int i=0; i<num_items; i++) {
     if (mask[i] != 0) {
       err = clEnqueueCopyBuffer(command, 
           data, masked_data,
@@ -278,10 +269,6 @@ DataBlock_ptr OpenCLBlock::sample(char* mask) {
 
   if (err != CL_SUCCESS) {
     throw std::runtime_error("Error during sampling");
-  }
-
-  for (int i = 0 ; i < num_items; i++) {
-    clReleaseEvent(events[i]);
   }
   ocl_block->ready = true;
 

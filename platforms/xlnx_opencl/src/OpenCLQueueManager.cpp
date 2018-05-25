@@ -2,9 +2,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/atomic.hpp>
 
-#ifdef NDEBUG
 #define LOG_HEADER "OpenCLQueueManager"
-#endif
 #include <glog/logging.h>
 
 #include "blaze/Task.h"
@@ -19,7 +17,6 @@ OpenCLQueueManager::OpenCLQueueManager(
     int _reconfig_timer
     ):
   QueueManager(_platform),
-  power_(true),
   reconfig_timer(_reconfig_timer)
 {
   ocl_platform = dynamic_cast<OpenCLPlatform*>(platform);
@@ -35,13 +32,9 @@ OpenCLQueueManager::OpenCLQueueManager(
   executors.create_thread(
       boost::bind(&OpenCLQueueManager::do_start, this));
 }
-
 OpenCLQueueManager::~OpenCLQueueManager() {
   // interrupt all executors
-  //executors.interrupt_all();
-  power_ = false;
-  executors.join_all();
-  DLOG(INFO) << "Stopped OpenCLQueueManager";
+  executors.interrupt_all();
 }
 
 void OpenCLQueueManager::start() {
@@ -61,7 +54,7 @@ void OpenCLQueueManager::do_start() {
   int retry_counter = 0;
   std::list<std::pair<std::string, TaskManager_ptr> > ready_queues;
 
-  while (power_) {
+  while (1) {
     if (queue_table.empty()) {
       // no ready queues at this point, sleep and check again
       boost::this_thread::sleep_for(boost::chrono::milliseconds(10)); 
@@ -163,7 +156,6 @@ void OpenCLQueueManager::do_start() {
     // if the timer is up, switch to the next queue
     ready_queues.pop_front(); 
   }
-  DLOG(INFO) << "OpenCLQueue executor is finished";
 }
 
 } // namespace blaze

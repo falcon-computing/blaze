@@ -8,10 +8,8 @@ link_directories(
     ${XILINX_SDX}/runtime/lib/x86_64)
 
 add_library(xlnx_opencl SHARED ${SRC_LIST})
+add_dependencies(xlnx_opencl 
+    blaze)
 
 target_link_libraries(xlnx_opencl
-    blaze
-    blaze_message
-    glog
-    xilinxopencl
-    ${Boost_LIBRARIES})
+    xilinxopencl)

@@ -8,15 +8,6 @@ project(blaze-platforms)
 find_package(Boost 1.53.0 COMPONENTS
 	  system thread iostreams filesystem regex REQUIRED)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -DNDEBUG")
-
-set(GLOG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/glog-0.3.3")
-set(GTEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/googletest")
-set(FLMDIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/falcon-lic")
-set(MANAGER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../manager")
-
 include_directories(
     ${Boost_INCLUDE_DIRS}
     ${ProtobufIncludePath}
