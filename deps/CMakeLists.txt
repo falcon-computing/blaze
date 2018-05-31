@@ -24,7 +24,7 @@ ExternalProject_Add(
     falcon-lic-download
     PREFIX "falcon-lic"
     URL https://s3.amazonaws.com/fcs-build-public/falcon-lic.tar.gz
-    URL_MD5 d1f4d9f156c483785e3ac63dc65d3a26
+    URL_MD5 8f36e6cb08c7cb7a677d749bee1bfe6e
     SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/falcon-lic/install"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
