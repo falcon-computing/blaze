@@ -6,16 +6,25 @@ set(include_dir ${CMAKE_CURRENT_SOURCE_DIR}/include/blaze)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 
+set(ManagerIncludePath ${CMAKE_CURRENT_SOURCE_DIR}/include
+    CACHE INTERNAL "Path to manager include")
+
 add_library(blaze STATIC ${SRC_LIST})
+target_include_directories(blaze PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 add_dependencies(blaze Google FalconLM)
 target_link_libraries(blaze blaze_message)
-set_target_properties(blaze PROPERTIES PUBLIC_HEADER 
+
+set(HEADER_FILES
     ${include_dir}/AccAgent.h
+    ${include_dir}/BaseClient.h
     ${include_dir}/Client.h
     ${include_dir}/Common.h
+    ${include_dir}/ReserveClient.h
     ${include_dir}/Task.h
     ${include_dir}/TaskEnv.h)
 
+set_target_properties(blaze PROPERTIES PUBLIC_HEADER "${HEADER_FILES}")
 
 add_executable(manager ${CMAKE_CURRENT_SOURCE_DIR}/src/executables/main.cpp)
 add_dependencies(manager Google FalconLM)

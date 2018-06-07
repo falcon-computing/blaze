@@ -15,9 +15,8 @@ Client::Client(
     int _num_inputs, 
     int _num_outputs,
     int port):
+  BaseClient(port, "127.0.0.1"),
   acc_id(_acc_id), 
-  ip_address("127.0.0.1"),
-  srv_port(port),
   num_inputs(_num_inputs),
   num_outputs(_num_outputs),
   input_blocks(_num_inputs, NULL_DATA_BLOCK),
@@ -310,38 +309,22 @@ int Client::getOutputLength(int idx) {
 void Client::start(bool blocking) {
 
   try {
-    // setup socket connection
-    if (!ios || !endpoint) {
-      ios_ptr _ios(new io_service);
-      endpoint_ptr _endpoint(new ip::tcp::endpoint(
-            ip::address::from_string(ip_address),
-            srv_port));
-
-      ios = _ios;
-      endpoint = _endpoint;
-    }
-
-    // create socket for connection
-    socket_ptr sock(new ip::tcp::socket(*ios));
-    sock->connect(*endpoint);
-    sock->set_option(ip::tcp::no_delay(true));
-
     // send request
     TaskMsg request_msg;
     prepareRequest(request_msg);
-    send(request_msg, sock);
+    send(request_msg);
 
     VLOG(2) << "Sent a request";
 
     // wait on reply for ACCREQUEST
     TaskMsg reply_msg;
-    recv(reply_msg, sock);
+    recv(reply_msg);
 
     if (reply_msg.type() == ACCGRANT) {
 
       TaskMsg data_msg;
       prepareData(data_msg, reply_msg);
-      send(data_msg, sock);
+      send(data_msg);
       VLOG(2) << "Sent data";
     }
     else {
@@ -350,7 +333,7 @@ void Client::start(bool blocking) {
 
     TaskMsg finish_msg;
     // wait on reply for ACCDATA
-    recv(finish_msg, sock);
+    recv(finish_msg);
 
     if (finish_msg.type() == ACCFINISH) {
       processOutput(finish_msg);

@@ -21,7 +21,7 @@ public:
 
   OpenCLPlatform(std::map<std::string, std::string> &conf_table);
 
-  ~OpenCLPlatform();
+  virtual ~OpenCLPlatform();
 
   virtual TaskEnv_ptr getEnv(std::string id);
 

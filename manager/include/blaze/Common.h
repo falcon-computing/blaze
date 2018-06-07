@@ -25,6 +25,7 @@ namespace blaze {
 #define BLAZE_OUTPUT_BLOCK 2
 
 // forward declaration of all classes
+class BaseClient;
 class BlockManager;
 class CommManager;
 class DataBlock;
@@ -73,6 +74,12 @@ bool deleteFile(std::string path);
 
 // parameters
 static std::string local_dir("/tmp");
+
+template<typename T>
+  struct is_pointer { static const bool value = false; };
+
+template<typename T>
+  struct is_pointer<T*> { static const bool value = true; };
 
 // custom exceptions
 class invalidParam : public std::runtime_error {

@@ -20,10 +20,10 @@ public:
     env(_env), 
     DataBlock(_num_items, _item_length, _item_size, _align_width, _flag)
   {
-      bankID = 0;
+    bankID = 0;
   }
 
-   OpenCLBlock(OpenCLEnv* _env, 
+  OpenCLBlock(OpenCLEnv* _env, 
       int _num_items, 
       int _item_length,
       int _item_size,
@@ -33,21 +33,21 @@ public:
     env(_env), 
     DataBlock(_num_items, _item_length, _item_size, ext_flag, _align_width, _flag)
   {
-      bankID = this->getExtFlag("bankID");
-      if (bankID < 0 || bankID > 3) {
-          bankID = 0;
-      }
+    bankID = this->getExtFlag("bankID");
+    if (bankID < 0 || bankID > 3) {
+      bankID = 0;
+    }
   } 
   // used to copy data from CPU memory
   OpenCLBlock(OpenCLEnv* _env, DataBlock *block):
     env(_env),
     DataBlock(*block)
   {
+    bankID = this->getExtFlag("bankID");
+    if (bankID < 0 || bankID > 3) {
+      bankID = 0;
+    }
 
-      bankID = this->getExtFlag("bankID");
-      if (bankID < 0 || bankID > 3) {
-          bankID = 0;
-      }
     if (block->isAllocated()) {
       alloc(); 
     }
@@ -58,11 +58,7 @@ public:
     }
   }
   
-  ~OpenCLBlock() {
-    if (allocated) {
-      clReleaseMemObject(data);
-    }
-  }
+  virtual ~OpenCLBlock();
 
   virtual void alloc();
 
