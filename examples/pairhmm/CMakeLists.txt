@@ -1,0 +1,2 @@
+compile_xlnx_task(PairHMM_2SLR)
+compile_xlnx_task(PairHMM_3SLR)

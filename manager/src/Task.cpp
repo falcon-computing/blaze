@@ -72,7 +72,7 @@ char* Task::getOutput(
     int item_length, 
     int num_items,
     int data_width,
-    std::pair<std::string, int>& ext_flag) 
+    std::pair<std::string, int> ext_flag) 
 {
   if (idx < output_blocks.size()) {
     // if output already exists, return the pointer 

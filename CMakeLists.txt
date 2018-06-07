@@ -17,14 +17,15 @@ message(STATUS "version: ${BIN_VERSION}")
 find_package(Boost 1.53.0 COMPONENTS
 	  system thread iostreams filesystem regex REQUIRED)
 find_package(Protobuf 2.5.0 REQUIRED)
-find_package(Threads)
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
 
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Google REQUIRED)
 find_package(FalconLM REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS -fPIC -DVERSION=\\\"${BIN_VERSION}\\\"")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -DUSELICENSE")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -Wall -DUSELICENSE")
 
 set(MANAGER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/manager")
 set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common")
@@ -44,3 +45,4 @@ enable_testing()
 add_subdirectory(common)
 add_subdirectory(manager)
 add_subdirectory(platforms)
+add_subdirectory(examples)

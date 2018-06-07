@@ -8,37 +8,12 @@
 
 // use flexlm
 #ifdef USELICENSE
-#include "license.h"
+#include "falcon-lic/license.h"
 #endif
 
 #include "blaze/Admin.h"
 
 using namespace blaze;
-
-#ifdef USELICENSE
-void licence_check_out() {
-
-  Feature feature = FALCON_RT;
-
-  // initialize for licensing. call once
-  fc_license_init();
-
-  // get a feature
-  fc_license_checkout(feature, 1);
-
-  printf("\n");
-}
-
-void licence_check_in() {
-
-  Feature feature = FALCON_RT;
-
-  fc_license_checkin(feature);
-
-  // cleanup for licensing. call once
-  fc_license_cleanup();
-}
-#endif
 
 int main(int argc, char** argv) {
 
@@ -48,8 +23,22 @@ int main(int argc, char** argv) {
   FLAGS_v = 1;
 
 #ifdef USELICENSE
-  // check license
-  licence_check_out();
+  namespace fc   = falconlic;
+#if DEPLOYMENT == aws
+  fc::enable_aws();
+#elif DEPLOYMENT == hwc
+  fc::enable_hwc();
+#endif
+  fc::enable_flexlm();
+
+  namespace fclm = falconlic::flexlm;
+  fclm::add_feature(fclm::FALCON_DNA);
+  int licret = fc::license_verify();
+  if (licret != fc::SUCCESS) {
+    LOG(ERROR) << "Cannot authorize software usage: " << licret;
+    LOG(ERROR) << "Please contact support@falcon-computing.com for details.";
+    return licret;
+  }
 #endif
 
   srand(time(NULL));
@@ -87,7 +76,7 @@ int main(int argc, char** argv) {
 
 #ifdef USELICENSE
   // release license
-  licence_check_in();
+  fc::license_clean();
 #endif
 
   return 0;

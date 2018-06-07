@@ -33,14 +33,15 @@ target_link_libraries(manager
     blaze
     ${Google_LIBRARIES}
     ${FalconLM_LIBRARIES}
-    ${CMAKE_DL_LIBS} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(admin ${CMAKE_CURRENT_SOURCE_DIR}/src/executables/admin.cpp)
 add_dependencies(admin Google FalconLM)
 target_link_libraries(admin
     blaze
     ${Google_LIBRARIES}
-    ${CMAKE_DL_LIBS} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    ${FalconLM_LIBRARIES}
+    ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 add_subdirectory(test)
 

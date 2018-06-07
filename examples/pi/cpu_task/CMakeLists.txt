@@ -1,0 +1,1 @@
+compile_task(Pi)

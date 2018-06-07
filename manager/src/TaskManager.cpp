@@ -40,20 +40,20 @@ Task_ptr TaskManager::create() {
 }
 
 uint64_t TaskManager::get_queue_delay(){
-  return queue_delay.load(boost::memory_order_acq_rel);
+  return queue_delay.load();
 }
 
 void TaskManager::modify_queue_delay(uint64_t cur_delay, bool add_or_sub) {
   if (add_or_sub) {
     uint64_t before = get_queue_delay();
-    queue_delay.fetch_add(cur_delay, boost::memory_order_acq_rel);
+    queue_delay.fetch_add(cur_delay);
     DLOG(INFO) << "Queueing delay increases from " << before
       << " to " << get_queue_delay();
   }
   else {
     uint64_t before = get_queue_delay();
-    queue_delay.fetch_sub(cur_delay, boost::memory_order_acq_rel);
-    DLOG(INFO) << "Queueing delay increases from " << before
+    queue_delay.fetch_sub(cur_delay);
+    DLOG(INFO) << "Queueing delay decreases from " << before
       << " to " << get_queue_delay();
   }
 }

@@ -2,7 +2,7 @@ include(ExternalProject)
 ExternalProject_Add(glog-download
     PREFIX "glog"
     URL https://s3.amazonaws.com/fcs-build-public/glog-falcon.tar.gz
-    URL_MD5 6d58007c984c961afe3704241022da15
+    URL_MD5 2b1bb4285ef4c8963d5e0e338f1952b8
     SOURCE_DIR "${CMAKE_BINARY_DIR}/glog/install"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""

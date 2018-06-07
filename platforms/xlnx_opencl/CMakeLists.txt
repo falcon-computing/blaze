@@ -3,9 +3,12 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 set(include_prefix "blaze/xlnx_opencl")
 set(include_dir ${CMAKE_CURRENT_SOURCE_DIR}/include/${include_prefix})
 
+set(PlatformXilinxIncludePath ${CMAKE_CURRENT_SOURCE_DIR}/include
+    CACHE INTERNAL "Path to platform include files.")
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-		${XILINX_SDX}/runtime/include/1_2)
+    ${XILINX_SDX}/runtime/include/1_2)
 
 link_directories(
     ${XILINX_SDX}/runtime/lib/x86_64)
