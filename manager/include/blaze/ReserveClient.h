@@ -23,7 +23,7 @@ class ReserveClient : public BaseClient {
   ~ReserveClient();
 
  protected:
-  virtual void release() = 0;
+  virtual void release() {;}
 
  private:
   void heartbeat();
