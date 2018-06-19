@@ -7,7 +7,9 @@
 #include <fstream>
 #include <stdexcept>
 
+#ifdef NDEBUG
 #define LOG_HEADER "QueueManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Task.h"
@@ -17,6 +19,10 @@
 #include "blaze/QueueManager.h"
 
 namespace blaze {
+
+QueueManager::~QueueManager() {
+  DLOG(INFO) << "QueueManager is destroyed";
+}
 
 void QueueManager::add(
     std::string id, 

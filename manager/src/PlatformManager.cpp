@@ -3,7 +3,9 @@
 #include <fstream>
 #include <stdexcept>
 
+#ifdef NDEBUG
 #define LOG_HEADER "PlatformManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/BlockManager.h"
@@ -14,104 +16,185 @@
 
 namespace blaze {
 
-PlatformManager::PlatformManager(ManagerConf *conf)
+PlatformManager::PlatformManager(ManagerConf *conf): 
+    platform_table(),
+    acc_table(),
+    platform_conf_table(),
+    acc_conf_table()
 {
   for (int i=0; i<conf->platform_size(); i++) {
 
     AccPlatform platform_conf = conf->platform(i);
 
-    std::string id   = platform_conf.id();
-    std::string path = platform_conf.path();
-
-    // check platform id for special characters
-    boost::regex special_char_test("\\w+", boost::regex::perl);
-    if (!boost::regex_match(id.begin(), id.end(), special_char_test)) {
-      LOG(ERROR) << "Platform id [" << id << "] cannot contain " 
-        << "special characters beside alphanumeric and '_'";
-      continue;
-    }
-
     try {
-      // generic Platform configuration
-      if (platform_table.find(id) != platform_table.end()) {
-        throw std::runtime_error("Duplicated platform found: " + id);
-      }
-
-      int cache_limit   = platform_conf.cache_limit();
-      int scratch_limit = platform_conf.scratch_limit();
-
-      std::string cache_loc = platform_conf.has_cache_loc() ? 
-                                platform_conf.cache_loc() : id;
-
-      // extended Platform configurations
-      std::map<std::string, std::string> conf_table;
-      for (int i=0; i<platform_conf.param_size(); i++) {
-        std::string conf_key   = platform_conf.param(i).key();
-        std::string conf_value = platform_conf.param(i).value();
-        conf_table[conf_key]   = conf_value;
-      }
-
-      // create Platform
-      Platform_ptr platform = this->create(path, conf_table);
-
-      platform_table.insert(std::make_pair(id, platform));
-
-      // create block manager
-      if (cache_table.find(cache_loc) == cache_table.end())
-      {
-        if (cache_loc.compare(id) != 0) {
-          LOG(WARNING) << "Unspecificed cache location, use private instead";
-          cache_loc = id;
-        }
-        // if the cache is not shared with another platform
-        // create a block manager in current platform
-        platform->createBlockManager(
-            (size_t)cache_limit << 20, 
-            (size_t)scratch_limit << 20);
-
-        DLOG(INFO) << "Create a block manager for " << cache_loc;
-      }
-      else {
-        platform->block_manager = platform_table[cache_loc]->block_manager;
-        DLOG(INFO) << "Use block manager on " << cache_loc;
-      }
-
-      cache_table.insert(std::make_pair(id, cache_loc));
-      DLOG(INFO) << "Config platform " << id << 
-        " to use device memory on " << cache_loc;
-
-      // print extend configs
-      if (!conf_table.empty()) {
-        VLOG(1) << "Extra Configurations for the platform:";
-        std::map<std::string, std::string>::iterator iter;
-        for (iter  = conf_table.begin();
-            iter != conf_table.end();
-            iter ++)
-        {
-          VLOG(1) << "[""" << iter->first << """] = "
-            << iter->second;
-        }
-      }
-
-      // add accelerators to the platform
-      for (int j=0; j<platform_conf.acc_size(); j++) {
-
-        AccWorker acc_conf = platform_conf.acc(j);
-        try {
-          registerAcc(id, acc_conf);          
-        } 
-        catch (std::exception &e) {
-          LOG(ERROR) << "Cannot create ACC " << 
-              acc_conf.id() <<
-              ": " << e.what();
-        }
-      }
+      registerPlatform(platform_conf);
     }
     catch (std::runtime_error &e) {
-      LOG(ERROR) << "Cannot create platform " << id <<
+      LOG(ERROR) << "Cannot create platform " << 
+        platform_conf.id() << ": " << e.what();
+    }
+  }
+}
+
+PlatformManager::~PlatformManager() {
+  // remove all platforms
+  while (!platform_table.empty()) {
+    auto it = platform_table.begin();
+    DLOG(INFO) << "Remove " << it->first << 
+                  " before destroying platform manager";
+    removePlatform(it->first);
+  }
+}
+
+void PlatformManager::registerPlatform(AccPlatform conf) {
+
+  std::string id   = conf.id();
+
+  // check platform id for special characters
+  boost::regex special_char_test("\\w+", boost::regex::perl);
+  if (!boost::regex_match(id.begin(), id.end(), special_char_test)) {
+    LOG(ERROR) << "Platform id [" << id << "] cannot contain " 
+      << "special characters beside alphanumeric and '_'";
+    throw std::runtime_error("Cannot register a new platform");
+  }
+
+  if (platform_conf_table.count(id)) {
+    throw std::runtime_error("Duplicated platform found: " + id);
+  }
+
+  // write platform conf to platform_conf_table
+  platform_conf_table[id] = conf; 
+
+  // open the new platform
+  openPlatform(id);
+
+  // add accelerators to the platform
+  for (int j = 0; j < conf.acc_size(); j++) {
+    AccWorker acc_conf = conf.acc(j);
+    try {
+      registerAcc(id, acc_conf);          
+    } 
+    catch (std::exception &e) {
+      LOG(ERROR) << "Cannot create ACC " << acc_conf.id() <<
         ": " << e.what();
     }
   }
+  DLOG(INFO) << "Platform " << id << " is registered";
+}
+
+void PlatformManager::openPlatform(std::string id) {
+  if (!platform_conf_table.count(id)) {
+    throw std::runtime_error("Platform "+ id +" has not been registered yet.");
+  }
+  else if (platform_table.count(id)) {
+    // skip platform creation if it already exists
+    return;
+  }
+
+  AccPlatform conf = platform_conf_table[id];
+
+  // generic Platform configuration
+  std::string path  = conf.path();
+  int cache_limit   = conf.cache_limit();
+  int scratch_limit = conf.scratch_limit();
+
+  std::string cache_loc = conf.has_cache_loc() ? 
+    conf.cache_loc() : id;
+
+  // extended Platform configurations
+  std::map<std::string, std::string> conf_table;
+  for (int i = 0; i < conf.param_size(); i++) {
+    std::string conf_key   = conf.param(i).key();
+    std::string conf_value = conf.param(i).value();
+    conf_table[conf_key]   = conf_value;
+  }
+
+  // create Platform
+  Platform_ptr platform = this->create(path, conf_table);
+
+  platform_table.insert(std::make_pair(id, platform));
+
+  // create block manager if this platform is 
+  // using its own cache
+  if (cache_loc.compare(id) != 0 && platform_table.count(cache_loc)) {
+    platform->block_manager = platform_table[cache_loc]->block_manager;
+    DLOG(INFO) << "Use block manager on " << cache_loc;
+  }
+  else {
+    if (cache_loc.compare(id) != 0) {
+      LOG(WARNING) << "Unspecified cache location, use private instead";
+    }
+    // if the cache is not shared with another platform
+    // create a block manager in current platform
+    platform->createBlockManager(
+        (size_t)cache_limit << 20, 
+        (size_t)scratch_limit << 20);
+
+    DLOG(INFO) << "Create a block manager for platform " << id;
+  }
+
+  // print extend configs
+  if (!conf_table.empty()) {
+    VLOG(1) << "Extra Configurations for the platform:";
+    std::map<std::string, std::string>::iterator iter;
+    for (iter  = conf_table.begin();
+        iter != conf_table.end();
+        iter ++)
+    {
+      VLOG(1) << "[""" << iter->first << """] = "
+        << iter->second;
+    }
+  }
+
+  // if acc_conf_table is not empty, it means we are restoring
+  // a platform. therefore we need to register all previosu AccWorkers
+  if (acc_conf_table.count(id)) {
+    for (auto worker : acc_conf_table[id]) {
+      DLOG(INFO) << "Restoring old ACC: " << worker.id();
+      registerAcc(id, worker);
+    }
+    acc_conf_table.erase(id);
+    DLOG(INFO) << "Removing " << id << " from acc_conf_table";
+  }
+}
+
+void PlatformManager::removePlatform(std::string id) {
+  if (!platform_table.count(id)) {
+    DLOG(ERROR) << "Platform " << id << " is not active right now.";
+    return;
+  }
+  else if (!platform_conf_table.count(id)) {
+    DLOG(ERROR) << "Configuration missing for platform " << id;
+    throw std::runtime_error("Unexpected platform configuration error");
+  }
+
+  Platform_ptr platform = platform_table[id];
+
+  // remove all accelerators and add them to acc_conf_table
+  //if (acc_conf_table.count(id)) {
+  //  DLOG(ERROR) << "acc_conf_table " << id << " should be cleared after openPlatform";
+  //  throw std::runtime_error("unexpected error in platform removal");
+  //}
+
+  std::vector<AccWorker> workers;
+  for (auto it : platform->acc_table) {
+    // remove queue based on AccWorker.id()
+    std::string acc_id = it.second.id();
+    removeAcc("", acc_id, id);
+    DLOG(INFO) << "Removing " << id << " from platform";
+
+    // add AccWorker to acc_conf_table
+    workers.push_back(it.second);
+  }
+  // add list of AccWorkers to acc_conf_table
+  acc_conf_table[id] = workers;
+
+
+  // erase platform from platform table
+  // then when platform_ptr goes out-of-scope it should destruct
+  platform_table.erase(id);
+
+  DLOG(INFO) << "Platform " << id << " is removed";
 }
 
 bool PlatformManager::accExists(std::string acc_id) {
@@ -122,6 +205,15 @@ bool PlatformManager::accExists(std::string acc_id) {
 bool PlatformManager::platformExists(std::string platform_id) {
   // boost::lock_guard<PlatformManager> guard(*this);
   return platform_table.find(platform_id) != platform_table.end();
+}
+
+std::string PlatformManager::getPlatformIdByAccId(std::string acc_id) {
+  if (acc_table.count(acc_id)) {
+    return acc_table[acc_id];
+  }
+  else {
+    return std::string();
+  }
 }
 
 Platform* PlatformManager::getPlatformByAccId(std::string acc_id) {
@@ -183,10 +275,6 @@ void PlatformManager::registerAcc(
   acc_table.insert(std::make_pair(
         acc_conf.id(), platform_id));
 
-  // add cache mapping to table
-  cache_table.insert(std::make_pair(
-        acc_conf.id(), platform_id));
-
   VLOG(1) << "Added an accelerator queue "
           << "[" << acc_conf.id() << "] "
           << "for platform: " << platform_id;
@@ -213,7 +301,6 @@ void PlatformManager::removeAcc(
 
   // remove mappings of acc_id
   acc_table.erase(acc_id);
-  cache_table.erase(acc_id);
 
   // setup the task environment with ACC conf
   platform->removeQueue(acc_id);
@@ -265,12 +352,9 @@ Platform_ptr PlatformManager::create(
 void PlatformManager::removeShared(int64_t block_id)
 {
   try {
-    for (std::map<std::string, std::string>::iterator 
-        iter = cache_table.begin(); 
-        iter != cache_table.end(); 
-        iter ++) 
-    {
-      platform_table[iter->second]->remove(block_id);
+    // TODO: need to investigate further
+    for (auto it : platform_table) {
+      it.second->remove(block_id);
     }
   }
   catch (std::runtime_error &e) {

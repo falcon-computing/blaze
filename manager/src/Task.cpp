@@ -3,7 +3,9 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <stdio.h>
 
+#ifdef NDEBUG
 #define LOG_HEADER "Task"
+#endif
 #include <glog/logging.h>
 
 #ifdef USEHDFS
@@ -16,6 +18,18 @@
 #include "blaze/Platform.h"
 
 namespace blaze {
+
+Task::Task(int _num_args):
+    status(NOTREADY), 
+    num_input(_num_args),
+    num_ready(0)
+{
+  ; 
+}
+
+Task::~Task() {
+  DLOG(INFO) << "Task is destroyed";
+}
 
 TaskEnv* Task::getEnv() { 
   return env.get();
@@ -58,7 +72,7 @@ char* Task::getOutput(
     int item_length, 
     int num_items,
     int data_width,
-    std::pair<std::string, int>& ext_flag) 
+    std::pair<std::string, int> ext_flag) 
 {
   if (idx < output_blocks.size()) {
     // if output already exists, return the pointer 

@@ -1,17 +1,15 @@
-#define TEST_FRIENDS_LIST \
-          friend class ClientTests; \
-          friend class ClientTests_CheckBlockAllocation_Test; \
-          friend class ClientTests_CheckPrepareRequest_Test; 
-
 #include "TestCommon.h"
+#include "blaze/AppCommManager.h"
 #include "blaze/Client.h"
 #include "blaze/CommManager.h"
 #include "blaze/PlatformManager.h"
+#include "blaze/ReserveClient.h"
 
 namespace blaze {
 
 class TestClient : public Client {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ClientTests, CheckBlockAllocation);
+  FRIEND_TEST(ClientTests, CheckPrepareRequest);
 public:
   TestClient(int ni, int no): Client("test", ni, no, app_port) {;}
   void compute() {
@@ -119,7 +117,7 @@ TEST_F(ClientTests, CheckPrepareRequest) {
 
 TEST_F(ClientTests, AppTest_arrayTest) {
 
-  std::string path("./tasks/cpu/arrayTest/arrayTest.so");
+  std::string path = pathToArrayTest();
   boost::filesystem::wpath file(path);
   ASSERT_EQ(boost::filesystem::exists(file), true)
     << "Required acc task file does not exist, skipping test";
@@ -141,7 +139,7 @@ TEST_F(ClientTests, AppTest_arrayTest) {
 
 TEST_F(ClientTests, AppTest_loopBack) {
 
-  std::string path("./tasks/cpu/loopBack/loopBack.so");
+  std::string path = pathToLoopBack();
   boost::filesystem::wpath file(path);
   ASSERT_EQ(boost::filesystem::exists(file), true)
     << "Required acc task file does not exist, skipping test";
@@ -163,7 +161,7 @@ TEST_F(ClientTests, AppTest_loopBack) {
 
 TEST_F(ClientTests, AppTest_delay) {
 
-  std::string path("./tasks/cpu/delay/delay.so");
+  std::string path = pathToDelay();
   boost::filesystem::wpath file(path);
   ASSERT_EQ(boost::filesystem::exists(file), true)
     << "Required acc task file does not exist, skipping test";
@@ -181,5 +179,64 @@ TEST_F(ClientTests, AppTest_delay) {
         &platform_manager, "127.0.0.1", app_port)); 
 
   ASSERT_EQ(true, runDelay());  
+}
+
+TEST_F(ClientTests, ReserveClientTest) {
+
+  class TestResvClient : public ReserveClient {
+    public:
+      TestResvClient(std::string id): ReserveClient(id, app_port), init(true) {;}
+      void release() { init = false; }
+
+      bool init;
+  };
+
+  // first test client's behavior without manager
+  {
+    TestResvClient client("test");
+    ASSERT_TRUE(client.init);
+  }
+
+  // use delay accelerator to test
+  std::string path = pathToDelay();
+  boost::filesystem::wpath file(path);
+  ASSERT_EQ(boost::filesystem::exists(file), true)
+    << "Required acc task file does not exist, skipping test";
+
+   // config manager
+  ManagerConf conf;
+  AccPlatform *platform = conf.add_platform();
+  AccWorker *acc_worker = platform->add_acc();
+  acc_worker->set_id("test");
+  acc_worker->set_path(path);
+
+  // start manager
+  PlatformManager platform_manager(&conf);
+  boost::shared_ptr<CommManager> comm( new AppCommManager(
+        &platform_manager, "127.0.0.1", app_port)); 
+
+  // client test
+  try {
+    TestResvClient client("asdf");
+    ASSERT_FALSE(client.init) << "should not run this";
+  }
+  catch (reserveError &e) {
+    LOG(INFO) << "Should catch this error: " << e.what();
+  }
+
+  {
+    TestResvClient client("test");
+
+    // check if the platform is released
+    ASSERT_FALSE(platform_manager.accExists("test"));
+    ASSERT_FALSE(platform_manager.platformExists("cpu"));
+    ASSERT_TRUE(client.init);
+  }
+
+  // wait a while
+  boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+
+  ASSERT_TRUE(platform_manager.accExists("test"));
+  ASSERT_TRUE(platform_manager.platformExists("cpu"));
 }
 } // namespace blaze

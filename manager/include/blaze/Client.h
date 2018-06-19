@@ -1,19 +1,17 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "proto/task.pb.h"
-#include "Common.h"
+#include <gtest/gtest_prod.h>
 #include <string>
 #include <utility>
+
+#include "task.pb.h"
+#include "BaseClient.h"
+#include "Common.h"
 
 #define BLAZE_INPUT         0
 #define BLAZE_INPUT_CACHED  1
 #define BLAZE_SHARED        2
-
-// for testing purpose
-#ifndef TEST_FRIENDS_LIST
-#define TEST_FRIENDS_LIST
-#endif
 
 using namespace boost::asio;
 
@@ -21,8 +19,9 @@ namespace blaze {
 
 typedef boost::shared_ptr<boost::thread> client_event;
 
-class Client {
-  TEST_FRIENDS_LIST
+class Client : public BaseClient {
+  FRIEND_TEST(ClientTests, CheckBlockAllocation);
+  FRIEND_TEST(ClientTests, CheckPrepareRequest);
 public:
   Client(std::string _acc_id, 
          int _num_inputs, 
@@ -87,18 +86,8 @@ private:
   void prepareData(TaskMsg &data_msg, TaskMsg &reply_msg);
   void processOutput(TaskMsg &msg);
 
-  // routine function for socket communication
-  //void recv(TaskMsg&, socket_ptr);
-  //void send(TaskMsg&, socket_ptr);
-
   std::string acc_id;
   std::string app_id;
-
-  // data structures for socket connection
-  int srv_port;
-  std::string ip_address;
-  ios_ptr ios;
-  endpoint_ptr endpoint;
 
   // input/output data blocks
   int num_inputs;

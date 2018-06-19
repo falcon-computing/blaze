@@ -40,6 +40,8 @@ public:
     platform(_platform)
   {;}
 
+  virtual ~BlockManager();
+
   // check scratch and cache table to see if a certain block exists
   virtual bool contains(int64_t tag) {
     if (tag < 0) {

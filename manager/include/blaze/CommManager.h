@@ -1,19 +1,27 @@
-#ifndef COMM_H
-#define COMM_H
+#ifndef BLAZE_COMM_MANAGER_H
+#define BLAZE_COMM_MANAGER_H
 
 #include <google/protobuf/message.h>
+#include <gtest/gtest_prod.h>
 
-#include "proto/task.pb.h"
+#include "task.pb.h"
 #include "Common.h"
-
-// for testing purpose
-#ifndef TEST_FRIENDS_LIST
-#define TEST_FRIENDS_LIST
-#endif
 
 using namespace boost::asio;
 
 namespace blaze {
+
+class AccReject : public std::logic_error {
+public:
+  explicit AccReject(const std::string& what_arg):
+    std::logic_error(what_arg) {;}
+};
+
+class AccFailure : public std::logic_error {
+public:
+  explicit AccFailure(const std::string& what_arg):
+    std::logic_error(what_arg) {;}
+};
 
 /*
  * Communicator design for Node Manager
@@ -21,7 +29,8 @@ namespace blaze {
 class CommManager
 : public boost::basic_lockable_adapter<boost::mutex>
 {
-  TEST_FRIENDS_LIST
+  FRIEND_TEST(ConfigTests, CheckCommHandler);
+
 public:
   CommManager(
       PlatformManager* _platform,
@@ -53,47 +62,5 @@ private:
   boost::thread_group comm_threads;
 };
 
-// Manage communication with Application
-class AppCommManager : public CommManager 
-{
-  TEST_FRIENDS_LIST
-public:
-  AppCommManager(
-      PlatformManager* _platform,
-      std::string address = "127.0.0.1",
-      int ip_port = 1027
-    ): CommManager(_platform, address, ip_port, 24) {;}
-private:
-  void process(socket_ptr);
-  void handleAccRegister(TaskMsg &msg);
-  void handleAccDelete(TaskMsg &msg);
-};
-
-class AccReject : public std::logic_error {
-public:
-  explicit AccReject(const std::string& what_arg):
-    std::logic_error(what_arg) {;}
-};
-
-class AccFailure : public std::logic_error {
-public:
-  explicit AccFailure(const std::string& what_arg):
-    std::logic_error(what_arg) {;}
-};
-
-// Manager communication with GAM
-class GAMCommManager : public CommManager 
-{
-  TEST_FRIENDS_LIST
-public:
-  GAMCommManager(
-      PlatformManager* _platform,
-      std::string address = "127.0.0.1",
-      int ip_port = 1028
-    ): CommManager(_platform, address, ip_port, 4) {;}
-private:
-  void process(socket_ptr);
-  std::vector<std::pair<std::string, std::string> > last_labels;
-};
 } // namespace blaze
 #endif

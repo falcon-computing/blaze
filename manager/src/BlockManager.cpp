@@ -1,6 +1,8 @@
 #include <climits>
 
+#ifdef NDEBUG
 #define LOG_HEADER "BlockManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/Block.h"
@@ -8,6 +10,10 @@
 #include "blaze/Platform.h"
 
 namespace blaze {
+
+BlockManager::~BlockManager() {
+  DLOG(INFO) << "Destroying block manager";
+}
 
 // create a block if it does not exist in the manager
 // return true if a new block is created

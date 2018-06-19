@@ -5,7 +5,7 @@
 
 #include "Common.h"
 #include "Task.h"
-#include "proto/acc_conf.pb.h"
+#include "acc_conf.pb.h"
 
 namespace blaze {
 

@@ -7,12 +7,15 @@
 #include <time.h>
 #include <vector>
 
+#ifdef NDEBUG
 #define LOG_HEADER "GAMCommManager"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/CommManager.h"
+#include "blaze/GAMCommManager.h"
 #include "blaze/PlatformManager.h"
-#include "proto/msgGamNam.pb.h"
+#include "msgGamNam.pb.h"
 
 namespace blaze {
 

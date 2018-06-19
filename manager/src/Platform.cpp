@@ -1,4 +1,6 @@
+#ifdef NDEBUG
 #define LOG_HEADER "Platform"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/TaskEnv.h"
@@ -19,6 +21,9 @@ Platform::Platform(std::map<std::string, std::string> &conf_table)
   queue_manager = queue;
 
 }
+Platform::~Platform() {
+  DLOG(INFO) << "Platform is removed";
+}
 
 // Start TaskQueues for the CPU platform
 // all the task queues can have simultaneous executors
@@ -37,9 +42,11 @@ void Platform::addQueue(AccWorker &conf) {
 
 void Platform::removeQueue(std::string id) {
 
-  // asynchronously call queue_manager->remove(id)
-  boost::thread executor(
-      boost::bind(&QueueManager::remove, queue_manager.get(), id));
+  // TODO: we should still block until this is finished, 
+  // futher performance impact is pending assessment 
+  queue_manager->remove(id);
+  //boost::thread executor(
+  //    boost::bind(&QueueManager::remove, queue_manager.get(), id));
 }
 
 // create a block object for the specific platform

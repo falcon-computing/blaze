@@ -6,9 +6,12 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/lexical_cast.hpp>
 
+#ifdef NDEBUG
 #define LOG_HEADER "AppCommManager"
+#endif
 #include <glog/logging.h>
 
+#include "blaze/AppCommManager.h"
 #include "blaze/Block.h"
 #include "blaze/BlockManager.h"
 #include "blaze/CommManager.h"
@@ -16,9 +19,22 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
-#include "proto/acc_conf.pb.h"
+#include "acc_conf.pb.h"
 
 namespace blaze {
+
+void AppCommManager::sendAccGrant(socket_ptr sock) {
+  TaskMsg reply_msg;
+  reply_msg.set_type(ACCGRANT);
+  try {
+    send(reply_msg, sock);
+  }
+  catch (std::exception &e) {
+    throw AccFailure(
+        std::string("Error in sending ACCGRANT: ")+
+        std::string(e.what()));
+  }
+}
 
 void AppCommManager::process(socket_ptr sock) {
 
@@ -256,17 +272,17 @@ void AppCommManager::process(socket_ptr sock) {
         }
       }
 
-// 1.4 decide to reject the task if wait time is too long
+      // 1.4 decide to reject the task if wait time is too long
       uint64_t client_time = task->estimateClientTime();
       uint64_t delay_time = task_manager.lock()->get_queue_delay();
       uint64_t task_time = task->estimateTaskTime();
-      if(task_time + delay_time > client_time){
+      if (task_time > 0 && task_time + delay_time > client_time) {
         VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
             << "task time = " << task_time * 1e-9 << "secs, " 
             << "client time = " << client_time * 1e-9 << "secs.";
         throw AccReject("Queueing delay is too long");
       }
-      else{
+      else {
         task_manager.lock()->modify_queue_delay(task_time, true);
       }
 #if 0
@@ -620,6 +636,10 @@ void AppCommManager::process(socket_ptr sock) {
         LOG(WARNING) << "Cannot send ACCFINISH";
       }
     }
+    // 6. Handle ACCRESERVE
+    else if (task_msg.type() == ACCRESERVE) {
+      handleAccReserve(task_msg, sock);
+    }
     else {
       char msg[500];
       sprintf(msg, "Unknown message type: %d, discarding message\n",
@@ -778,6 +798,58 @@ void AppCommManager::handleAccDelete(TaskMsg &msg) {
   //} else {
   //  DLOG(ERROR) << "Failed to delete accelerator from " << root_dir;
   //}
+}
+
+void AppCommManager::handleAccReserve(TaskMsg &msg, socket_ptr sock) {
+  if (!msg.has_acc_id()) {
+    throw AccReject("missing acc_id in message ACCRESERVE");
+  }
+  std::string acc_id = msg.acc_id();
+
+  if (!platform_manager->accExists(acc_id)) {
+    throw AccReject("No matching accelerator"); 
+  }
+
+  // get platform from acc_id
+  std::string platform_id = platform_manager->getPlatformIdByAccId(acc_id);
+
+  VLOG(1) << "Received request to reserve platform " << platform_id;
+
+  // remove platform
+  try {
+    platform_manager->removePlatform(platform_id);
+  }
+  catch (std::runtime_error & e) {
+    LOG(ERROR) << "Cannot remove platform " << platform_id;
+    throw AccReject("Cannot reserve platform");
+  }
+
+  // enter heartbeat mode and if anything happens 
+  // to the link, restore platform
+  try { 
+    // platform is reserved send accept
+    sendAccGrant(sock);
+
+    // enter heart-beat mode
+    // TODO: need a timeout for heartbeat
+    while (1) {
+      TaskMsg heart_beat_msg;
+      recv(heart_beat_msg, sock);
+
+      if (heart_beat_msg.type() != ACCRESERVE) {
+        VLOG(1) << "Reservation is cancelled";
+        break;
+      }
+
+      sendAccGrant(sock);
+    }
+  } 
+  catch (std::runtime_error &e) {
+    LOG(ERROR) << "Failed to keep reservation";
+    platform_manager->openPlatform(platform_id);
+  }
+  platform_manager->openPlatform(platform_id);
+  VLOG(1) << "Reopen platform " << platform_id;
 }
 } // namespace blaze
 

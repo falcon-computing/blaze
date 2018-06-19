@@ -1,3 +1,4 @@
+import time
 import sys, socket
 import struct
 import acc_conf_pb2
@@ -158,4 +159,39 @@ class blaze_client:
           logger.error("Acc deletion failed: %s", reply_msg.msg)
         else:
           logger.info("Successfully removed an accelerator")
+
+  def reserve_acc(self, acc_id):
+    sock = self.sock
+    ip = self.ip
+    logger = self.logger
+    port = self.port
+
+    try:
+      sock.connect((ip, port))
+    except socket.error, (val, msg):
+      logger.error("cannot connect to %s:%d: %s", ip, port, msg)
+      return False
+    
+    req_msg = task_pb2.TaskMsg()
+    req_msg.type = task_pb2.ACCRESERVE
+    req_msg.acc_id = acc_id 
+
+    self.send_msg(sock, req_msg)
+    reply_msg = self.recv_msg(sock)
+
+    if reply_msg.type != task_pb2.ACCGRANT:
+      logger.error("reserve acc %s failed", acc_id)
+    else:
+      counter = 0
+      while True:
+      #while counter < 5:
+        time.sleep(1)
+        self.send_msg(sock, req_msg)
+        reply_msg = self.recv_msg(sock)
+
+        if reply_msg.type != task_pb2.ACCGRANT:
+          logger.error("reserve acc %s heartbeat failed", acc_id)
+          break
+
+        counter += 1
 

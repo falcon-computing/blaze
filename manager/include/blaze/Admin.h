@@ -1,8 +1,8 @@
 #ifndef ADMIN_H
 #define ADMIN_H
 
-#include "proto/task.pb.h"
-#include "proto/acc_conf.pb.h"
+#include "task.pb.h"
+#include "acc_conf.pb.h"
 
 #include "Common.h"
 

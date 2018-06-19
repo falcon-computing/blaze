@@ -25,16 +25,13 @@ template <typename U, typename T>
 friend class BlazeTest;
 
 public:
-  Task(int _num_args): 
-    status(NOTREADY), 
-    num_input(_num_args),
-    num_ready(0)
-  {; }
+  Task(int _num_args);
+  virtual ~Task();
 
   // main function to be overwritten by accelerator implementations
   virtual void compute() {;}
-  virtual uint64_t estimateClientTime() {;}
-  virtual uint64_t estimateTaskTime() {;}
+  virtual uint64_t estimateClientTime() { return 0;}
+  virtual uint64_t estimateTaskTime() { return 0; }
 
   // wrapper around compute(), added indicator for task status
   void execute() {
@@ -58,7 +55,7 @@ protected:
 
   char* getOutput(int idx, int item_length, int num_items, int data_width);
 
-  char* getOutput(int idx, int item_length, int num_items, int data_width, std::pair<std::string, int>& ext_flag);
+  char* getOutput(int idx, int item_length, int num_items, int data_width, std::pair<std::string, int> ext_flag);
   
   int getInputLength(int idx);
 

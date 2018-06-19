@@ -1,12 +1,10 @@
-#define TEST_FRIENDS_LIST \
-          friend class ConfigTests; \
-          friend class ConfigTests_CheckCommHandler_Test; 
-
 #include "TestCommon.h"
+#include "blaze/AppCommManager.h"
 #include "blaze/Client.h"
 #include "blaze/CommManager.h"
+#include "blaze/GAMCommManager.h"
 #include "blaze/PlatformManager.h"
-#include "blaze/proto/acc_conf.pb.h"
+#include "acc_conf.pb.h"
 
 namespace blaze {
 
@@ -34,7 +32,7 @@ TEST_F(ConfigTests, CheckCommHandler) {
 
   acc_msg->set_acc_id(acc_id);
   acc_msg->set_platform_id(platform_id);
-  acc_msg->set_task_impl(pathToLoopBack);
+  acc_msg->set_task_impl(pathToLoopBack());
 
   try {
     comm->handleAccRegister(req_msg);
@@ -51,7 +49,7 @@ TEST_F(ConfigTests, CheckCommHandler) {
   }
 
   // try register another one
-  acc_msg->set_task_impl(pathToArrayTest);
+  acc_msg->set_task_impl(pathToArrayTest());
   try {
     comm->handleAccRegister(req_msg);
   } catch (std::exception &e) {
@@ -95,6 +93,7 @@ TEST_F(ConfigTests, CheckCommHandler) {
   } catch (cpuCalled &e) {
     ASSERT_EQ(false, true) << "Client error";
   }
+  LOG(INFO) << "Finished ConfigTest";
 }
 
 } // namespace blaze

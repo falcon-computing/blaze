@@ -36,7 +36,7 @@ public:
     
   DataBlock(const DataBlock &block);
 
-  ~DataBlock();
+  virtual ~DataBlock();
 
   // allocate data aligned to a given width
   void alloc(int _align_width);
