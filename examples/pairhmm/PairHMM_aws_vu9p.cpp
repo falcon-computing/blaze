@@ -73,11 +73,11 @@ class PairHMM : public Task {
     std::string bankid("bankID");
 
     cl_mem output0 = *((cl_mem*)getOutput(0, numRead0 * numHap0, 1, 
-          sizeof(float), std::make_pair(bankid, BANKID0)));
+          sizeof(float), std::make_pair(bankid, 3)));
     cl_mem output1 = *((cl_mem*)getOutput(1, numRead1 * numHap1, 1, 
-          sizeof(float), std::make_pair(bankid, BANKID1)));
+          sizeof(float), std::make_pair(bankid, 1)));
     cl_mem output2 = *((cl_mem*)getOutput(2, numRead2 * numHap2, 1, 
-          sizeof(float), std::make_pair(bankid, BANKID2)));
+          sizeof(float), std::make_pair(bankid, 2)));
 
     DLOG(INFO) << "core0: numRead = " << numRead0 << ", numHap = " << numHap0;
     DLOG(INFO) << "core1: numRead = " << numRead1 << ", numHap = " << numHap1;
