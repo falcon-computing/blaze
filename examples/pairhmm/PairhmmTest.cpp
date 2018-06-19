@@ -26,23 +26,19 @@ public:
   // extends the base class constructor
   // to indicate how many input blocks
   // are required
-#if DIE_NUM == 2
-#define NUM_ARGS 7
-#else
-#define NUM_ARGS 10
-#endif
+#define NUM_ARGS (3 * DIE_NUM + 1)
     PairhmmTest(): Task(NUM_ARGS) {
     }
    
     virtual uint64_t estimateClientTime(){
         float cells = *((float*)getInput(NUM_ARGS - 1));
-        float AVX_GCUPS = 0.55;
+        float AVX_GCUPS = 0.32;
         return (uint64_t)(cells / AVX_GCUPS);
     }
 
     virtual uint64_t estimateTaskTime(){
         float cells = *((float*)getInput(NUM_ARGS - 1));
-        float FPGA_GCUPS = 3.3;
+        float FPGA_GCUPS = 6;
         return (uint64_t)(cells / FPGA_GCUPS + 3 * 600000);
     }
 
@@ -72,11 +68,7 @@ public:
         std::pair<std::string, int> bankID[3];
         for(int i = 0; i < 3; i++)
             bankID[i].first = "bankID";
-#if DIE_NUM == 2
-        bankID[0].second = 1; bankID[1].second = 2; bankID[2].second = 3;
-#else
-        bankID[0].second = 3; bankID[1].second = 1; bankID[2].second = 2;
-#endif
+        bankID[0].second = BANKID0; bankID[1].second = BANKID1; bankID[2].second = BANKID2;
         cl_mem output0 = *((cl_mem*)getOutput(0, numRead0 * numHap0, 1, sizeof(float), bankID[0])); //BANK3
         
         cl_mem input1 = *((cl_mem*)getInput(3));
@@ -85,15 +77,16 @@ public:
         fprintf(stderr, "core1: numRead = %d, numHap = %d\n", numRead1, numHap1);
         cl_mem output1 = *((cl_mem*)getOutput(1, numRead1 * numHap1, 1, sizeof(float), bankID[1])); //BANK1
 
-        cl_mem input2, output2;
+        cl_mem input2 = NULL;
+        cl_mem output2 = NULL;
         int numRead2 = 0;
         int numHap2 = 0;
 #if DIE_NUM == 3
-        cl_mem input2 = *((cl_mem*)getInput(6));
-        int numRead2 = *((int*)getInput(7));
-        int numHap2 = *((int*)getInput(8));
+        input2 = *((cl_mem*)getInput(6));
+        numRead2 = *((int*)getInput(7));
+        numHap2 = *((int*)getInput(8));
         fprintf(stderr, "core2: numRead = %d, numHap = %d\n", numRead2, numHap2);
-        cl_mem output2 = *((cl_mem*)getOutput(2, numRead2 * numHap2, 1, sizeof(float), bankID[2])); //BANK2
+        output2 = *((cl_mem*)getOutput(2, numRead2 * numHap2, 1, sizeof(float), bankID[2])); //BANK2
 #endif
 
         if(!input0 || !output0 || !input1 || !output1){
