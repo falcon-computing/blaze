@@ -8,11 +8,15 @@ ifeq ("$(wildcard $(FCS_RT_ROOT)/nam/bin/nam_daemon)","")
 $(error FCS_RT_ROOT seems incorrect, please set it to the root directory of FCS_RUNTIME)
 endif
 
+ifeq ($(XILINX_SDX),)	
+$(error XILINX_SDX not set, please set it right)
+endif
+
 SRC       := $(wildcard ./*.cpp)
 HDR       := $(wildcard ./*.h)
 OBJ       := $(patsubst ./%.cpp,./%.o,$(SRC))
 
-CFLAGS	:= -fPIC -std=c++0x -m64 -O3 -march=native -D DIE_NUM=2
+CFLAGS	:= -fPIC -std=c++0x -m64 -O3 -march=native 
 COMPILE	:= $(CFLAGS) \
 	   -I. \
 	   -I../cpu_task \
@@ -23,7 +27,7 @@ COMPILE	:= $(CFLAGS) \
 
 XLNXLINK    := -lpthread -lm -ldl -lrt -lstdc++ -L$(XILINX_SDX)/runtime/lib/x86_64 -lxilinxopencl 
 
-ACC 	:= PairhmmTest 
+ACC 	:= PairhmmACC 
 
 DST = $(addsuffix .so, $(ACC))
 

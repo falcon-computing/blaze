@@ -1,2 +1,3 @@
-compile_xlnx_task(PairHMM_2SLR)
-compile_xlnx_task(PairHMM_3SLR)
+compile_xlnx_task(PairHMM_ku115)
+compile_xlnx_task(PairHMM_aws_vu9p)
+compile_xlnx_task(PairHMM_hwc_vu9p)

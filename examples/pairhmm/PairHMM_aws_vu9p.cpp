@@ -33,13 +33,13 @@ class PairHMM : public Task {
   
   virtual uint64_t estimateClientTime(){
     float cells = *((float*)getInput(NUM_ARGS - 1));
-    float AVX_GCUPS = 0.55;
+    float AVX_GCUPS = 0.32;
     return (uint64_t)(cells / AVX_GCUPS);
   }
 
   virtual uint64_t estimateTaskTime(){
     float cells = *((float*)getInput(NUM_ARGS - 1));
-    float FPGA_GCUPS = 3.3;
+    float FPGA_GCUPS = 6;
     return (uint64_t)(cells / FPGA_GCUPS + 3 * 600000);
   }
 
