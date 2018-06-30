@@ -24,9 +24,25 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Google REQUIRED)
 find_package(FalconLM REQUIRED)
 
+# get version str from git
+execute_process(
+    COMMAND git describe --tags --always
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS -fPIC -DVERSION=\\\"${BIN_VERSION}\\\"")
 # current manager has issue with -O3, so default to O2 instead
 set(CMAKE_CXX_FLAGS_RELEASE "-O1 -DNDEBUG -Wall -DUSELICENSE")
+
+message(STATUS "version: ${BIN_VERSION}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVERSION=\\\"${BIN_VERSION}\\\"")
+
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    message(STATUS "Install prefix is set to ~/.falcon-genome/blaze/${BIN_VERSION}")
+    set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.falcon-genome/blaze/${BIN_VERSION}")
+endif()
+
 
 set(MANAGER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/manager")
 set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common")
