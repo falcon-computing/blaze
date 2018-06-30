@@ -39,7 +39,7 @@ class PairHMM : public Task {
 
   virtual uint64_t estimateTaskTime(){
     float cells = *((float*)getInput(NUM_ARGS - 1));
-    float FPGA_GCUPS = 6;
+    float FPGA_GCUPS = 4;
     return (uint64_t)(cells / FPGA_GCUPS + 3 * 600000);
   }
 
