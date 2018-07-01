@@ -169,6 +169,7 @@ TEST_F(ClientTests, AppTest_delay) {
   // config manager
   ManagerConf conf;
   AccPlatform *platform = conf.add_platform();
+
   AccWorker *acc_worker = platform->add_acc();
   acc_worker->set_id("test");
   acc_worker->set_path(path);
@@ -192,9 +193,16 @@ TEST_F(ClientTests, TestTaskEstimation) {
   // config manager
   ManagerConf conf;
   AccPlatform *platform = conf.add_platform();
-  AccWorker *acc_worker = platform->add_acc();
-  acc_worker->set_id("test");
-  acc_worker->set_path(path);
+  {
+    AccWorker *acc_worker = platform->add_acc();
+    acc_worker->set_id("test");
+    acc_worker->set_path(path);
+  }
+  {
+    AccWorker *acc_worker = platform->add_acc();
+    acc_worker->set_id("test2");
+    acc_worker->set_path(path);
+  }
 
   // start manager
   PlatformManager platform_manager(&conf);
@@ -234,6 +242,9 @@ TEST_F(ClientTests, TestTaskEstimation) {
   tgroup.join_all();
   
   ASSERT_FALSE(platform_manager.accExists("test"));
+
+  // other acc should not be affected
+  ASSERT_TRUE(platform_manager.accExists("test2"));
 }
 
 TEST_F(ClientTests, ReserveClientTest) {

@@ -20,8 +20,7 @@ public:
       PlatformManager* _platform,
       std::string address = "127.0.0.1",
       int ip_port = 1027
-    ): CommManager(_platform, address, ip_port, 24),
-       num_timeout_(0) 
+    ): CommManager(_platform, address, ip_port, 24)
   {;}
 
 private:
@@ -36,7 +35,8 @@ private:
       std::string acc_id,
       Task_ptr task);
 
-  mutable boost::atomic<int> num_timeout_;
+  std::map<std::string, boost::atomic<int> > 
+    num_timeout_;
 };
 } // namespace blaze
 #endif

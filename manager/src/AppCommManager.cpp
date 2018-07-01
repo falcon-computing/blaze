@@ -855,8 +855,14 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
     std::string acc_id,
     Task_ptr task) {
 
-  // check if Task is already started 
-  num_timeout_.fetch_add(1);
+  if (!num_timeout_.count(acc_id)) {
+    // potential race condition here, since the map is not
+    // locked, but probably can ignore for now
+    num_timeout_[acc_id].store(1); 
+  }
+  else {
+    num_timeout_[acc_id].fetch_add(1);
+  }
 
   // check task status, if task is not executed, simply release it
   //   TaskManager will check if pointer is valid before executing
@@ -874,7 +880,7 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
     ;
   }
 
-  if (num_timeout_.load() > 10) {
+  if (num_timeout_[acc_id].load() > 10) {
     // treat this accelerator as bad, unregister it
     if (platform_manager->accExists(acc_id)) {
       platform_manager->removeAcc("", acc_id, 
