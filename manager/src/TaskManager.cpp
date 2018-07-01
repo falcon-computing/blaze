@@ -145,6 +145,11 @@ bool TaskManager::execute() {
   Task* task;
   execution_queue.pop(task);
 
+  if (!task) {
+    LOG(ERROR) << "Task already destroyed";
+    return false;
+  }
+
   VLOG(1) << "Started a new task";
 
   try {
@@ -153,6 +158,7 @@ bool TaskManager::execute() {
 
     // start execution
     task->execute();
+
     uint64_t delay_time = getUs() - start_time;
     VLOG(1) << "Task finishes in " << delay_time << " us";
   } 

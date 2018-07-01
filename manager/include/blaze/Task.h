@@ -35,6 +35,7 @@ public:
 
   // wrapper around compute(), added indicator for task status
   void execute() {
+    status = EXECUTING;
     try {
       compute();
       status = FINISHED;
@@ -95,6 +96,7 @@ private:
   enum {
     NOTREADY,
     READY,
+    EXECUTING,
     FINISHED,
     FAILED,
     COMMITTED
