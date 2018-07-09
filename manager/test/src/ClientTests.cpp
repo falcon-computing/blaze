@@ -169,6 +169,7 @@ TEST_F(ClientTests, AppTest_delay) {
   // config manager
   ManagerConf conf;
   AccPlatform *platform = conf.add_platform();
+
   AccWorker *acc_worker = platform->add_acc();
   acc_worker->set_id("test");
   acc_worker->set_path(path);
@@ -179,6 +180,71 @@ TEST_F(ClientTests, AppTest_delay) {
         &platform_manager, "127.0.0.1", app_port)); 
 
   ASSERT_EQ(true, runDelay());  
+}
+
+TEST_F(ClientTests, TestTaskEstimation) {
+
+  std::string path = pathToDelayWEst();
+
+  boost::filesystem::wpath file(path);
+  ASSERT_EQ(boost::filesystem::exists(file), true)
+    << "Required acc task file does not exist, skipping test";
+
+  // config manager
+  ManagerConf conf;
+  AccPlatform *platform = conf.add_platform();
+  {
+    AccWorker *acc_worker = platform->add_acc();
+    acc_worker->set_id("test");
+    acc_worker->set_path(path);
+  }
+  {
+    AccWorker *acc_worker = platform->add_acc();
+    acc_worker->set_id("test2");
+    acc_worker->set_path(path);
+  }
+
+  // start manager
+  PlatformManager platform_manager(&conf);
+  boost::shared_ptr<CommManager> comm( new AppCommManager(
+        &platform_manager, "127.0.0.1", app_port)); 
+
+  // normal run with delay
+  ASSERT_TRUE(runDelayWEst(1, 10, 0));  
+
+  // start a task where cpu time is faster than task
+  // so that cpu task will be called instead
+  ASSERT_FALSE(runDelayWEst(10, 1, 0));  
+
+  // start a long running task in the background
+  boost::thread long_task(boost::bind(runDelayWEst, 2000, 10000, 0));
+
+  boost::this_thread::sleep_for(boost::chrono::microseconds(1000)); 
+
+  // a task with less CPU time should be rejected
+  ASSERT_FALSE(runDelayWEst(1, 2, 0));  
+
+  // a task running long will trigger a timeout
+  ASSERT_FALSE(runDelayWEst(2, 1000, 16*200));  
+
+  long_task.join();
+
+  // finally test platform destroy feature
+  boost::thread_group tgroup;
+  for (int t = 0; t < 16; t++) {
+    if (t == 0) {
+      tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 50000));
+    }
+    else {
+      tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 0));
+    }
+  }
+  tgroup.join_all();
+  
+  ASSERT_FALSE(platform_manager.accExists("test"));
+
+  // other acc should not be affected
+  ASSERT_TRUE(platform_manager.accExists("test2"));
 }
 
 TEST_F(ClientTests, ReserveClientTest) {

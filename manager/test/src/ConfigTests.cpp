@@ -42,25 +42,19 @@ TEST_F(ConfigTests, CheckCommHandler) {
 
   // accelerator should be registered
   ASSERT_EQ(true, platform_manager.accExists(acc_id));
-  try {
-    ASSERT_EQ(true, runLoopBack());
-  } catch (cpuCalled &e) {
-    ASSERT_EQ(false, true) << "Client error";
-  }
+  ASSERT_EQ(true, runLoopBack());
 
   // try register another one
   acc_msg->set_task_impl(pathToArrayTest());
   try {
     comm->handleAccRegister(req_msg);
+    ASSERT_TRUE(false) << "Exception should be called";
   } catch (std::exception &e) {
-    ASSERT_EQ(true, true);
+    ASSERT_TRUE(true) << "Caught unexpected exception: " << e.what();
   }
+
   // accelerator should not change
-  try {
-    ASSERT_EQ(true, runLoopBack());
-  } catch (cpuCalled &e) {
-    ASSERT_EQ(false, true) << "Client error";
-  }
+  ASSERT_EQ(true, runLoopBack());
 
   // test acc delete
   req_msg.set_type(ACCDELETE);
@@ -71,12 +65,9 @@ TEST_F(ConfigTests, CheckCommHandler) {
     ASSERT_EQ(true, false) << "Caught unexpected exception: " << e.what();
   }
   ASSERT_EQ(false, platform_manager.accExists(acc_id));
-  try {
-    runLoopBack();
-  } catch (cpuCalled &e) {
-    // should catch exception here
-    ASSERT_EQ(true, true);
-  }
+
+  // should be false since accelerator is deleted
+  ASSERT_EQ(false, runLoopBack());
 
   // test acc register again for ArrayTest
   req_msg.set_type(ACCREGISTER);
@@ -84,15 +75,12 @@ TEST_F(ConfigTests, CheckCommHandler) {
   try {
     comm->handleAccRegister(req_msg);
   } catch (std::exception &e) {
-    ASSERT_EQ(true, false) << "Caught unexpected exception: " << e.what();
+    ASSERT_TRUE(false) << "Caught unexpected exception: " << e.what();
   }
   // accelerator should be registered as ArrayTest
   ASSERT_EQ(true, platform_manager.accExists(acc_id));
-  try {
-    ASSERT_EQ(true, runArrayTest());
-  } catch (cpuCalled &e) {
-    ASSERT_EQ(false, true) << "Client error";
-  }
+  ASSERT_EQ(true, runArrayTest());
+
   LOG(INFO) << "Finished ConfigTest";
 }
 
