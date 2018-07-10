@@ -274,9 +274,11 @@ void AppCommManager::process(socket_ptr sock) {
 
       // 1.4 decide to reject the task if wait time is too long
       uint64_t client_time = task->estimateClientTime();
-      uint64_t delay_time = task_manager.lock()->get_queue_delay();
-      uint64_t task_time = task->estimateTaskTime();
-      if (task_time > 0 && task_time + delay_time > client_time) {
+      uint64_t delay_time  = task_manager.lock()->get_queue_delay();
+      uint64_t task_time   = task->estimateTaskTime();
+      uint64_t finish_time = task_time + delay_time;
+
+      if (task_time != 0 && finish_time > client_time) {
         VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
             << "task time = " << task_time * 1e-9 << "secs, " 
             << "client time = " << client_time * 1e-9 << "secs.";
@@ -285,26 +287,6 @@ void AppCommManager::process(socket_ptr sock) {
       else {
         task_manager.lock()->modify_queue_delay(task_time, true);
       }
-#if 0
-      int task_time = task_manager.lock()->estimateTime(task.get());
-      int task_speedup = task->estimateSpeedup();
-
-      if (task_time > 0 && task_speedup > 0) {
-
-        // <bestcase wait time, worstcase wait time>
-        std::pair<int,int> wait_time = task_manager.lock()->getWaitTime(task.get());
-
-        VLOG(1) << "Wait time = (" << wait_time.first 
-          << ", " << wait_time.second << ") us, task estimated time = "
-          << task_time << " us";
-
-        // use worst cast wait time
-        if (wait_time.second > task_time*task_speedup) {
-          throw AccReject("Wait time too long");
-        }
-      }
-#endif
-
 
       // 1.5 send msg back to client
       reply_msg.set_type(ACCGRANT);
@@ -494,13 +476,10 @@ void AppCommManager::process(socket_ptr sock) {
         }
       } // 2. Finish handling ACCDATA
 
-
-
-
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(
-            boost::chrono::microseconds(0)); 
+            boost::chrono::microseconds(1)); 
       }
 
       VLOG(2) << "Task ready, enqueue to be executed";
@@ -516,12 +495,24 @@ void AppCommManager::process(socket_ptr sock) {
       task_manager.lock()->enqueue(app_id, task.get());
 
       // wait on task finish
-      while (
-          task->status != Task::FINISHED && 
-          task->status != Task::FAILED) 
-      {
+      uint64_t wait_time = 0;
+      // longest wait time is 16 x finish_time
+      uint64_t max_wait_time = finish_time << 4; 
+      while (task->status != Task::FINISHED && 
+             task->status != Task::FAILED) {
+
         boost::this_thread::sleep_for(
-            boost::chrono::microseconds(0)); 
+            boost::chrono::microseconds(1)); 
+
+        // check if the queue delay is too big
+        wait_time += 1*1000;
+
+        if (finish_time > 0 && max_wait_time < wait_time) {
+          // handle time out in a catch block
+          VLOG(1) << "Task time out";
+          
+          handleTaskTimeout(sock, acc_id, task);
+        }
       }
 
       // 3. Handle ACCFINISH message and output data
@@ -529,6 +520,13 @@ void AppCommManager::process(socket_ptr sock) {
 
       if (task->status == Task::FINISHED) {
         uint64_t expected_delay_time = task->estimateTaskTime();
+
+        if (!task_manager.lock()) {
+          // accelerator already removed
+          DLOG(WARNING) << "Accelerator queue for " << acc_id
+            << " is likely to be removed";
+          throw AccReject("No matching accelerator"); 
+        }
         task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
         VLOG(1) << "Task finished, starting to read output";
@@ -647,6 +645,7 @@ void AppCommManager::process(socket_ptr sock) {
       throw (AccFailure(msg));
     }
   }
+  
   catch (AccReject &e)  {
 
     TaskMsg reply_msg;
@@ -845,5 +844,53 @@ void AppCommManager::handleAccReserve(TaskMsg &msg, socket_ptr sock) {
   platform_manager->openPlatform(platform_id);
   VLOG(1) << "Reopen platform " << platform_id;
 }
+
+void AppCommManager::handleTaskTimeout(socket_ptr sock,
+    std::string acc_id,
+    Task_ptr task) {
+
+  if (!num_timeout_.count(acc_id)) {
+    // potential race condition here, since the map is not
+    // locked, but probably can ignore for now
+    num_timeout_[acc_id].store(1); 
+  }
+  else {
+    num_timeout_[acc_id].fetch_add(1);
+  }
+
+  // check task status, if task is not executed, simply release it
+  //   TaskManager will check if pointer is valid before executing
+  // if task is already started, send reject and wait till task finishes
+
+  // first send AccFailure
+  TaskMsg reply_msg;
+
+  reply_msg.set_type(ACCFAILURE);
+  reply_msg.set_msg("Task timeout");
+
+  try {
+    send(reply_msg, sock);
+  } catch (std::exception &e) {
+    ;
+  }
+
+  if (num_timeout_[acc_id].load() > 10) {
+    // treat this accelerator as bad, unregister it
+    if (platform_manager->accExists(acc_id)) {
+      platform_manager->removeAcc("", acc_id, 
+          platform_manager->getPlatformIdByAccId(acc_id));
+      VLOG(1) << "Remove acc: " << acc_id << " from nam";
+    }
+  }
+  else {
+    // if task is already executed and acc is not deleted,
+    // keep waiting for task to avoid seg faults
+    while (task->status == Task::EXECUTING) {
+      boost::this_thread::sleep_for(
+          boost::chrono::microseconds(100)); 
+    }
+  }
+}
+
 } // namespace blaze
 

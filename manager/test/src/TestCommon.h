@@ -52,6 +52,7 @@ class PlatformTests : public ::testing::Test {
 bool runArrayTest();
 bool runLoopBack(int data_size = 1024);
 bool runDelay(int data_size = 1024);
+bool runDelayWEst(uint64_t task_us, uint64_t cpu_us, uint64_t force_us = 0);
 
 inline std::string get_absolute_path(std::string path) {
   boost::filesystem::wpath file_path(path);
@@ -94,6 +95,11 @@ inline std::string pathToDelay() {
 inline std::string pathToLoopBack() {
   return get_bin_dir() + "/tasks/loopBack/libloopBack.so";
 }
+
+inline std::string pathToDelayWEst() {
+  return get_bin_dir() + "/tasks/delay_w_est/libdelay_w_est.so";
+}
+
 
 } // namespace blaze
 #endif

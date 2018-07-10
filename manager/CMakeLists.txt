@@ -26,10 +26,10 @@ set(HEADER_FILES
 
 set_target_properties(blaze PROPERTIES PUBLIC_HEADER "${HEADER_FILES}")
 
-add_executable(manager ${CMAKE_CURRENT_SOURCE_DIR}/src/executables/main.cpp)
-add_dependencies(manager Google FalconLM)
+add_executable(nam ${CMAKE_CURRENT_SOURCE_DIR}/src/executables/main.cpp)
+add_dependencies(nam Google FalconLM)
 
-target_link_libraries(manager
+target_link_libraries(nam
     blaze
     ${Google_LIBRARIES}
     ${FalconLM_LIBRARIES}
@@ -50,7 +50,7 @@ install(TARGETS blaze
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include/blaze)
 
-install(TARGETS manager
+install(TARGETS nam 
     RUNTIME DESTINATION bin)
 
 install(TARGETS admin
