@@ -25,7 +25,7 @@ OpenCLQueueManager::OpenCLQueueManager(
   ocl_platform = dynamic_cast<OpenCLPlatform*>(platform);
 
   if (!ocl_platform) {
-    LOG(ERROR) << "Platform pointer type is not OpenCLPlatform";
+    DLOG(ERROR) << "Platform pointer type is not OpenCLPlatform";
     throw std::runtime_error("Cannot create OpenCLQueueManager");
   }
 
@@ -54,7 +54,8 @@ void OpenCLQueueManager::do_start() {
   OpenCLPlatform* ocl_platform = dynamic_cast<OpenCLPlatform*>(platform);
 
   if (!ocl_platform) {
-    LOG(FATAL) << "Platform pointer incorrect";
+    DLOG(ERROR) << "Platform pointer incorrect";
+    return;
   }
   VLOG(1) << "Start a executor for FPGAQueueManager";
 
@@ -104,7 +105,7 @@ void OpenCLQueueManager::do_start() {
       retry_counter++;
 
       if (retry_counter < 10) {
-        LOG(WARNING) << "Programing bitstream failed " 
+        DLOG(WARNING) << "Programing bitstream failed " 
           << retry_counter << " times";
       }
       else {
@@ -114,9 +115,8 @@ void OpenCLQueueManager::do_start() {
         ready_queues.pop_front();
 
         // if setup program keeps failing, remove accelerator from queue_table 
-        LOG(ERROR) << "Failed to setup bitstream for " << queue_name
-          << ": " << e.what()
-          << ". Remove it from QueueManager.";
+        DLOG(ERROR) << "Failed to setup bitstream for " << queue_name
+          << ": " << e.what() << ". Remove it from QueueManager.";
 
         retry_counter = 0;
       }
@@ -130,7 +130,7 @@ void OpenCLQueueManager::do_start() {
       Task* task;
       if (queue->popReady(task)) {
         
-        VLOG(1) << "Execute one task from " << queue_name;
+        VLOG(2) << "Execute one task from " << queue_name;
 
         // execute one task
         try {
@@ -142,10 +142,10 @@ void OpenCLQueueManager::do_start() {
           // record task execution time
           uint64_t delay_time = getUs() - start_time;
 
-          VLOG(1) << "Task finishes in " << delay_time << " us";
+          VLOG(2) << "Task finishes in " << delay_time << " us";
         } 
         catch (std::runtime_error &e) {
-          LOG(ERROR) << "Task error " << e.what();
+          LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
         }
         // reset the counter
         counter = 0;

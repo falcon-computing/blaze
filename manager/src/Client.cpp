@@ -40,12 +40,12 @@ void* Client::createInput(
 {
 
   if (idx >= num_inputs) {
-    LOG(ERROR) << "Index out of range: idx=" << idx
+    DLOG(ERROR) << "Index out of range: idx=" << idx
                << ", num_inputs=" << num_inputs;
     throw invalidParam("index out of range");
   }
   else if (input_blocks[idx]) {
-    LOG(WARNING) << "Block with idx=" << idx
+    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Block with idx=" << idx
                  << " is already allocated, returning data ptr";
     return (void*)input_blocks[idx]->getData();
   }
@@ -54,7 +54,7 @@ void* Client::createInput(
       data_width <= 0 ||
       type > BLAZE_SHARED)
   {
-    LOG(ERROR) << num_items << ", "
+    DLOG(ERROR) << num_items << ", "
                << item_length << ", "
                << data_width << ", "
                << type;
@@ -63,7 +63,7 @@ void* Client::createInput(
 
   if (num_items == 1 && item_length == 1) {
     if (data_width > 8) {
-      LOG(WARNING) << "Scalar input cannot be larger than 8 bytes, "
+      LOG_IF(WARNING, VLOG_IS_ON(1)) << "Scalar input cannot be larger than 8 bytes, "
                    << "force it to be 8 bytes";
     }
     // since scalar variable uses a long long type in the message,
@@ -103,12 +103,12 @@ void* Client::createInput(
     int type)
 {
   if (idx >= num_inputs) {
-    LOG(ERROR) << "Index out of range: idx=" << idx
+    DLOG(ERROR) << "Index out of range: idx=" << idx
                << ", num_inputs=" << num_inputs;
     throw invalidParam("index out of range");
   }
   else if (input_blocks[idx]) {
-    LOG(WARNING) << "Block with idx=" << idx
+    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Block with idx=" << idx
                  << " is already allocated, returning data ptr";
     return (void*)input_blocks[idx]->getData();
   }
@@ -117,7 +117,7 @@ void* Client::createInput(
       data_width <= 0 ||
       type > BLAZE_SHARED)
   {
-    LOG(ERROR) << num_items << ", "
+    DLOG(ERROR) << num_items << ", "
                << item_length << ", "
                << data_width << ", "
                << type;
@@ -126,7 +126,7 @@ void* Client::createInput(
 
   if (num_items == 1 && item_length == 1) {
     if (data_width > 8) {
-      LOG(WARNING) << "Scalar input cannot be larger than 8 bytes, "
+      LOG_IF(WARNING, VLOG_IS_ON(1)) << "Scalar input cannot be larger than 8 bytes, "
                    << "force it to be 8 bytes";
     }
     // since scalar variable uses a long long type in the message,
@@ -186,7 +186,7 @@ void* Client::createOutput(
         item_length != block->getItemLength() ||
         data_width != block->getItemSize()/block->getItemLength())
     {
-      LOG(WARNING) << "Output " << idx << "is already created, "
+      LOG_IF(WARNING, VLOG_IS_ON(1)) << "Output " << idx << "is already created, "
                    << "but the original dimensions do not match the provided ones."
                    << " Using original dimensions.";
     }
@@ -339,7 +339,7 @@ void Client::start(bool blocking) {
       processOutput(finish_msg);
     }
     else {
-      LOG(ERROR) << "Received " << finish_msg.type() 
+      DLOG(ERROR) << "Received " << finish_msg.type() 
         << " instead of ACCFINISH";
       throw std::runtime_error("did not receive ACCFINISH");
     }
@@ -435,7 +435,7 @@ void Client::processOutput(TaskMsg &msg) {
   VLOG(1) << "Task finished, start reading output";
 
   if (num_outputs != msg.data_size()) {
-    LOG(ERROR) << "Exprected #output=" << num_outputs 
+    DLOG(ERROR) << "Exprected #output=" << num_outputs 
                << ", received #output=" << msg.data_size();
     throw commError("Num of output blocks mismatch");
   }
@@ -466,7 +466,7 @@ void Client::processOutput(TaskMsg &msg) {
           item_length != block->getItemLength() ||
           item_size != block->getItemSize())
       {
-        LOG(ERROR) << "Size of output " << i << " does not match the allocated one";
+        LOG_IF(ERROR, VLOG_IS_ON(1)) << "Size of output " << i << " does not match the allocated one";
         throw commError("Output size mismatch");
       }
     }
@@ -483,11 +483,11 @@ void Client::processOutput(TaskMsg &msg) {
 
       // delete memory map file after read
       if (!deleteFile(path)) {
-        LOG(WARNING) << "Cannot delete file for output " << i;
+        LOG_IF(WARNING, VLOG_IS_ON(1)) << "Cannot delete file for output " << i;
       }
     }
     catch (std::runtime_error &e) {
-      LOG(ERROR) << "Failed to read data from file " << path;
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Failed to read data from file " << path;
       throw std::runtime_error("Failed to process output");
     }
   }

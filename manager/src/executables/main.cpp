@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
               &platform_manager, 
               ip_addr, app_port));
 
-        LOG(INFO) << "Start listening " << ip_addr << " on port " <<
+        VLOG(1) << "Start listening " << ip_addr << " on port " <<
           app_port << " and " << gam_port;
 
         // push the communicator pointer to pool to avoid object
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
         comm_pool.push_back(comm_gam);
       }
       catch (boost::system::system_error &e) {
-        LOG(WARNING) << "Failed to start communication manager on " 
+        LOG_IF(WARNING, VLOG_IS_ON(1)) << "Failed to start communication manager on " 
                      << ip_addr << ", because: " << e.what();
       }
     }

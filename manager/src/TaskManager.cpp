@@ -118,7 +118,7 @@ bool TaskManager::schedule() {
   int idx_next = rand()%ready_queues.size();
 
   if (app_queues.find(ready_queues[idx_next]) == app_queues.end()) {
-    LOG(ERROR) << "Did not find app_queue, unexpected";
+    DLOG(ERROR) << "Did not find app_queue, unexpected";
     return false;
   }
   else {
@@ -163,7 +163,7 @@ bool TaskManager::execute() {
     VLOG(1) << "Task finishes in " << delay_time << " us";
   } 
   catch (std::runtime_error &e) {
-    LOG(ERROR) << "Task error " << e.what();
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
   }
   return false;
 }
