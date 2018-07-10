@@ -30,7 +30,7 @@ PlatformManager::PlatformManager(ManagerConf *conf):
       registerPlatform(platform_conf);
     }
     catch (std::runtime_error &e) {
-      LOG(ERROR) << "Cannot create platform " << 
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot create platform " << 
         platform_conf.id() << ": " << e.what();
     }
   }
@@ -53,7 +53,7 @@ void PlatformManager::registerPlatform(AccPlatform conf) {
   // check platform id for special characters
   boost::regex special_char_test("\\w+", boost::regex::perl);
   if (!boost::regex_match(id.begin(), id.end(), special_char_test)) {
-    LOG(ERROR) << "Platform id [" << id << "] cannot contain " 
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Platform id [" << id << "] cannot contain " 
       << "special characters beside alphanumeric and '_'";
     throw std::runtime_error("Cannot register a new platform");
   }
@@ -75,7 +75,7 @@ void PlatformManager::registerPlatform(AccPlatform conf) {
       registerAcc(id, acc_conf);          
     } 
     catch (std::exception &e) {
-      LOG(ERROR) << "Cannot create ACC " << acc_conf.id() <<
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot create ACC " << acc_conf.id() <<
         ": " << e.what();
     }
   }
@@ -122,7 +122,7 @@ void PlatformManager::openPlatform(std::string id) {
   }
   else {
     if (cache_loc.compare(id) != 0) {
-      LOG(WARNING) << "Unspecified cache location, use private instead";
+      LOG_IF(WARNING, VLOG_IS_ON(1)) << "Unspecified cache location, use private instead";
     }
     // if the cache is not shared with another platform
     // create a block manager in current platform

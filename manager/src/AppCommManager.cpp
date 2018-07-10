@@ -78,7 +78,7 @@ void AppCommManager::process(socket_ptr sock) {
       acc_id = task_msg.acc_id();
       app_id = task_msg.app_id();
 
-      LOG(INFO) << "Received an request for " << acc_id
+      VLOG(1) << "Received an request for " << acc_id
         << " from app " << app_id;
 
       /* Receive acc_id to identify the corresponding TaskManager, 
@@ -351,7 +351,7 @@ void AppCommManager::process(socket_ptr sock) {
           std::string path = recv_block.file_path();
 
           if (task->isInputReady(blockId)) {
-            LOG(WARNING) << "Skipping ready block " << blockId;
+            DLOG(WARNING) << "Skipping ready block " << blockId;
             break;
           }
           VLOG(1) << "Start reading data for block " << blockId;
@@ -438,13 +438,13 @@ void AppCommManager::process(socket_ptr sock) {
                 block->readFromMem(path);
               }
               catch (std::exception &e) {
-                LOG(ERROR) << "readFromMem error: " << e.what();
+                DLOG(ERROR) << "readFromMem error: " << e.what();
                 throw AccFailure(std::string("readFromMem error"));
               }
 
               // NOTE: only remove normal input file
               if (!deleteFile(path)) {
-                LOG(WARNING) << "Did not remove file for block " << blockId;
+                DLOG(WARNING) << "Did not remove file for block " << blockId;
               } 
             }
           }
@@ -576,7 +576,7 @@ void AppCommManager::process(socket_ptr sock) {
           send(finish_msg, sock);
           VLOG(1) << "Task finished, sent an ACCFINISH";
         } catch (std::exception &e) {
-          LOG(ERROR) << "Cannot send ACCFINISH";
+          LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot send ACCFINISH";
         }
       }
       else {
@@ -591,7 +591,7 @@ void AppCommManager::process(socket_ptr sock) {
       }
       std::string app_id = task_msg.app_id();
 
-      LOG(INFO) << "Recieved an ACCTERM message for " << app_id;
+      VLOG(1) << "Recieved an ACCTERM message for " << app_id;
 
       // TODO: delete application queue for app_id
 
@@ -619,7 +619,7 @@ void AppCommManager::process(socket_ptr sock) {
         send(finish_msg, sock);
         VLOG(1) << "Sent an ACCFINISH regarding ACCREGISTER";
       } catch (std::exception &e) {
-        LOG(WARNING) << "Cannot send ACCFINISH";
+        LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot send ACCFINISH";
       }
     }
     else if (task_msg.type() == ACCDELETE) {
@@ -633,7 +633,7 @@ void AppCommManager::process(socket_ptr sock) {
         send(finish_msg, sock);
         VLOG(1) << "Sent an ACCFINISH regarding ACCDELETE";
       } catch (std::exception &e) {
-        LOG(WARNING) << "Cannot send ACCFINISH";
+        LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot send ACCFINISH";
       }
     }
     // 6. Handle ACCRESERVE
@@ -654,7 +654,7 @@ void AppCommManager::process(socket_ptr sock) {
     reply_msg.set_type(ACCREJECT);
     reply_msg.set_msg(e.what());
 
-    LOG(ERROR) << "Send ACCREJECT because: " << e.what();
+    VLOG(1) << "Send ACCREJECT because: " << e.what();
     try {
       send(reply_msg, sock);
     } catch (std::exception &e) {
@@ -668,7 +668,7 @@ void AppCommManager::process(socket_ptr sock) {
     reply_msg.set_type(ACCFAILURE);
     reply_msg.set_msg(e.what());
 
-    LOG(ERROR) << "Send ACCFAILURE because: " << e.what();
+    VLOG(1) << "Send ACCFAILURE because: " << e.what();
 
     try {
       send(reply_msg, sock);
@@ -682,7 +682,7 @@ void AppCommManager::process(socket_ptr sock) {
 
     reply_msg.set_type(ACCFAILURE);
 
-    LOG(ERROR) << "Send ACCFAILURE because: " << e.what();
+    VLOG(1) << "Send ACCFAILURE because: " << e.what();
 
     try {
       send(reply_msg, sock);
@@ -691,7 +691,7 @@ void AppCommManager::process(socket_ptr sock) {
     }
   }
   catch (std::exception &e) {
-    LOG(ERROR) << "Unexpected exception: " << e.what();
+    DLOG(ERROR) << "Unexpected exception: " << e.what();
   }
 }
 void AppCommManager::handleAccRegister(TaskMsg &msg) {
@@ -708,7 +708,7 @@ void AppCommManager::handleAccRegister(TaskMsg &msg) {
   // check if platform_id and acc_id is valid
   if (platform_manager->accExists(acc_id)) 
   {
-    LOG(WARNING) << "Cannot register accelerator ["
+    VLOG(1) << "Cannot register accelerator ["
       << acc_id << "] on platform [" << platform_id
       << "] because: accelerator exists";
 
@@ -716,7 +716,7 @@ void AppCommManager::handleAccRegister(TaskMsg &msg) {
   }
   if (!platform_manager->platformExists(platform_id)) 
   {
-    LOG(WARNING) << "Cannot register accelerator ["
+    VLOG(1) << "Cannot register accelerator ["
       << acc_id << "] on platform [" << platform_id
       << "] because: platform does not exist";
 
@@ -792,12 +792,6 @@ void AppCommManager::handleAccDelete(TaskMsg &msg) {
   catch (std::exception &e) {
     throw AccFailure(e.what());
   }
-  //std::string root_dir = local_dir + "/" + acc_id; 
-  //if (deleteFile(root_dir)) {
-  //  DLOG(INFO) << "Deleted accelerator from " << root_dir;
-  //} else {
-  //  DLOG(ERROR) << "Failed to delete accelerator from " << root_dir;
-  //}
 }
 
 void AppCommManager::handleAccReserve(TaskMsg &msg, socket_ptr sock) {
@@ -820,7 +814,7 @@ void AppCommManager::handleAccReserve(TaskMsg &msg, socket_ptr sock) {
     platform_manager->removePlatform(platform_id);
   }
   catch (std::runtime_error & e) {
-    LOG(ERROR) << "Cannot remove platform " << platform_id;
+    VLOG(1) << "Cannot remove platform " << platform_id;
     throw AccReject("Cannot reserve platform");
   }
 
@@ -845,7 +839,7 @@ void AppCommManager::handleAccReserve(TaskMsg &msg, socket_ptr sock) {
     }
   } 
   catch (std::runtime_error &e) {
-    LOG(ERROR) << "Failed to keep reservation";
+    VLOG(1) << "Failed to keep reservation";
     platform_manager->openPlatform(platform_id);
   }
   platform_manager->openPlatform(platform_id);

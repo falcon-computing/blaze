@@ -47,7 +47,7 @@ bool BlockManager::getAlloc(
       return true;
     }
     catch (std::runtime_error &e) {
-      LOG(ERROR) << "Cannot add block " << tag <<
+      DLOG(ERROR) << "Cannot add block " << tag <<
         ": " << e.what();
       return false;
     }

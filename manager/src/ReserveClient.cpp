@@ -67,7 +67,7 @@ void ReserveClient::heartbeat() {
       recv(reply_msg);
 
       if (reply_msg.type() != ACCGRANT) {
-        LOG(ERROR) << "Reservation is revoked";
+        LOG(INFO) << "Reservation is revoked";
         revoked = true;
         break;
       }
