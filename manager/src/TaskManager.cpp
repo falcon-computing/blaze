@@ -15,9 +15,28 @@
 
 namespace blaze {
 
+TaskManager::TaskManager(
+    Task* (*create_func)(), 
+    void (*destroy_func)(Task*),
+    std::string _acc_id,
+    Platform *_platform): power(true),
+      scheduler_idle(true),
+      executor_idle(true),
+      nextTaskId(0),
+      queue_delay(0),
+      acc_id(_acc_id),
+      createTask(create_func),
+      destroyTask(destroy_func),
+      platform(_platform)
+{
+  startScheduler();
+}
+
 TaskManager::~TaskManager() {
   power = false; 
-  task_workers.join_all();
+  scheduler_thread_->join();
+  if (executor_thread_) executor_thread_->join();
+
   DLOG(INFO) << "TaskManager is destroyed";
 }
 
@@ -157,10 +176,15 @@ bool TaskManager::execute() {
     uint64_t start_time = getUs();
 
     // start execution
-    task->execute();
+    int ret = task->execute();
 
     uint64_t delay_time = getUs() - start_time;
-    VLOG(1) << "Task finishes in " << delay_time << " us";
+    if (ret == 0) {
+      VLOG(1) << "Task finishes in " << delay_time << " us";
+    }
+    else {
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task failed";
+    }
   } 
   catch (std::runtime_error &e) {
     LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
@@ -224,23 +248,27 @@ bool TaskManager::isBusy() {
   return !scheduler_idle || !executor_idle;
 }
 
-void TaskManager::start() {
-  startExecutor();
-  startScheduler();
-}
+//void TaskManager::start() {
+//  startExecutor();
+//  startScheduler();
+//}
 
 void TaskManager::stop() {
   power = false;
 }
 
+void TaskManager::interruptExecutor() {
+  executor_thread_->interrupt();
+}
+
 void TaskManager::startExecutor() {
-  task_workers.create_thread(
-      boost::bind(&TaskManager::do_execute, this));
+  Thread_ptr t(new boost::thread(boost::bind(&TaskManager::do_execute, this)));
+  executor_thread_ = t;
 }
 
 void TaskManager::startScheduler() {
-  task_workers.create_thread(
-      boost::bind(&TaskManager::do_schedule, this));
+  Thread_ptr t(new boost::thread(boost::bind(&TaskManager::do_schedule, this)));
+  scheduler_thread_ = t;
 }
 
 } // namespace blaze

@@ -59,7 +59,7 @@ void QueueManager::add(
   TaskManager_ptr task_manager(
       new TaskManager(create_func, destroy_func, id, platform));
 
-  task_manager->startScheduler();
+  //task_manager->startScheduler();
 
   // lock before modifying queue_table
   boost::lock_guard<QueueManager> guard(*this);

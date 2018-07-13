@@ -34,17 +34,8 @@ public:
   virtual uint64_t estimateTaskTime() { return 0; }
 
   // wrapper around compute(), added indicator for task status
-  void execute() {
-    status = EXECUTING;
-    try {
-      compute();
-      status = FINISHED;
-    } catch (std::exception &e) {
-      status = FAILED; 
-      throw std::runtime_error(e.what());
-    }
-  }
-  
+  int execute();   
+
   // get config for input blocks
   // TODO: need a way to specify general configs
   // or config for output block

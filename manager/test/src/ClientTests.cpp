@@ -236,7 +236,7 @@ TEST_F(ClientTests, TestTaskEstimation) {
       tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 50000));
     }
     else {
-      tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 0));
+      tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 50000));
     }
   }
   tgroup.join_all();

@@ -885,9 +885,18 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
   else {
     // if task is already executed and acc is not deleted,
     // keep waiting for task to avoid seg faults
-    while (task->status == Task::EXECUTING) {
-      boost::this_thread::sleep_for(
-          boost::chrono::microseconds(100)); 
+    if (task->status == Task::EXECUTING) {
+      TaskManager_ref task_manager = 
+        platform_manager->getTaskManager(acc_id);
+      if (!task_manager.lock()) {
+        // accelerator already removed
+        throw AccReject("No matching accelerator"); 
+      }
+      task_manager.lock()->interruptExecutor();
+      while (task->status == Task::EXECUTING) {
+        boost::this_thread::sleep_for(
+            boost::chrono::microseconds(100)); 
+      }
     }
   }
 }

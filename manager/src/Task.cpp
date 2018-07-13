@@ -35,6 +35,23 @@ TaskEnv* Task::getEnv() {
   return env.get();
 }
 
+int Task::execute() {
+  status = EXECUTING;
+  try {
+    compute();
+    status = FINISHED;
+  } catch (const boost::thread_interrupted &) {
+    status = FAILED;
+    DLOG(ERROR) << "Task interrupted";
+    return 1;
+  } catch (std::exception &e) {
+    status = FAILED; 
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task failed: " << e.what();
+    return 2;
+  }
+  return 0;
+}
+
 bool Task::isInputReady(int64_t block_id) {
   if (input_table.find(block_id) != input_table.end() &&
       input_table[block_id]->isReady()) 

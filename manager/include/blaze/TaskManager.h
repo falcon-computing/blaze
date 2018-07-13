@@ -13,27 +13,16 @@ namespace blaze {
 /**
  * Manages a task queue for one accelerator executor
  */
+typedef boost::shared_ptr<boost::thread> Thread_ptr;
 class TaskManager 
 : public boost::basic_lockable_adapter<boost::mutex>
 {
 
 public:
-
-  TaskManager(
-    Task* (*create_func)(), 
+  TaskManager(Task* (*create_func)(), 
     void (*destroy_func)(Task*),
     std::string _acc_id,
-    Platform *_platform
-  ): power(true),
-     scheduler_idle(true),
-     executor_idle(true),
-     nextTaskId(0),
-     queue_delay(0),
-     acc_id(_acc_id),
-     createTask(create_func),
-     destroyTask(destroy_func),
-     platform(_platform)
-  {;}
+    Platform *_platform);
 
   virtual ~TaskManager();
 
@@ -52,6 +41,9 @@ public:
   uint64_t get_queue_delay();
   void modify_queue_delay(uint64_t cur_delay, bool add_or_sub);
 
+  // interrupt Executor in case there are some issues
+  void interruptExecutor();
+
   void startExecutor();
   void startScheduler();
 
@@ -66,13 +58,21 @@ public:
 
 private:
 
-  boost::thread_group task_workers;
-
   // schedule a task from app queues to execution queue  
   bool schedule();
 
   // execute front task in the queue
   bool execute();
+
+  // thread function body for scheduler and executor
+  void do_schedule();
+  void do_execute();
+
+  void updateDelayModel(Task* task, int estimateTime, int realTime);
+
+  // scheduler thread and executor thread
+  Thread_ptr executor_thread_;
+  Thread_ptr scheduler_thread_;
 
   // Enable signal all the worker threads (scheduler, executor)
   bool power;
@@ -96,12 +96,6 @@ private:
   void (*destroyTask)(Task*);
 
   Platform *platform;
-
-  // thread function body for scheduler and executor
-  void do_schedule();
-  void do_execute();
-
-  void updateDelayModel(Task* task, int estimateTime, int realTime);
 
   // application queues mapped by application id
   std::map<std::string, TaskQueue_ptr> app_queues;

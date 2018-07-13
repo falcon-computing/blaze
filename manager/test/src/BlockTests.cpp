@@ -182,45 +182,40 @@ TEST_F(BlockTests, CheckEviction) {
   ASSERT_EQ(false, bman->getAlloc(1, block, 16, 1024*1024, 1024*1024));
   ASSERT_EQ(false, bman->contains(1));
 
-  // add four blocks, 1MB each
-  EXPECT_EQ(true, bman->getAlloc(1, block, 1024, 1024, 1024));
+  // add three blocks, 2MB each
+  EXPECT_EQ(true, bman->getAlloc(1, block, 2048, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
-  EXPECT_EQ(true, bman->getAlloc(2, block, 1024, 1024, 1024));
+  EXPECT_EQ(true, bman->getAlloc(2, block, 2048, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
-  EXPECT_EQ(true, bman->getAlloc(3, block, 1024, 1024, 1024));
-  boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
-
-  EXPECT_EQ(true, bman->getAlloc(4, block, 1024, 1024, 1024));
-  boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
-
-  // add fifth block should evict one
-  EXPECT_EQ(true, bman->getAlloc(5, block, 1024, 1024, 1024));
+  // no space left,  should evict one
+  EXPECT_EQ(true, bman->getAlloc(3, block, 2048, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
   int count = 0;
   int64_t evicted_tag = 0;
-  for (int64_t tag=1; tag<=4; tag++) {
+  for (int64_t tag = 1; tag <= 2; tag++) {
     if (bman->get(tag) != NULL_DATA_BLOCK) {
       count ++;
     }
     else {
       evicted_tag = tag;
+      DLOG(INFO) << "Evicted tag = " << tag;
     }
   }
-  ASSERT_EQ(3, count);
-  ASSERT_EQ(false, bman->contains(evicted_tag));
+  ASSERT_EQ(1, count);
+  ASSERT_FALSE(bman->contains(evicted_tag));
 
-  // add another one should evict the fifth one
-  // since all the other three have been referenced once more
-  bman->getAlloc(6, block, 42, 1000, 1000);
-  for (int64_t tag=1; tag<=6; tag++) {
-    if (tag == evicted_tag || tag == 5) {
-      ASSERT_EQ(false, bman->contains(tag));
+  // add another one should evict the third one
+  // since the other one have been referenced once more
+  bman->getAlloc(4, block, 42, 1000, 1000);
+  for (int64_t tag = 1; tag <= 4; tag++) {
+    if (tag == evicted_tag || tag == 3) {
+      ASSERT_FALSE(bman->contains(tag));
     }
     else {
-      ASSERT_EQ(true, bman->contains(tag));
+      ASSERT_TRUE(bman->contains(tag)) << "Tag is " << tag;
     }
   }
 }
