@@ -33,13 +33,13 @@ class PairHMM : public Task {
   
   virtual uint64_t estimateClientTime(){
     float cells = *((float*)getInput(NUM_ARGS - 1));
-    float AVX_GCUPS = 0.32;
+    float AVX_GCUPS = 0.4;
     return (uint64_t)(cells / AVX_GCUPS);
   }
 
   virtual uint64_t estimateTaskTime(){
     float cells = *((float*)getInput(NUM_ARGS - 1));
-    float FPGA_GCUPS = 8;
+    float FPGA_GCUPS = 10;
     return (uint64_t)(cells / FPGA_GCUPS + 3 * 600000);
   }
 
@@ -73,11 +73,11 @@ class PairHMM : public Task {
     std::string bankid("bankID");
 
     cl_mem output0 = *((cl_mem*)getOutput(0, numRead0 * numHap0, 1, 
-          sizeof(float), std::make_pair(bankid, 3)));
+          sizeof(float), std::make_pair(bankid, 0)));
     cl_mem output1 = *((cl_mem*)getOutput(1, numRead1 * numHap1, 1, 
           sizeof(float), std::make_pair(bankid, 1)));
     cl_mem output2 = *((cl_mem*)getOutput(2, numRead2 * numHap2, 1, 
-          sizeof(float), std::make_pair(bankid, 2)));
+          sizeof(float), std::make_pair(bankid, 3)));
 
     DLOG(INFO) << "core0: numRead = " << numRead0 << ", numHap = " << numHap0;
     DLOG(INFO) << "core1: numRead = " << numRead1 << ", numHap = " << numHap1;
