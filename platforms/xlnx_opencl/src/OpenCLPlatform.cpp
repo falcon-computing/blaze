@@ -84,7 +84,7 @@ OpenCLPlatform::OpenCLPlatform(
 
   // Create a command commands
   cl_command_queue cmd_queue = clCreateCommandQueue(
-      context, device_id, 0, &err);
+      context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
 
   if (!cmd_queue) {
     throw std::runtime_error(
@@ -327,6 +327,7 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
     curr_acc_id = acc_id;
 
     // switch kernel handler to OpenCLEnv
+    env->changeProgram(program);
     env->changeKernel(kernel);
 
     VLOG(2) << "Switched to new accelerator: " << acc_id;
@@ -335,6 +336,10 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
 cl_kernel& OpenCLPlatform::getKernel() {
   return curr_kernel;
+}
+
+cl_program& OpenCLPlatform::getProgram() {
+  return curr_program;
 }
 
 TaskEnv_ptr OpenCLPlatform::getEnv(std::string id) {

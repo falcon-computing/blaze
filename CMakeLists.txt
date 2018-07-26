@@ -33,7 +33,7 @@ execute_process(
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS -fPIC -DVERSION=\\\"${BIN_VERSION}\\\"")
 # current manager has issue with -O3, so default to O2 instead
-set(CMAKE_CXX_FLAGS_RELEASE "-O1 -DNDEBUG -Wall -DUSELICENSE")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -Wall -DUSELICENSE")
 
 message(STATUS "version: ${BIN_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVERSION=\\\"${BIN_VERSION}\\\"")

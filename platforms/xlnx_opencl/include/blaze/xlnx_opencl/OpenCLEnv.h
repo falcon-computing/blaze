@@ -35,6 +35,7 @@ public:
   cl_context& getContext() { return context; }
   cl_command_queue& getCmdQueue() { return cmd_queue; }
   cl_kernel& getKernel() { return kernel; }
+  cl_program& getProgram() { return program; }
 
   virtual DataBlock_ptr createBlock(
       int num_items, 
@@ -54,11 +55,13 @@ public:
 
 private:
   void changeKernel(cl_kernel& _kernel);
+  void changeProgram(cl_program& _program);
 
   cl_device_id     device_id;
   cl_context       context;
   cl_command_queue cmd_queue;
   cl_kernel        kernel;
+  cl_program       program;
 };
 }
 #endif
