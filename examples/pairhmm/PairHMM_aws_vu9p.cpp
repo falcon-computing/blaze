@@ -39,7 +39,7 @@ class PairHMM : public Task {
 
   virtual uint64_t estimateTaskTime(){
     float cells = *((float*)getInput(NUM_ARGS - 1));
-    float FPGA_GCUPS = 19;
+    float FPGA_GCUPS = 16;
     float PCIe_BW = 2.0; //GBps
     float PCIe_LAT= 300 * 1e3; //ns
     float CLBufferCreateTime = 0.7 * 1e6; //ns
