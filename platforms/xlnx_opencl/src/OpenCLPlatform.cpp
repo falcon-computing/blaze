@@ -45,7 +45,7 @@ OpenCLPlatform::OpenCLPlatform(
         1000, (void *)cl_platform_name, NULL);
 
     if (err != CL_SUCCESS) {
-      LOG(ERROR) << "clGetPlatformInfo(CL_PLATFORM_NAME) "
+      DLOG(ERROR) << "clGetPlatformInfo(CL_PLATFORM_NAME) "
         << "failed on platform " << platform_idx;;
     }
     if (strstr(cl_platform_name, "Xilinx")!=NULL) {
@@ -53,9 +53,9 @@ OpenCLPlatform::OpenCLPlatform(
       break;
     }
   }
-  if (platform_idx>=num_platforms) {
-    LOG(ERROR) << "No Xilinx platform found, this binary only " <<
-      "supports Xilinx FPGAs";
+  if (platform_idx >= num_platforms) {
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "No Xilinx platform found, " <<
+      "this binary only supports Xilinx FPGAs";
     throw std::runtime_error("No supported platform found");
   }
   DLOG(INFO) << "Found Xilinx OpenCLPlatform at " << platform_idx;
@@ -84,7 +84,7 @@ OpenCLPlatform::OpenCLPlatform(
 
   // Create a command commands
   cl_command_queue cmd_queue = clCreateCommandQueue(
-      context, device_id, 0, &err);
+      context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
 
   if (!cmd_queue) {
     throw std::runtime_error(
@@ -294,18 +294,17 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
           (const unsigned char **) &kernelbinary, 
           &status, &err);
     } catch (std::exception &e) {
-      LOG(ERROR) << "clCreateProgramWithBinary throws " << e.what();
-      throw internalError("clCreateProgramWithBinary fails");
+      DLOG(ERROR) << "clCreateProgramWithBinary throws " << e.what();
+      throw internalError("Xilinx OpenCL error");
     }
 
-    if ((!program) || (err!=CL_SUCCESS)) {
-      LOG(ERROR) << "clCreateProgramWithBinary error, ret=" << err;
-      throw internalError(
-          "Failed to create compute program from binary");
+    if ((!program) || (err != CL_SUCCESS)) {
+      DLOG(ERROR) << "clCreateProgramWithBinary error, ret=" << err;
+      throw internalError("Xilinx OpenCL error");
     }
 
     elapse_t = getUs() - start_t;
-    VLOG(1) << "clCreateProgramWithBinary takes " << 
+    VLOG(2) << "clCreateProgramWithBinary takes " << 
       elapse_t << "us.";
 
     start_t = getUs();
@@ -315,9 +314,8 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
         program, kernel_name.c_str(), &err);
 
     if (!kernel || err != CL_SUCCESS) {
-      LOG(ERROR) << "clCreateKernel error, ret=" << err;
-      throw internalError(
-          "Failed to create compute kernel");
+      DLOG(ERROR) << "clCreateKernel error, ret=" << err;
+      throw internalError("Xilinx OpenCL error");
     }
 
     elapse_t = getUs() - start_t;
@@ -329,14 +327,19 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
     curr_acc_id = acc_id;
 
     // switch kernel handler to OpenCLEnv
+    env->changeProgram(program);
     env->changeKernel(kernel);
 
-    LOG(INFO) << "Switched to new accelerator: " << acc_id;
+    VLOG(2) << "Switched to new accelerator: " << acc_id;
   }
 }  
 
 cl_kernel& OpenCLPlatform::getKernel() {
   return curr_kernel;
+}
+
+cl_program& OpenCLPlatform::getProgram() {
+  return curr_program;
 }
 
 TaskEnv_ptr OpenCLPlatform::getEnv(std::string id) {

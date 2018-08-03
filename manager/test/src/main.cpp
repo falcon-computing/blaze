@@ -6,7 +6,7 @@
 int main(int argc, char **argv) {
   google::InitGoogleLogging(argv[0]);
   ::testing::InitGoogleTest(&argc, argv);
-  //FLAGS_logtostderr = true;
-  //FLAGS_v = 3;
+  FLAGS_logtostderr = true;
+  FLAGS_v = 1;
   return RUN_ALL_TESTS();
 }

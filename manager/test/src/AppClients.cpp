@@ -36,7 +36,12 @@ bool runArrayTest() {
   }
   
   // start computation
-  client.start();
+  try {
+    client.start();
+    return true;
+  } catch (cpuCalled &e) {
+    return false;
+  }
 
   // compute baseline results
   for (int i = 0; i < num_samples; i++) {
@@ -67,7 +72,12 @@ bool runLoopBack(int data_size) {
   }
   
   // start computation
-  client.start();
+  try {
+    client.start();
+    return true;
+  } catch (cpuCalled &e) {
+    return false;
+  }
 
   // compare results
   double* output_ptr = (double*)client.getOutputPtr(0);
@@ -91,8 +101,30 @@ bool runDelay(int data_size) {
   }
   
   // start computation
-  client.start();
+  try {
+    client.start();
+    return true;
+  } catch (cpuCalled &e) {
+    return false;
+  }
+}
 
-  return true;
+bool runDelayWEst(uint64_t task_us, uint64_t cpu_us, uint64_t force_us) {
+  // prepare input
+  TestClient client(3, 0); 
+  uint64_t* input_0 = (uint64_t*)client.createInput(0, 1, 1, sizeof(uint64_t), BLAZE_INPUT);
+  uint64_t* input_1 = (uint64_t*)client.createInput(1, 1, 1, sizeof(uint64_t), BLAZE_INPUT);
+  uint64_t* input_2 = (uint64_t*)client.createInput(2, 1, 1, sizeof(uint64_t), BLAZE_INPUT);
+
+  input_0[0] = task_us;
+  input_1[0] = cpu_us;
+  input_2[0] = force_us;
+
+  try {
+    client.start();
+    return true;
+  } catch (cpuCalled &e) {
+    return false;
+  }
 }
 }

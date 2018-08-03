@@ -29,7 +29,7 @@ void QueueManager::add(
     std::string lib_path)
 {
   if (tasklib_table.count(id)) {
-    LOG(WARNING) << "Cannot add Task [" << id
+    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Cannot add Task [" << id
                  << "] because previous Task with the same ID is not "
                  << "successfully unloaded.";
     throw internalError("Task handle exists");
@@ -67,7 +67,7 @@ void QueueManager::add(
   queue_table.insert(std::make_pair(id, task_manager));
   tasklib_table.insert(std::make_pair(id, handle));
 
-  LOG(INFO) << "Added a new task queue: " << id;
+  VLOG(1) << "Added a new task queue: " << id;
 }
 
 TaskManager_ptr QueueManager::get(std::string id) {
@@ -169,7 +169,7 @@ void QueueManager::start(std::string id) {
     task_manager->startExecutor();
   }
   else {
-    LOG(ERROR) << "Cannot start executor for " << id;
+    DLOG(ERROR) << "Cannot start executor for " << id;
   }
 }
 

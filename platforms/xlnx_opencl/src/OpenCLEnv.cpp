@@ -32,4 +32,8 @@ DataBlock_ptr OpenCLEnv::createBlock(
 void OpenCLEnv::changeKernel(cl_kernel& _kernel) {
   kernel = _kernel;
 }
+
+void OpenCLEnv::changeProgram(cl_program& _program) {
+  program = _program;
+}
 }

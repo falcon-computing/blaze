@@ -50,6 +50,7 @@ public:
   void changeProgram(std::string acc_id);
 
   cl_kernel& getKernel();
+  cl_program& getProgram();
 
 private:
 
