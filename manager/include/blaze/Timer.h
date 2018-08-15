@@ -19,8 +19,6 @@
 #define TIMER_REPORT
 
 namespace blaze {
-extern std::map<std::string, uint64_t> g_total_time;
-//extern std::map<std::string, uint64_t> g_last_time;
 
 void print_timers();
 

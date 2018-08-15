@@ -6,7 +6,7 @@
 
 namespace blaze {
 
-std::map<std::string, uint64_t> g_total_time;
+static std::map<std::string, uint64_t> g_total_time;
 //std::map<std::string, uint64_t> g_last_time;
 
 void print_timers() {
