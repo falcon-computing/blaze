@@ -37,24 +37,24 @@ TEST_F(ConfigTests, CheckCommHandler) {
   try {
     comm->handleAccRegister(req_msg);
   } catch (std::exception &e) {
-    ASSERT_EQ(true, false) << "Caught unexpected exception: " << e.what();
+    FAIL() << "Caught unexpected exception: " << e.what();
   }
 
   // accelerator should be registered
-  ASSERT_EQ(true, platform_manager.accExists(acc_id));
-  ASSERT_EQ(true, runLoopBack());
+  ASSERT_TRUE(platform_manager.accExists(acc_id));
+  ASSERT_TRUE(runLoopBack());
 
   // try register another one
   acc_msg->set_task_impl(pathToArrayTest());
   try {
     comm->handleAccRegister(req_msg);
-    ASSERT_TRUE(false) << "Exception should be called";
+    FAIL() << "Exception should be called";
   } catch (std::exception &e) {
-    ASSERT_TRUE(true) << "Caught unexpected exception: " << e.what();
+    LOG(INFO) << "Caught unexpected exception: " << e.what();
   }
 
   // accelerator should not change
-  ASSERT_EQ(true, runLoopBack());
+  ASSERT_TRUE(runLoopBack());
 
   // test acc delete
   req_msg.set_type(ACCDELETE);
@@ -62,12 +62,12 @@ TEST_F(ConfigTests, CheckCommHandler) {
   try {
     comm->handleAccDelete(req_msg);
   } catch (std::exception &e) {
-    ASSERT_EQ(true, false) << "Caught unexpected exception: " << e.what();
+    FAIL() << "Caught unexpected exception: " << e.what();
   }
-  ASSERT_EQ(false, platform_manager.accExists(acc_id));
+  ASSERT_FALSE(platform_manager.accExists(acc_id));
 
   // should be false since accelerator is deleted
-  ASSERT_EQ(false, runLoopBack());
+  ASSERT_FALSE(runLoopBack());
 
   // test acc register again for ArrayTest
   req_msg.set_type(ACCREGISTER);
@@ -78,8 +78,8 @@ TEST_F(ConfigTests, CheckCommHandler) {
     ASSERT_TRUE(false) << "Caught unexpected exception: " << e.what();
   }
   // accelerator should be registered as ArrayTest
-  ASSERT_EQ(true, platform_manager.accExists(acc_id));
-  ASSERT_EQ(true, runArrayTest());
+  ASSERT_TRUE(platform_manager.accExists(acc_id));
+  ASSERT_TRUE(runArrayTest());
 
   LOG(INFO) << "Finished ConfigTest";
 }

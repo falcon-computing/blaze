@@ -23,23 +23,7 @@ public:
 
   virtual ~OpenCLPlatform();
 
-  virtual TaskEnv_ptr getEnv(std::string id);
-
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size, 
-      int align_width = 0,
-      int flag = BLAZE_INPUT_BLOCK);
-
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size,
-      std::pair<std::string, int>& ext_flag,
-      int align_width = 0,
-      int flag = BLAZE_INPUT_BLOCK);
-
+  virtual TaskEnv_ref getEnv();
 
   virtual void createBlockManager(size_t cache_limit, size_t scratch_limit);
   virtual BlockManager* getBlockManager();

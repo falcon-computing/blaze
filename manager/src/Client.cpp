@@ -7,6 +7,7 @@
 
 #include "blaze/Block.h"
 #include "blaze/Client.h"
+#include "blaze/Timer.h"
 
 namespace blaze {
 
@@ -47,7 +48,7 @@ void* Client::createInput(
   else if (input_blocks[idx]) {
     LOG_IF(WARNING, VLOG_IS_ON(1)) << "Block with idx=" << idx
                  << " is already allocated, returning data ptr";
-    return (void*)input_blocks[idx]->getData();
+    return input_blocks[idx]->getData();
   }
   if (num_items <= 0 || 
       item_length <= 0 || 
@@ -71,6 +72,8 @@ void* Client::createInput(
     data_width = 8; 
   }
 
+  // write data to memory mapped file
+  // use thread id to create unique output file path
   // create a new block and add it to input table
   DataBlock_ptr block(new DataBlock(num_items, 
         item_length, item_length*data_width));
@@ -81,10 +84,10 @@ void* Client::createInput(
   int64_t block_id = ((int64_t)getTid()<<10) + idx;
   bool    cached   = false;
 
-  if (type==BLAZE_INPUT_CACHED) {
+  if (type == BLAZE_INPUT_CACHED) {
     cached = true;
   }
-  else if (type==BLAZE_SHARED) {
+  else if (type == BLAZE_SHARED) {
     block_id = 0 - block_id; // broadcast id is negative
     cached = true;
   }
@@ -93,70 +96,7 @@ void* Client::createInput(
   return block->getData();
 }
 
-
-void* Client::createInput(
-    int idx,
-    int num_items, 
-    int item_length, 
-    int data_width, 
-    std::pair<std::string, int>& ext_flag, 
-    int type)
-{
-  if (idx >= num_inputs) {
-    DLOG(ERROR) << "Index out of range: idx=" << idx
-               << ", num_inputs=" << num_inputs;
-    throw invalidParam("index out of range");
-  }
-  else if (input_blocks[idx]) {
-    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Block with idx=" << idx
-                 << " is already allocated, returning data ptr";
-    return (void*)input_blocks[idx]->getData();
-  }
-  if (num_items <= 0 || 
-      item_length <= 0 || 
-      data_width <= 0 ||
-      type > BLAZE_SHARED)
-  {
-    DLOG(ERROR) << num_items << ", "
-               << item_length << ", "
-               << data_width << ", "
-               << type;
-    throw invalidParam("Invalid input parameters");
-  }
-
-  if (num_items == 1 && item_length == 1) {
-    if (data_width > 8) {
-      LOG_IF(WARNING, VLOG_IS_ON(1)) << "Scalar input cannot be larger than 8 bytes, "
-                   << "force it to be 8 bytes";
-    }
-    // since scalar variable uses a long long type in the message,
-    // force data width to be 8 for safety
-    data_width = 8; 
-  }
-
-  // create a new block and add it to input table
-  DataBlock_ptr block(new DataBlock(num_items, 
-        item_length, item_length*data_width, ext_flag));
-
-  input_blocks[idx] = block;
-
-  // generate block info include (id, cached)
-  int64_t block_id = ((int64_t)getTid()<<10) + idx;
-  bool    cached   = false;
-
-  if (type==BLAZE_INPUT_CACHED) {
-    cached = true;
-  }
-  else if (type==BLAZE_SHARED) {
-    block_id = 0 - block_id; // broadcast id is negative
-    cached = true;
-  }
-  block_info[idx] = std::make_pair(block_id, cached);
-
-  return block->getData();
-}
-
-
+#if 0
 void* Client::createOutput(
     int idx,
     int num_items, 
@@ -193,6 +133,7 @@ void* Client::createOutput(
     return block->getData();
   }
 }
+#endif
 
 // experimental feature
 void Client::setInput(int idx, void* src,
@@ -223,43 +164,7 @@ void Client::setInput(int idx, void* src,
     {
       throw invalidParam("Block size does not match");
     }
-    memcpy((void*)block->getData(), src, 
-        input_blocks[idx]->getSize());
-  }
-}
-
-
-// experimental feature
-void Client::setInput(int idx, void* src,
-    std::pair<std::string, int>& ext_flag,
-    int num_items, 
-    int item_length, 
-    int data_width, 
-    int type)
-{
-  if (idx >= num_inputs) {
-    throw invalidParam("Invalid input block");
-  }
-  if (!input_blocks[idx]) {
-    if (num_items <= 0 || 
-        item_length <= 0 || 
-        data_width <= 0 ||
-        type >= BLAZE_SHARED)
-    {
-      throw invalidParam("Invalid input parameters");
-    }
-    void *dst = createInput(idx, num_items, item_length, data_width, ext_flag, type);
-    memcpy(dst, src, num_items*item_length*data_width);
-  }
-  else {
-    DataBlock_ptr block = input_blocks[idx];
-    if (num_items !=  block->getNumItems() ||
-        item_length != block->getItemLength() ||
-        item_length*data_width != block->getItemSize()) 
-    {
-      throw invalidParam("Block size does not match");
-    }
-    memcpy((void*)block->getData(), src, 
+    memcpy(block->getData(), src, 
         input_blocks[idx]->getSize());
   }
 }
@@ -307,6 +212,7 @@ int Client::getOutputLength(int idx) {
 }
 
 void Client::start(bool blocking) {
+  PLACE_TIMER;
 
   try {
     // send request
@@ -354,6 +260,7 @@ void Client::start(bool blocking) {
 }
 
 void Client::prepareRequest(TaskMsg &msg) {
+  PLACE_TIMER;
 
   msg.set_type(ACCREQUEST);
   msg.set_acc_id(acc_id);
@@ -366,7 +273,7 @@ void Client::prepareRequest(TaskMsg &msg) {
     if (input_blocks[i]->getNumItems() == 1 && 
         input_blocks[i]->getItemLength() == 1)
     {
-      char* data = input_blocks[i]->getData();
+      char* data = (char*)input_blocks[i]->getData();
       data_msg->set_scalar_value(*((long long*)data));
       VLOG(2) << "Sent scalar input " << i;
     }
@@ -386,7 +293,7 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
   accdata_msg.set_type(ACCDATA);
 
   int blockIdx = 0;  // index to input_blocks
-  for (int i=0; i<reply_msg.data_size(); i++) {
+  for (int i = 0; i < reply_msg.data_size(); i++) {
     // skip scalar input blocks
     while (input_blocks[blockIdx]->getNumItems() == 1 && 
            input_blocks[blockIdx]->getItemLength() == 1)
@@ -394,36 +301,18 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
       blockIdx ++; 
     }
     if (!reply_msg.data(i).cached()) {
+      PLACE_TIMER1(std::string("input block ") + std::to_string((uint64_t)i));
 
       DataMsg *data_msg = accdata_msg.add_data();
       data_msg->set_partition_id(block_info[blockIdx].first);
 
-      // write data to memory mapped file
-      // use thread id to create unique output file path
-      std::stringstream path_stream;
-      std::string output_dir = "/tmp";
-
-      path_stream << output_dir << "/"
-        << "client-data-"
-        << getTid() 
-        << std::setw(12) << std::setfill('0') << rand() 
-        << i
-        << ".dat";
-
-      std::string path = path_stream.str();
-
       DataBlock_ptr block = input_blocks[blockIdx];
-      block->writeToMem(path);
 
-      data_msg->set_file_path(path);
+      data_msg->set_file_path(block->get_path());
       data_msg->set_num_elements(block->getNumItems());
       data_msg->set_element_length(block->getItemLength());
       data_msg->set_element_size(block->getItemSize());
-      for ( auto it = block->getExtFlagsBegin(); it != block->getExtFlagsEnd(); ++it ) {
-        DataMsg_KeyValue* ext_flag = data_msg->add_ext_flag();
-        ext_flag->set_key(it->first);
-        ext_flag->set_value(it->second);
-      }
+      
       VLOG(1) << "Finish writing " << i;
     }
     blockIdx ++;
@@ -432,6 +321,7 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
 
 void Client::processOutput(TaskMsg &msg) {
 
+  PLACE_TIMER;
   VLOG(1) << "Task finished, start reading output";
 
   if (num_outputs != msg.data_size()) {
@@ -440,7 +330,7 @@ void Client::processOutput(TaskMsg &msg) {
     throw commError("Num of output blocks mismatch");
   }
 
-  for (int i=0; i<msg.data_size(); i++) {
+  for (int i = 0; i < msg.data_size(); i++) {
     DataMsg data_msg = msg.data(i);
 
     // check data_msg fields
@@ -457,39 +347,12 @@ void Client::processOutput(TaskMsg &msg) {
     int item_length  = data_msg.element_length();	
     int item_size    = data_msg.element_size();	
 
-    DataBlock_ptr block;
-    if (output_blocks[i]) {
-      block = output_blocks[i];
-
-      // output already allocated, check if size matches
-      if (num_items != block->getNumItems() ||
-          item_length != block->getItemLength() ||
-          item_size != block->getItemSize())
-      {
-        LOG_IF(ERROR, VLOG_IS_ON(1)) << "Size of output " << i << " does not match the allocated one";
-        throw commError("Output size mismatch");
-      }
-    }
-    else {
-      DataBlock_ptr new_block(new DataBlock(num_items, item_length, item_size));
-      output_blocks[i] = new_block;
-      block = new_block;
-    }
-
     std::string path = data_msg.file_path();
     VLOG(1) << "Reading output from " << path;
-    try {
-      block->readFromMem(path);
 
-      // delete memory map file after read
-      if (!deleteFile(path)) {
-        LOG_IF(WARNING, VLOG_IS_ON(1)) << "Cannot delete file for output " << i;
-      }
-    }
-    catch (std::runtime_error &e) {
-      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Failed to read data from file " << path;
-      throw std::runtime_error("Failed to process output");
-    }
+    DataBlock_ptr block(new DataBlock(path, num_items, item_length, item_size));
+
+    output_blocks[i] = block;
   }
   VLOG(1) << "Finish reading output";
 }

@@ -49,30 +49,6 @@ void Platform::removeQueue(std::string id) {
   //    boost::bind(&QueueManager::remove, queue_manager.get(), id));
 }
 
-// create a block object for the specific platform
-DataBlock_ptr Platform::createBlock(
-    int num_items, int item_length, int item_size, 
-    int align_width, int flag) 
-{
-  return env->createBlock(num_items, item_length, 
-      item_size, align_width, flag);
-}
-
-// create a block object for the specific platform
-DataBlock_ptr Platform::createBlock(
-    int num_items, int item_length, int item_size, 
-    std::pair<std::string, int>& ext_flag,
-    int align_width, int flag)
-{
-  return env->createBlock(num_items, item_length, 
-      item_size, ext_flag, align_width, flag);
-}
-
-DataBlock_ptr Platform::createBlock(const DataBlock& block) 
-{
-  return env->createBlock(block);
-}
-
 // remove a shard block from the block manager
 void Platform::remove(int64_t block_id) {
   block_manager->remove(block_id); 
@@ -100,8 +76,7 @@ BlockManager* Platform::getBlockManager() {
 }
 
 TaskManager_ref Platform::getTaskManager(std::string acc_id) {
-  TaskManager_ref ret = queue_manager->get(acc_id);
-  return ret;
+  return queue_manager->get(acc_id);
 }
 
 // get an entry in the config_table matching the key
@@ -114,7 +89,7 @@ std::string Platform::getConfig(std::string &key) {
 }
 
 // get TaskEnv to pass to Task
-TaskEnv_ptr Platform::getEnv(std::string id) {
+TaskEnv_ref Platform::getEnv() {
   return env;
 }
 } // namespace blaze

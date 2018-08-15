@@ -31,7 +31,7 @@ Task_ptr TaskManager::create() {
   Task_ptr task(createTask(), destroyTask);
 
   // link the TaskEnv
-  task->env = platform->getEnv(acc_id);
+  task->env = platform->getEnv();
 
   // give task an unique ID
   task->task_id = nextTaskId.fetch_add(1);

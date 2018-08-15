@@ -38,19 +38,17 @@ TEST_F(ClientTests, CheckBlockAllocation) {
   }
   catch (std::exception &e) {
     // should not be any exception
-    ASSERT_EQ(0, 1);
-    LOG(ERROR) << "Valid input should not throw exceptions";
+    FAIL() << "Valid input should not throw exceptions";
   }
 
   // invalid input
   try {
     // idx should not be larger than num_inputs
     void* ptr = client.createInput(1, 1, 1, sizeof(int), BLAZE_INPUT);
-    ASSERT_EQ(1, 0);
+    FAIL() << "Should have caught an exception";
   }
   catch (std::exception &e) {
     // should not be any exception
-    ASSERT_EQ(0, 0);
     LOG(INFO) << "Exception caught: " << e.what();
   }
 }
@@ -134,7 +132,7 @@ TEST_F(ClientTests, AppTest_arrayTest) {
   boost::shared_ptr<CommManager> comm( new AppCommManager(
         &platform_manager, "127.0.0.1", app_port)); 
 
-  ASSERT_EQ(true, runArrayTest());  
+  ASSERT_TRUE(runArrayTest());  
 }
 
 TEST_F(ClientTests, AppTest_loopBack) {
@@ -156,7 +154,7 @@ TEST_F(ClientTests, AppTest_loopBack) {
   boost::shared_ptr<CommManager> comm( new AppCommManager(
         &platform_manager, "127.0.0.1", app_port)); 
 
-  ASSERT_EQ(true, runLoopBack());
+  ASSERT_TRUE(runLoopBack());
 }
 
 TEST_F(ClientTests, AppTest_delay) {
@@ -179,7 +177,7 @@ TEST_F(ClientTests, AppTest_delay) {
   boost::shared_ptr<CommManager> comm( new AppCommManager(
         &platform_manager, "127.0.0.1", app_port)); 
 
-  ASSERT_EQ(true, runDelay());  
+  ASSERT_TRUE(runDelay());  
 }
 
 TEST_F(ClientTests, TestTaskEstimation) {

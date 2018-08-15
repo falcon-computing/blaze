@@ -1,14 +1,12 @@
 #ifndef TASK_H
 #define TASK_H
-
-#include "blaze/Common.h"
-#include <utility>
 #include <string>
+#include <utility>
+
+#include "blaze/ConfigTable.h"
+#include "blaze/Common.h"
 
 namespace blaze {
-
-// forward declaration of 
-template <typename U, typename T> class BlazeTest;
 
 /**
  * Task is the base clase of an accelerator task
@@ -20,9 +18,6 @@ friend class AccAgent;
 friend class AppCommManager;
 friend class QueueManager;
 friend class TaskManager;
-
-template <typename U, typename T> 
-friend class BlazeTest;
 
 public:
   Task(int _num_args);
@@ -54,15 +49,15 @@ public:
 
 protected:
 
-  char* getOutput(int idx, int item_length, int num_items, int data_width);
-
-  char* getOutput(int idx, int item_length, int num_items, int data_width, std::pair<std::string, int> ext_flag);
+  void* getOutput(int idx, 
+      int item_length, int num_items, int data_width, 
+      ConfigTable_ptr conf = NULL_ConfigTable_ptr);
   
   int getInputLength(int idx);
 
   int getInputNumItems(int idx);
 
-  char* getInput(int idx);
+  void* getInput(int idx);
 
   // add a configuration for a dedicated block 
   void addConfig(int idx, std::string key, std::string val);
@@ -106,7 +101,7 @@ private:
   int task_id;
 
   // pointer to the TaskEnv
-  TaskEnv_ptr env;
+  TaskEnv_ref env;
 
   // number of total input blocks
   int num_input;

@@ -37,21 +37,16 @@ public:
   cl_kernel& getKernel() { return kernel; }
   cl_program& getProgram() { return program; }
 
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size, 
+  virtual DataBlock_ptr create_block(
+      int num_items, int item_length, int item_size, 
       int align_width = 0, 
-      int flag = BLAZE_OUTPUT_BLOCK);
+      DataBlock::Flag flag = DataBlock::SHARED,
+      ConfigTable_ptr conf = NULL_ConfigTable_ptr);
 
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size, 
-      std::pair<std::string, int>& ext_flag,
-      int align_width = 0, 
-      int flag = BLAZE_OUTPUT_BLOCK);
-
+  virtual DataBlock_ptr create_block(std::string path,
+      int num_items, int item_length, int item_size, 
+      int align_width = 0,
+      ConfigTable_ptr conf = NULL_ConfigTable_ptr);
 
 private:
   void changeKernel(cl_kernel& _kernel);

@@ -7,6 +7,7 @@
 
 #include "acc_conf.pb.h"
 #include "Common.h"
+#include "TaskEnv.h"
 
 namespace blaze {
 
@@ -35,32 +36,13 @@ public:
 
   virtual QueueManager* getQueueManager();
 
-  // create a block object for the specific platform
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size, 
-      int align_width = 0, 
-      int flag = BLAZE_INPUT_BLOCK);
-
-  // create a block object for the specific platform
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size, 
-      std::pair<std::string, int>& ext_flag,
-      int align_width = 0, 
-      int flag = BLAZE_INPUT_BLOCK);
-
-  virtual DataBlock_ptr createBlock(const DataBlock&);
-
   virtual void remove(int64_t block_id);
 
   // get an entry in the config_table matching the key
   std::string getConfig(std::string &key);
 
   // get TaskEnv to pass to Task
-  virtual TaskEnv_ptr getEnv(std::string id);
+  virtual TaskEnv_ref getEnv();
 
 protected:
   BlockManager_ptr block_manager;
@@ -72,7 +54,6 @@ protected:
   // a table storing platform configurations mapped by key
   std::map<std::string, AccWorker> acc_table;
 
-private:
   TaskEnv_ptr env;
 };
 

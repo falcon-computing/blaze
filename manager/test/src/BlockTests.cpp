@@ -71,8 +71,8 @@ TEST_F(BlockTests, CheckBasicBlock) {
   int item_length = 32;
   int item_size   = item_length*sizeof(int);
 
-  // create a new block
-  DataBlock_ptr block = platform->createBlock(num_items, item_length, item_size);
+  // create a new block to share
+  DataBlock_ptr block = bman->create_block(num_items, item_length, item_size);
 
   // check status right after construction
   ASSERT_EQ(num_items, block->getNumItems());
@@ -80,8 +80,8 @@ TEST_F(BlockTests, CheckBasicBlock) {
   ASSERT_EQ(item_size, block->getItemSize());
   ASSERT_EQ(num_items*item_length, block->getLength());
   ASSERT_EQ(num_items*item_size, block->getSize());
-  ASSERT_EQ(false, block->isAllocated());
-  ASSERT_EQ(false, block->isReady());
+  //ASSERT_FALSE(block->isAllocated());
+  ASSERT_TRUE(block->isReady());
 
   // check Block::writeData()
   int* data_in = new int[num_items*item_length];
@@ -90,11 +90,11 @@ TEST_F(BlockTests, CheckBasicBlock) {
   }
   block->writeData((void*)data_in, item_size*num_items);
 
-  ASSERT_EQ(true, block->isAllocated());
-  ASSERT_EQ(true, block->isReady());
+  //ASSERT_TRUE(block->isAllocated());
+  //ASSERT_TRUE(block->isReady());
 
   // check Block::getData()
-  ASSERT_NE((char*)NULL, block->getData());
+  ASSERT_NE(block->getData(), nullptr);
 
   // check Block::readData()
   int* data_out = new int[num_items*item_length];
@@ -116,7 +116,7 @@ TEST_F(BlockTests, CheckAlignedAlloc) {
   
   int align_item_size = (item_size+align_width-1)/align_width*align_width;
 
-  DataBlock_ptr block = platform->createBlock(
+  DataBlock_ptr block = bman->create_block(
       num_items, item_length, item_size, align_width);
   
   ASSERT_NE(NULL_DATA_BLOCK, block);
@@ -130,7 +130,7 @@ TEST_F(BlockTests, CheckAlignedAlloc) {
   }
   block->writeData((void*)data_in, item_size*num_items);
 
-  ASSERT_EQ(true, block->isReady());
+  ASSERT_TRUE(block->isReady());
 
   block->readData((void*)data_out, align_item_size*num_items);
 
@@ -158,20 +158,20 @@ TEST_F(BlockTests, CheckBasicCache) {
 
   // add this block to cache
   int64_t tag = 1;
-  bman->getAlloc(tag, block, 42, 1000, 1000);
+  bman->get_alloc(tag, block, 42, 1000, 1000);
   
   // check BlockManager::add(), contains()
-  ASSERT_EQ(true, bman->contains(tag));
-  ASSERT_EQ(false, bman->contains(tag+1));
+  ASSERT_TRUE(bman->contains(tag));
+  ASSERT_FALSE(bman->contains(tag+1));
   ASSERT_NE(NULL_DATA_BLOCK, bman->get(tag));
-  ASSERT_EQ(false, bman->getAlloc(tag, block, 42, 1024, 1024));
+  ASSERT_FALSE(bman->get_alloc(tag, block, 42, 1024, 1024));
   ASSERT_NE(NULL_DATA_BLOCK, block);
   ASSERT_EQ(42, block->getNumItems());
 
-  // check BlockManager::getAlloc()
+  // check BlockManager::get_alloc()
   tag = 2;
-  ASSERT_EQ(true, bman->getAlloc(tag, block, 27, 1024, 1024));
-  ASSERT_EQ(true, bman->contains(tag));
+  ASSERT_TRUE(bman->get_alloc(tag, block, 27, 1024, 1024));
+  ASSERT_TRUE(bman->contains(tag));
   ASSERT_NE(NULL_DATA_BLOCK, bman->get(tag));
   ASSERT_EQ(27, block->getNumItems());
 }
@@ -179,24 +179,24 @@ TEST_F(BlockTests, CheckBasicCache) {
 TEST_F(BlockTests, CheckEviction) {
 
   DataBlock_ptr block;
-  ASSERT_EQ(false, bman->getAlloc(1, block, 16, 1024*1024, 1024*1024));
-  ASSERT_EQ(false, bman->contains(1));
+  ASSERT_FALSE(bman->get_alloc(1, block, 16, 1024*1024, 1024*1024));
+  ASSERT_FALSE(bman->contains(1));
 
   // add four blocks, 1MB each
-  EXPECT_EQ(true, bman->getAlloc(1, block, 1024, 1024, 1024));
+  EXPECT_EQ(true, bman->get_alloc(1, block, 1024, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
-  EXPECT_EQ(true, bman->getAlloc(2, block, 1024, 1024, 1024));
+  EXPECT_EQ(true, bman->get_alloc(2, block, 1024, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
-  EXPECT_EQ(true, bman->getAlloc(3, block, 1024, 1024, 1024));
+  EXPECT_EQ(true, bman->get_alloc(3, block, 1024, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
-  EXPECT_EQ(true, bman->getAlloc(4, block, 1024, 1024, 1024));
+  EXPECT_EQ(true, bman->get_alloc(4, block, 1024, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
   // add fifth block should evict one
-  EXPECT_EQ(true, bman->getAlloc(5, block, 1024, 1024, 1024));
+  EXPECT_EQ(true, bman->get_alloc(5, block, 1024, 1024, 1024));
   boost::this_thread::sleep_for(boost::chrono::seconds(1)); 
 
   int count = 0;
@@ -210,41 +210,35 @@ TEST_F(BlockTests, CheckEviction) {
     }
   }
   ASSERT_EQ(3, count);
-  ASSERT_EQ(false, bman->contains(evicted_tag));
+  ASSERT_FALSE(bman->contains(evicted_tag));
 
   // add another one should evict the fifth one
   // since all the other three have been referenced once more
-  bman->getAlloc(6, block, 42, 1000, 1000);
+  bman->get_alloc(6, block, 42, 1000, 1000);
   for (int64_t tag=1; tag<=6; tag++) {
     if (tag == evicted_tag || tag == 5) {
-      ASSERT_EQ(false, bman->contains(tag));
+      ASSERT_FALSE(bman->contains(tag));
     }
     else {
-      ASSERT_EQ(true, bman->contains(tag));
+      ASSERT_TRUE(bman->contains(tag));
     }
   }
 }
 
-// TODO
-TEST_F(BlockTests, CheckScratch) {
-
-}
-
-
 void doCreateBlocks(int tid, BlockManager* bman, int* data) {
   for (int i=0; i<8; i++) {
     DataBlock_ptr block;
-    ASSERT_EQ(true, bman->getAlloc(tid*8+i, block, 1, 256, 1024));
+    ASSERT_TRUE(bman->get_alloc(tid*8+i, block, 1, 256, 1024));
     block->writeData((void*)data, 1024);
-    ASSERT_EQ(true, block->isAllocated());
-    ASSERT_EQ(true, block->isReady());
+    //ASSERT_TRUE(block->isAllocated());
+    //ASSERT_TRUE(block->isReady());
   } 
 }
 
 void doCheckBlock(int tid, BlockManager* bman, int* data) {
 
   DataBlock_ptr block = bman->get(tid%1024);
-  ASSERT_NE(NULL_DATA_BLOCK, block);
+  ASSERT_NE(block, nullptr);
 
   int data_out[256];
   block->readData(data_out, 1024);
