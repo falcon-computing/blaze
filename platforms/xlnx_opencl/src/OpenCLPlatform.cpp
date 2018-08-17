@@ -17,8 +17,7 @@ OpenCLPlatform::OpenCLPlatform(
     std::map<std::string, std::string> &conf_table
     ): 
   Platform(conf_table),
-  curr_program(NULL), 
-  curr_kernel(NULL)
+  curr_program(NULL)
 {
   // start platform setting up
   int err;
@@ -108,22 +107,15 @@ OpenCLPlatform::OpenCLPlatform(
   queue_manager = queue;
 }
 
-#define checkCLRun(cmd) { \
-  cl_int err = cmd; \
-  if (err != CL_SUCCESS) \
-    DLOG(ERROR) << #cmd << " failed"; \
-  DLOG(INFO) << #cmd << " succeeded"; \
-}
-
 OpenCLPlatform::~OpenCLPlatform() {
   checkCLRun(clFinish(env->getCmdQueue()));
   
-  if (curr_program && curr_kernel) {
-    checkCLRun(clReleaseKernel(curr_kernel));
+  if (curr_program) {
     checkCLRun(clReleaseProgram(curr_program));
   }
   checkCLRun(clReleaseCommandQueue(env->getCmdQueue()));
   checkCLRun(clReleaseContext(env->getContext()));
+
   //checkCLRun(clReleaseDevice(env->getDeviceId()));
   // reference device
   cl_uint ref_count = 0;
@@ -166,17 +158,13 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
 
   // get specific ACC Conf from key-value pair
   std::string program_path;
-  std::string kernel_name;
 
   for (int i=0; i<conf.param_size(); i++) {
     if (conf.param(i).key().compare("program_path")==0) {
       program_path = conf.param(i).value();
     }
-    if (conf.param(i).key().compare("kernel_name")==0) {
-      kernel_name = conf.param(i).value();
-    }
   }
-  if (program_path.empty() || kernel_name.empty()) {
+  if (program_path.empty()) {
     throw invalidParam("Invalid configuration");
   }
 
@@ -197,23 +185,20 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
   bitstreams[conf.id()] = std::make_pair(n_i, kernelbinary);
 
   // save kernel name
-  kernel_list[conf.id()] = kernel_name;
+  //kernel_list[conf.id()] = kernel_name;
 
   // add a TaskManager, and the scheduler should be started
   // NOTE: this must come after bitstreams.insert() otherwise
   // changeProgram() will not find correct bitstream
-  queue_manager->add(conf.id(), conf.path());
+  queue_manager->add(conf);
 
   // changeProgram to switch to current accelerator
   try {
     changeProgram(conf.id());
   }
   catch (internalError &e) {
-
     // if there is error, then remove acc from queue
     removeQueue(conf.id());
-
-
     throw e;
   }
 }
@@ -229,7 +214,7 @@ void OpenCLPlatform::removeQueue(std::string id) {
   // remove bitstream from table
   delete [] bitstreams[id].second;
   bitstreams.erase(id);
-  kernel_list.erase(id);
+  //kernel_list.erase(id);
 
   DLOG(INFO) << "Removed queue for " << id;
 }
@@ -250,9 +235,7 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
     start_t = getUs();
 
     // release previous kernel
-    if (curr_program && curr_kernel) {
-      // (mhhuang) change the order
-      clReleaseKernel(curr_kernel);
+    if (curr_program) {
       clReleaseProgram(curr_program);
     }
 
@@ -260,16 +243,13 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
     DLOG(INFO) << "Releasing program and kernel takes " << 
       elapse_t << "us.";
 
-    if (bitstreams.find(acc_id) == bitstreams.end() ||
-        kernel_list.find(acc_id) == kernel_list.end()) 
-    {
+    if (bitstreams.find(acc_id) == bitstreams.end()) {
       DLOG(ERROR) << "Bitstream not setup correctly";
       throw internalError("Cannot find bitstream information");
     }
 
     // load bitstream from memory
     std::pair<int, unsigned char*> bitstream = bitstreams[acc_id];
-    std::string kernel_name = kernel_list[acc_id];
 
     cl_context context = env->getContext();
     cl_device_id device_id = env->getDeviceId();
@@ -309,34 +289,16 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
     start_t = getUs();
 
-    // Create the compute kernel in the program we wish to run
-    cl_kernel kernel = clCreateKernel(
-        program, kernel_name.c_str(), &err);
-
-    if (!kernel || err != CL_SUCCESS) {
-      DLOG(ERROR) << "clCreateKernel error, ret=" << err;
-      throw internalError("Xilinx OpenCL error");
-    }
-
-    elapse_t = getUs() - start_t;
-    DLOG(INFO) << "clCreateKernel takes " << elapse_t << "us.";
-
     // setup current accelerator info
     curr_program = program;
-    curr_kernel = kernel;
     curr_acc_id = acc_id;
 
     // switch kernel handler to OpenCLEnv
-    env->changeProgram(program);
-    env->changeKernel(kernel);
+    env->program_ = program;
 
     VLOG(2) << "Switched to new accelerator: " << acc_id;
   }
 }  
-
-cl_kernel& OpenCLPlatform::getKernel() {
-  return curr_kernel;
-}
 
 cl_program& OpenCLPlatform::getProgram() {
   return curr_program;

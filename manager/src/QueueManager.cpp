@@ -24,10 +24,11 @@ QueueManager::~QueueManager() {
   DLOG(INFO) << "QueueManager is destroyed";
 }
 
-void QueueManager::add(
-    std::string id, 
-    std::string lib_path)
-{
+void QueueManager::add(AccWorker &conf) {
+  
+  std::string id = conf.id();
+  std::string lib_path = conf.path();
+
   if (tasklib_table.count(id)) {
     LOG_IF(WARNING, VLOG_IS_ON(1)) << "Cannot add Task [" << id
                  << "] because previous Task with the same ID is not "

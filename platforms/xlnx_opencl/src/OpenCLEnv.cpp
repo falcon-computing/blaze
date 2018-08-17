@@ -3,6 +3,14 @@
 
 namespace blaze {
   
+OpenCLEnv::OpenCLEnv(const OpenCLEnv & env): TaskEnv(env) {
+  // copy everything except kernel_name and kernel 
+  device_id_ = env.device_id_; 
+  context_   = env.context_;
+  cmd_queue_ = env.cmd_queue_;
+  program_   = env.program_;
+}
+
 DataBlock_ptr OpenCLEnv::create_block(
       int num_items, int item_length,
       int item_size, int align_width, 
@@ -29,12 +37,4 @@ DataBlock_ptr OpenCLEnv::create_block(
 
   return block;
 }
-
-void OpenCLEnv::changeKernel(cl_kernel& _kernel) {
-  kernel = _kernel;
-}
-
-void OpenCLEnv::changeProgram(cl_program& _program) {
-  program = _program;
-}
-}
+} // namespace blaze

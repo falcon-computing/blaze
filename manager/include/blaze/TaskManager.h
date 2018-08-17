@@ -64,6 +64,12 @@ public:
   // experimental
   std::string getConfig(int idx, std::string key);
 
+  // set TaskEnv
+  void set_env(Task* task, TaskEnv_ptr env);
+
+  // set ConfigTable for task
+  void set_conf(Task* task, ConfigTable_ptr conf);
+
 private:
 
   boost::thread_group task_workers;

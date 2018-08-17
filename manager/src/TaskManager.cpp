@@ -25,6 +25,14 @@ bool TaskManager::isEmpty() {
   return execution_queue.empty();
 }
 
+void TaskManager::set_env(Task* task, TaskEnv_ptr env) {
+  if (task) task->env = env;
+}
+
+void TaskManager::set_conf(Task* task, ConfigTable_ptr conf) {
+  if (task) task->conf_ = conf;
+}
+
 Task_ptr TaskManager::create() {
   
   // create a new task by the constructor loaded form user implementation

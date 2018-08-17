@@ -15,10 +15,16 @@
 
 namespace blaze {
 
+#define checkCLRun(cmd) { \
+  cl_int err = cmd; \
+  if (err != CL_SUCCESS) \
+    DLOG(ERROR) << #cmd << " failed"; \
+  DLOG(INFO) << #cmd << " succeeded"; \
+}
+
 class OpenCLPlatform : public Platform {
 
 public:
-
   OpenCLPlatform(std::map<std::string, std::string> &conf_table);
 
   virtual ~OpenCLPlatform();
@@ -33,11 +39,9 @@ public:
 
   void changeProgram(std::string acc_id);
 
-  cl_kernel& getKernel();
   cl_program& getProgram();
 
 private:
-
   int load_file(const char* filename, char** result);
   
   OpenCLEnv*  env;
@@ -45,10 +49,8 @@ private:
 
   std::string curr_acc_id;
   cl_program  curr_program;
-  cl_kernel   curr_kernel;
 
   std::map<std::string, std::pair<int, unsigned char*> > bitstreams;
-  std::map<std::string, std::string> kernel_list;
   //std::map<std::string, cl_kernel>  kernels;
 };
 

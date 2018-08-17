@@ -47,6 +47,11 @@ public:
 
   bool isInputReady(int64_t block_id);
 
+  template<typename T> 
+  bool get_conf(std::string key, T &val) {
+    return conf_->get_conf(key, val);
+  }
+
 protected:
 
   void* getOutput(int idx, 
@@ -102,6 +107,9 @@ private:
 
   // pointer to the TaskEnv
   TaskEnv_ref env;
+
+  // pointer to a config table
+  ConfigTable_ptr conf_;
 
   // number of total input blocks
   int num_input;

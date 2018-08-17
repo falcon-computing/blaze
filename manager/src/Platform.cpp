@@ -34,7 +34,7 @@ void Platform::addQueue(AccWorker &conf) {
   }
 
   // add a TaskManager, and the scheduler should be started
-  queue_manager->add(conf.id(), conf.path());
+  queue_manager->add(conf);
 
   // start a corresponding executor
   queue_manager->start(conf.id());

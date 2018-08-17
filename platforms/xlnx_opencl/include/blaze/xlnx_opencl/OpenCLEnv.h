@@ -20,22 +20,25 @@ class OpenCLEnv :
   public boost::basic_lockable_adapter<boost::mutex>
 {
   friend class OpenCLPlatform;
+  friend class OpenCLQueueManager;
 
 public:
-  OpenCLEnv(
-      cl_context _context,
-      cl_command_queue _queue,
-      cl_device_id _device_id): 
-    context(_context), 
-    cmd_queue(_queue),
-    device_id(_device_id)
+  OpenCLEnv(cl_context       _context,
+            cl_command_queue _queue,
+            cl_device_id     _device_id):
+    context_(_context), 
+    cmd_queue_(_queue),
+    device_id_(_device_id)
   {;}
 
-  cl_device_id& getDeviceId() { return device_id; }
-  cl_context& getContext() { return context; }
-  cl_command_queue& getCmdQueue() { return cmd_queue; }
-  cl_kernel& getKernel() { return kernel; }
-  cl_program& getProgram() { return program; }
+  OpenCLEnv(const OpenCLEnv &env);
+
+  cl_device_id&     getDeviceId() { return device_id_; }
+  cl_context&       getContext() { return context_; }
+  cl_command_queue& getCmdQueue() { return cmd_queue_; }
+  cl_kernel&        getKernel() { return kernel_; }
+  cl_program&       getProgram() { return program_; }
+  std::string       get_kernel_name() { return kernel_name_;}
 
   virtual DataBlock_ptr create_block(
       int num_items, int item_length, int item_size, 
@@ -49,14 +52,12 @@ public:
       ConfigTable_ptr conf = NULL_ConfigTable_ptr);
 
 private:
-  void changeKernel(cl_kernel& _kernel);
-  void changeProgram(cl_program& _program);
-
-  cl_device_id     device_id;
-  cl_context       context;
-  cl_command_queue cmd_queue;
-  cl_kernel        kernel;
-  cl_program       program;
+  cl_device_id     device_id_;
+  cl_context       context_;
+  cl_command_queue cmd_queue_;
+  cl_program       program_;
+  cl_kernel        kernel_;
+  std::string      kernel_name_;
 };
 }
 #endif

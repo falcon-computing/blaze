@@ -9,6 +9,8 @@
 
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
+#include "blaze/Timer.h"
+#include "blaze/xlnx_opencl/OpenCLKernelQueue.h"
 #include "blaze/xlnx_opencl/OpenCLPlatform.h"
 #include "blaze/xlnx_opencl/OpenCLQueueManager.h"
 
@@ -16,8 +18,7 @@ namespace blaze {
 
 OpenCLQueueManager::OpenCLQueueManager(
     Platform* _platform,
-    int _reconfig_timer
-    ):
+    int _reconfig_timer):
   QueueManager(_platform),
   power_(true),
   reconfig_timer(_reconfig_timer)
@@ -42,6 +43,107 @@ OpenCLQueueManager::~OpenCLQueueManager() {
   power_ = false;
   executors.join_all();
   DLOG(INFO) << "Stopped OpenCLQueueManager";
+}
+
+void OpenCLQueueManager::add(AccWorker &conf) {
+  // call base class method first
+  QueueManager::add(conf);
+
+  // record config to a table
+  //acc_conf_table_[conf.id()] = conf;
+
+  // then setup kernel queue based on the parameters
+  std::map<std::string, std::string> key_val;
+
+  for (int i = 0; i < conf.param_size(); ++i) {
+    key_val[conf.param(i).key()] = conf.param(i).value();
+  }
+
+  int num_kernels = 1;
+  if (key_val.count("num_kernels")) {
+    num_kernels = std::stoi(key_val["num_kernels"]);
+  }
+  key_val.erase("num_kernels");
+
+  std::vector<ConfigTable_ptr> conf_list;
+
+  for (int i = 0; i < num_kernels; ++i) {
+    std::string kname_key = std::string("kernel_name[") + 
+                            std::to_string(i) + 
+                            std::string("]");
+    if (!key_val.count(kname_key)) {
+      if (num_kernels == 1) {
+        if (!key_val.count("kernel_name")) {
+          LOG_IF(ERROR, VLOG_IS_ON(1)) << "Missing kernel name "  
+            << "for acc " << conf.id();
+
+          throw invalidParam(__func__);
+        }
+        else {
+          kname_key = "kernel_name";
+        }
+      }
+      else {
+        LOG_IF(ERROR, VLOG_IS_ON(1)) << "Missing kernel name[" 
+          << i << "] for acc " << conf.id();
+        throw invalidParam(__func__);
+        
+      }
+    }
+    std::string kernel_name = key_val[kname_key];
+    key_val.erase(kname_key);
+
+    // add configuration to kernel conf
+    ConfigTable_ptr task_conf(new ConfigTable());
+    task_conf->write_conf("kernel_name", kernel_name);
+    conf_table_[kernel_name] = task_conf;
+
+    // parse all conf for a specific kernel, if it exists
+    for (auto it = key_val.cbegin(); it != key_val.cend(); ) {
+      // check if key is prefix of kernel_name
+      auto res = std::mismatch(kernel_name.begin(),
+          kernel_name.end(), it->first.begin());
+
+      std::string key;
+      if (res.first == kernel_name.end()) {
+        // the key is for kernel
+        key.assign(res.second + 1, it->first.end()); 
+        DLOG(INFO) << "Add conf key: " << key 
+                   << " to kernel " << kernel_name; 
+
+        // add the config to table
+        task_conf->write_conf(key, it->second);
+
+        // delete the current key
+        it = key_val.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+
+    conf_list.push_back(task_conf);
+    
+    // add to kernel list
+    // TODO: do we need to initialize vector first?
+    kernel_table_[conf.id()].push_back(kernel_name);      
+  }
+
+  // pass all remaining configurations to all kernels
+  if (!key_val.empty()) {
+    for (auto p : key_val) {
+      DLOG(INFO) << "Add conf key: " << p.first;
+      for (auto c : conf_list) {
+        c->write_conf(p.first, p.second);
+      }
+    }  
+  }
+
+  // call routine function to setup all kernels for acc
+  ocl_platform->changeProgram(conf.id());
+  setup_kernels(conf.id());
+
+  curr_acc_ = conf.id();
 }
 
 void OpenCLQueueManager::start() {
@@ -98,28 +200,34 @@ void OpenCLQueueManager::do_start() {
 
     // switch bitstream for the selected queue
     try {
-      ocl_platform->changeProgram(queue_name);
+      // first need to remove the related kernels
+      // TODO: this part cause trouble since we don't wait for queue to finish
+      if (!curr_acc_.empty() && curr_acc_ != queue_name) {
+        DLOG(INFO) << "Removing kernels for acc: " << curr_acc_;
+        remove_kernels(queue_name);
+
+        // change program in OpenCLPlatform, so that Env is refreshed
+        ocl_platform->changeProgram(queue_name);
+
+        curr_acc_ = queue_name;
+
+        // setup new kernels based on the new acc
+        setup_kernels(queue_name);
+      }
     }
     catch (std::runtime_error &e) {
+      
+      DLOG(ERROR) << "Programing bitstream failed";
+      
+      ocl_platform->removeQueue(queue_name);
 
-      retry_counter++;
+      // remove queue_name from ready queue since it's already removed
+      ready_queues.pop_front();
 
-      if (retry_counter < 10) {
-        DLOG(WARNING) << "Programing bitstream failed " 
-          << retry_counter << " times";
-      }
-      else {
-        ocl_platform->removeQueue(queue_name);
+      // if setup program keeps failing, remove accelerator from queue_table 
+      DLOG(ERROR) << "Failed to setup bitstream for " << queue_name
+        << ": " << e.what() << ". Remove it from QueueManager.";
 
-        // remove queue_name from ready queue since it's already removed
-        ready_queues.pop_front();
-
-        // if setup program keeps failing, remove accelerator from queue_table 
-        DLOG(ERROR) << "Failed to setup bitstream for " << queue_name
-          << ": " << e.what() << ". Remove it from QueueManager.";
-
-        retry_counter = 0;
-      }
       continue;
     }
 
@@ -129,24 +237,13 @@ void OpenCLQueueManager::do_start() {
 
       Task* task;
       if (queue->popReady(task)) {
-        
-        VLOG(2) << "Execute one task from " << queue_name;
+        VLOG(2) << "Scheduling one task from " << queue_name;
 
-        // execute one task
-        try {
-          uint64_t start_time = getUs();
-
-          // start execution
-          task->execute();
-
-          // record task execution time
-          uint64_t delay_time = getUs() - start_time;
-
-          VLOG(2) << "Task finishes in " << delay_time << " us";
-        } 
-        catch (std::runtime_error &e) {
-          LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
+        // do scheduling
+        while (!schedule(queue_name, task)) {
+          boost::this_thread::sleep_for(boost::chrono::milliseconds(1)); 
         }
+
         // reset the counter
         counter = 0;
       }
@@ -164,6 +261,100 @@ void OpenCLQueueManager::do_start() {
     ready_queues.pop_front(); 
   }
   DLOG(INFO) << "OpenCLQueue executor is finished";
+}
+
+bool OpenCLQueueManager::schedule(std::string acc_id, Task* task) {
+  if (!task || !kernel_table_.count(acc_id)) {
+    throw invalidParam(__func__);
+  }
+  PLACE_TIMER;
+
+  OpenCLKernelQueue_ptr fastest_q;
+  std::string fastest_k;
+  uint64_t min_queue_time = (uint64_t)(-1);
+
+  // iterate through all available kernels
+  for (auto k : kernel_table_[acc_id]) {
+    auto q = queue_table_[k];
+    if (q->get_wait_time() < min_queue_time) {
+      fastest_q = q;
+      fastest_k = k;
+    } 
+  }
+  DLOG(INFO) << "To schedule a task to kernel: " << fastest_k;
+
+  // schedule to fastest_q
+  return fastest_q->enqueue(task);
+}
+
+// setup kernels for a given acc
+void OpenCLQueueManager::setup_kernels(std::string acc_id) 
+{
+  if (!kernel_table_.count(acc_id)) {
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot find acc: " << acc_id;
+    throw invalidParam(__func__);
+  }
+  for (auto kernel_name : kernel_table_[acc_id]) {
+    DLOG(INFO) << "Setup kernel " << kernel_name;
+
+    // create a new OpenCLEnv with new kernel
+    OpenCLEnv* env = dynamic_cast<OpenCLEnv*>(platform->getEnv().lock().get());
+    if (!env) {
+      DLOG(ERROR) << "invalid OpenCLEnv for kernel: " << kernel_name;
+      continue;
+    }
+
+    // allocate OpenCL kernel
+    cl_int err = 0;
+    cl_program program = env->getProgram();
+    cl_kernel kernel = clCreateKernel(program, kernel_name.c_str(), &err);
+    if (!kernel || err != CL_SUCCESS) {
+      DLOG(ERROR) << "invalid OpenCLEnv for kernel: " << kernel_name;
+      continue;
+    }
+
+    // copy env to task_env
+    TaskEnv_ptr task_env(new OpenCLEnv(*env));
+
+    ((OpenCLEnv*)task_env.get())->kernel_ = kernel;
+    DLOG(INFO) << "setup cl_kernel for " << kernel_name;
+
+    env_table_[kernel_name] = task_env;
+
+    // create a kernel queue
+    OpenCLKernelQueue_ptr q(new OpenCLKernelQueue(
+          task_env, queue_table[acc_id].get(), conf_table_[kernel_name]));
+
+    queue_table_[kernel_name] = q;
+
+    // TODO: also need to handle all the configurations may passed on to
+    // kernels
+  }
+}
+
+void OpenCLQueueManager::remove_kernels(std::string acc_id)
+{
+  if (!kernel_table_.count(acc_id)) {
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot find acc: " << acc_id;
+    throw invalidParam(__func__);
+  }
+  for (auto k : kernel_table_[acc_id]) {
+    // remove OpenCLKernelQueue from queue_table_
+    queue_table_.erase(k);
+
+    // remove kernel from OpenCLEnv
+    OpenCLEnv* env = dynamic_cast<OpenCLEnv*>(env_table_[k].get());
+    if (!env) {
+      DLOG(ERROR) << "invalid env variable";
+      throw internalError(__func__);
+    }
+
+    // release kernel
+    clReleaseKernel(env->getKernel());
+
+    // remove TaskEnv_ptr from env_table_
+    env_table_.erase(k);
+  }
 }
 
 } // namespace blaze
