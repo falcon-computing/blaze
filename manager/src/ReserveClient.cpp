@@ -11,6 +11,8 @@ ReserveClient::ReserveClient(std::string acc_id, int port):
       BaseClient(port, "127.0.0.1"), // reserve client only works for localhost
       alive_(false)
 {
+  connect();
+
   req_msg_.set_type(ACCRESERVE);
   req_msg_.set_acc_id(acc_id);
 

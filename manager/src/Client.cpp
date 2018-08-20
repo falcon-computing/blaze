@@ -45,11 +45,7 @@ void* Client::createInput(
                << ", num_inputs=" << num_inputs;
     throw invalidParam("index out of range");
   }
-  else if (input_blocks[idx]) {
-    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Block with idx=" << idx
-                 << " is already allocated, returning data ptr";
-    return input_blocks[idx]->getData();
-  }
+  // NOTE: allow user to overwrite input blocks
   if (num_items <= 0 || 
       item_length <= 0 || 
       data_width <= 0 ||
@@ -60,6 +56,11 @@ void* Client::createInput(
                << data_width << ", "
                << type;
     throw invalidParam("Invalid input parameters");
+  }
+  if (type == BLAZE_INPUT_CACHED && input_blocks[idx]) {
+    DLOG(INFO) << "cached block already allocated";
+    // TODO: need to check if dimension matches
+    return input_blocks[idx]->getData();
   }
 
   if (num_items == 1 && item_length == 1) {
@@ -96,7 +97,6 @@ void* Client::createInput(
   return block->getData();
 }
 
-#if 0
 void* Client::createOutput(
     int idx,
     int num_items, 
@@ -106,34 +106,21 @@ void* Client::createOutput(
   if (idx >= num_outputs) {
     throw invalidParam("Index out of range");
   }
-  else if (!output_blocks[idx]) {
-    // output block not ready, allocate it
-    // check input variable
-    if (item_length<=0 || num_items<=0 || data_width<=0) {
-      throw invalidParam("Invalid parameter(s)");
-    }
-    // create a new block and add it to output table
-    DataBlock_ptr block(new DataBlock(num_items, 
-          item_length, item_length*data_width));
+  // NOTE: allow user to overwrite input blocks
+  //
+  // output block not ready, allocate it
+  // check input variable
+  if (item_length<=0 || num_items<=0 || data_width<=0) {
+    throw invalidParam("Invalid parameter(s)");
+  }
+  // create a new block and add it to output table
+  DataBlock_ptr block(new DataBlock(num_items, 
+        item_length, item_length*data_width));
 
-    output_blocks[idx] = block;
-    
-    return (void*)block->getData();
-  }
-  else {
-    DataBlock_ptr block = output_blocks[idx];
-    if (num_items != block->getNumItems() ||
-        item_length != block->getItemLength() ||
-        data_width != block->getItemSize()/block->getItemLength())
-    {
-      LOG_IF(WARNING, VLOG_IS_ON(1)) << "Output " << idx << "is already created, "
-                   << "but the original dimensions do not match the provided ones."
-                   << " Using original dimensions.";
-    }
-    return block->getData();
-  }
+  output_blocks[idx] = block;
+
+  return (void*)block->getData();
 }
-#endif
 
 // experimental feature
 void Client::setInput(int idx, void* src,
@@ -145,27 +132,19 @@ void Client::setInput(int idx, void* src,
   if (idx >= num_inputs) {
     throw invalidParam("Invalid input block");
   }
-  if (!input_blocks[idx]) {
-    if (num_items <= 0 || 
-        item_length <= 0 || 
-        data_width <= 0 ||
-        type >= BLAZE_SHARED)
-    {
-      throw invalidParam("Invalid input parameters");
-    }
-    void *dst = createInput(idx, num_items, item_length, data_width, type);
-    memcpy(dst, src, num_items*item_length*data_width);
+  if (num_items <= 0 || 
+      item_length <= 0 || 
+      data_width <= 0 ||
+      type >= BLAZE_SHARED)
+  {
+    throw invalidParam("Invalid input parameters");
+  }
+  void *dst = createInput(idx, num_items, item_length, data_width, type);
+  if (type == BLAZE_INPUT_CACHED) {
+    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Cannot overwrite a cached block, doing nothing";
   }
   else {
-    DataBlock_ptr block = input_blocks[idx];
-    if (num_items !=  block->getNumItems() ||
-        item_length != block->getItemLength() ||
-        item_length*data_width != block->getItemSize()) 
-    {
-      throw invalidParam("Block size does not match");
-    }
-    memcpy(block->getData(), src, 
-        input_blocks[idx]->getSize());
+    memcpy(dst, src, num_items*item_length*data_width);
   }
 }
 
@@ -257,6 +236,7 @@ void Client::start(bool blocking) {
     
     compute();
   }
+  reset();
 }
 
 void Client::prepareRequest(TaskMsg &msg) {
@@ -266,7 +246,7 @@ void Client::prepareRequest(TaskMsg &msg) {
   msg.set_acc_id(acc_id);
   msg.set_app_id(app_id);
 
-  for (int i=0; i<num_inputs; i++) {
+  for (int i = 0; i < num_inputs; i++) {
     DataMsg *data_msg = msg.add_data();
     
     // check if the data is scalar

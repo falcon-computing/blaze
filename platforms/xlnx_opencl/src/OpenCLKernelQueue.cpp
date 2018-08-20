@@ -22,6 +22,8 @@ OpenCLKernelQueue::OpenCLKernelQueue(
   // start a thread to execute
   boost::shared_ptr<boost::thread> t(new boost::thread(
       boost::bind(&OpenCLKernelQueue::do_execute, this)));
+
+  executor_ = t;
 }
 
 OpenCLKernelQueue::~OpenCLKernelQueue() {

@@ -8,7 +8,7 @@
 namespace blaze {
 
 BaseClient::BaseClient(int port, std::string ip):
-    port_(port), ip_(ip) 
+    port_(port), ip_(ip), connected_(false)
 {
   // setup socket connection
   ios_ptr ios(new io_service);
@@ -18,21 +18,34 @@ BaseClient::BaseClient(int port, std::string ip):
 
   ios_ = ios;
   endpoint_ = endpoint;
+}
 
-  socket_ptr sock(new ip::tcp::socket(*ios));
+void BaseClient::connect() {
+  if (connected_) return;
   try { 
-    sock->connect(*endpoint);
+    socket_ptr sock(new ip::tcp::socket(*ios_));
+
+    sock->connect(*endpoint_);
     sock->set_option(ip::tcp::no_delay(true));
 
     sock_ = sock;
+    connected_ = true;
   }
-  catch (const boost::system::system_error& e) {
-    DLOG(ERROR) << "Cannot establish communication with " << ip << ":" << port;
-    DLOG(ERROR) << "What: " << e.what();
-  }
+  catch (const boost::system::system_error &e) {
+    DLOG(ERROR) << "Cannot establish communication with " << ip_ << ":" << port_;
+    //NOTE: somehow the e.what() is causing a segmentation fault
+    //in some cases, disable the message for now
+    //DLOG(ERROR) << "What: " << e.what();
+  } 
+}
+
+// allow a single client to repeat multiple requests
+void BaseClient::reset() {
+  connected_ = false;
 }
 
 void BaseClient::send(::google::protobuf::Message &msg) {
+  if (!connected_) connect();
   if (!sock_) {
     throw commError("No active socket connection.");
   }
