@@ -392,9 +392,11 @@ void AppCommManager::process(socket_ptr sock) {
                   DLOG(INFO) << "Skip cache for block " << blockId;
 
                   // the block should skip cache
+                  // and force allocation to be shared mode so that
+                  // client is in-charge of deleting
                   block = block_manager->create_block(path,
                       num_elements, element_length, element_size,
-                      align_width);
+                      align_width, DataBlock::SHARED);
                 }
                 else {
                   // the block needs to be created and add to cache

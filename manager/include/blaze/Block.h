@@ -34,6 +34,7 @@ public:
       int _item_length,
       int _item_size,
       int _align_width = 0,
+      Flag _flag = SHARED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr);
  
   // create basic data block to write to

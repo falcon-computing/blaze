@@ -70,7 +70,8 @@ public:
   // create a block without adding it to manager
   virtual DataBlock_ptr create_block(std::string path,
       int num_items, int item_length, int item_size, 
-      int align_width = 0);
+      int align_width = 0, 
+      DataBlock::Flag flag = DataBlock::OWNED);
 
   // get a block from cache table or scratch table
   virtual DataBlock_ptr get(int64_t tag);

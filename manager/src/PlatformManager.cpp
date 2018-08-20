@@ -13,6 +13,7 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/QueueManager.h"
 #include "blaze/TaskManager.h"
+#include "blaze/Timer.h"
 
 namespace blaze {
 
@@ -44,6 +45,8 @@ PlatformManager::~PlatformManager() {
                   " before destroying platform manager";
     removePlatform(it->first);
   }
+  // print global timers when platform manager is destroyed
+  print_timers();
 }
 
 void PlatformManager::registerPlatform(AccPlatform conf) {

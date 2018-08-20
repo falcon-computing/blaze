@@ -74,11 +74,12 @@ DataBlock::DataBlock(
     int _item_length,
     int _item_size,
     int _align_width,
+    Flag _flag,
     ConfigTable_ptr _conf):
   num_items(_num_items),
   item_length(_item_length),
   align_width(_align_width),
-  flag_(OWNED),
+  flag_(_flag),
   mm_file_path_(path),
   conf_(_conf)
 {
@@ -163,6 +164,7 @@ DataBlock::DataBlock(const DataBlock &block) {
 DataBlock::~DataBlock() {
   if (mm_region_ && flag_ == OWNED) {
     boost::interprocess::file_mapping::remove(mm_file_path_.c_str());
+    boost::filesystem::remove(boost::filesystem::path(mm_file_path_));
   }
   // mm_region_ should be released by itself
 }

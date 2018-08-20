@@ -19,11 +19,12 @@ OpenCLBlock::OpenCLBlock(OpenCLEnv* _env,
       int _item_length,
       int _item_size,
       int _align_width,
+      DataBlock::Flag _flag,
       ConfigTable_ptr conf):
   env(_env), 
   is_allocated_(false),
   buffer_(nullptr),
-  DataBlock(path, _num_items, _item_length, _item_size, _align_width, conf)
+  DataBlock(path, _num_items, _item_length, _item_size, _align_width, _flag, conf)
 {
   ;
 }

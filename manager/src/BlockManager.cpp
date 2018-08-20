@@ -33,11 +33,11 @@ DataBlock_ptr BlockManager::create_block(
 DataBlock_ptr BlockManager::create_block(
       std::string path,
       int num_items, int item_length, int item_size, 
-      int align_width)
+      int align_width, DataBlock::Flag flag)
 {
   return platform->getEnv().lock()->create_block(path,
                 num_items, item_length, item_size,
-                align_width);
+                align_width, flag);
 }
 
 // create a block if it does not exist in the manager

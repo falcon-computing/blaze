@@ -29,11 +29,12 @@ DataBlock_ptr OpenCLEnv::create_block(
       int num_items, int item_length,
       int item_size, 
       int align_width,
+      DataBlock::Flag flag,
       ConfigTable_ptr conf)
 {
   DataBlock_ptr block(new OpenCLBlock(this,
         path, num_items, item_length, item_size,
-        align_width, conf));
+        align_width, flag, conf));
 
   return block;
 }

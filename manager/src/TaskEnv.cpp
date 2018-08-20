@@ -28,10 +28,12 @@ DataBlock_ptr TaskEnv::create_block(
     int item_length,
     int item_size, 
     int align_width,
+    DataBlock::Flag flag,
     ConfigTable_ptr conf)
 {
   DataBlock_ptr block(new DataBlock(path,
-        num_items, item_length, item_size, align_width, conf));
+        num_items, item_length, item_size, 
+        align_width, flag, conf));
   return block;
 }
 

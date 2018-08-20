@@ -20,9 +20,10 @@ Client::Client(
   acc_id(_acc_id), 
   num_inputs(_num_inputs),
   num_outputs(_num_outputs),
-  input_blocks(_num_inputs, NULL_DATA_BLOCK),
-  output_blocks(_num_outputs, NULL_DATA_BLOCK),
-  block_info(_num_inputs, std::make_pair(0, false))
+  input_blocks_(_num_inputs),
+  output_blocks_(_num_outputs),
+  block_info_(_num_inputs, std::make_pair(0, false)),
+  input_size_info_(_num_inputs)
 {
   srand(time(NULL));
 
@@ -45,7 +46,6 @@ void* Client::createInput(
                << ", num_inputs=" << num_inputs;
     throw invalidParam("index out of range");
   }
-  // NOTE: allow user to overwrite input blocks
   if (num_items <= 0 || 
       item_length <= 0 || 
       data_width <= 0 ||
@@ -57,12 +57,8 @@ void* Client::createInput(
                << type;
     throw invalidParam("Invalid input parameters");
   }
-  if (type == BLAZE_INPUT_CACHED && input_blocks[idx]) {
-    DLOG(INFO) << "cached block already allocated";
-    // TODO: need to check if dimension matches
-    return input_blocks[idx]->getData();
-  }
-
+  
+  // handle scalers
   if (num_items == 1 && item_length == 1) {
     if (data_width > 8) {
       LOG_IF(WARNING, VLOG_IS_ON(1)) << "Scalar input cannot be larger than 8 bytes, "
@@ -73,28 +69,47 @@ void* Client::createInput(
     data_width = 8; 
   }
 
-  // write data to memory mapped file
-  // use thread id to create unique output file path
-  // create a new block and add it to input table
-  DataBlock_ptr block(new DataBlock(num_items, 
-        item_length, item_length*data_width));
+  // record this in case the actual data size is smaller
+  // than the DataBlock size
+  input_size_info_[idx].num_items   = num_items;
+  input_size_info_[idx].item_length = item_length;
+  input_size_info_[idx].data_width  = data_width;
 
-  input_blocks[idx] = block;
+  // NOTE: allow user to overwrite input blocks
+  if (input_blocks_[idx]) {
+    DLOG(INFO) << "block already allocated";
 
-  // generate block info include (id, cached)
-  int64_t block_id = ((int64_t)getTid()<<10) + idx;
-  bool    cached   = false;
-
-  if (type == BLAZE_INPUT_CACHED) {
-    cached = true;
+    if (input_blocks_[idx]->getSize() < num_items * item_length * data_width) {
+      throw invalidParam("input block size too big");
+    }
+    return input_blocks_[idx]->getData();
   }
-  else if (type == BLAZE_SHARED) {
-    block_id = 0 - block_id; // broadcast id is negative
-    cached = true;
-  }
-  block_info[idx] = std::make_pair(block_id, cached);
+  else {
+    // write data to memory mapped file
+    // use thread id to create unique output file path
+    // create a new block and add it to input table
+    DataBlock_ptr block(new DataBlock(num_items, 
+          item_length, item_length*data_width,
+          0, // aligned width
+          DataBlock::OWNED));
 
-  return block->getData();
+    input_blocks_[idx] = block;
+
+    // generate block info include (id, cached)
+    int64_t block_id = ((int64_t)getTid()<<10) + idx;
+    bool    cached   = false;
+
+    if (type == BLAZE_INPUT_CACHED) {
+      cached = true;
+    }
+    else if (type == BLAZE_SHARED) {
+      block_id = 0 - block_id; // broadcast id is negative
+      cached = true;
+    }
+    block_info_[idx] = std::make_pair(block_id, cached);
+
+    return block->getData();
+  }
 }
 
 void* Client::createOutput(
@@ -110,14 +125,14 @@ void* Client::createOutput(
   //
   // output block not ready, allocate it
   // check input variable
-  if (item_length<=0 || num_items<=0 || data_width<=0) {
+  if (item_length <= 0 || num_items <= 0 || data_width <= 0) {
     throw invalidParam("Invalid parameter(s)");
   }
   // create a new block and add it to output table
   DataBlock_ptr block(new DataBlock(num_items, 
         item_length, item_length*data_width));
 
-  output_blocks[idx] = block;
+  output_blocks_[idx] = block;
 
   return (void*)block->getData();
 }
@@ -140,54 +155,49 @@ void Client::setInput(int idx, void* src,
     throw invalidParam("Invalid input parameters");
   }
   void *dst = createInput(idx, num_items, item_length, data_width, type);
-  if (type == BLAZE_INPUT_CACHED) {
-    LOG_IF(WARNING, VLOG_IS_ON(1)) << "Cannot overwrite a cached block, doing nothing";
-  }
-  else {
-    memcpy(dst, src, num_items*item_length*data_width);
-  }
+  memcpy(dst, src, num_items*item_length*data_width);
 }
 
 void* Client::getInputPtr(int idx) {
-  if (idx >= num_inputs || !input_blocks[idx]) {
+  if (idx >= num_inputs || !input_blocks_[idx]) {
     throw invalidParam("Invalid input block");
   }
-  return input_blocks[idx]->getData();
+  return input_blocks_[idx]->getData();
 }
 
 int Client::getInputNumItems(int idx) {
-  if (idx >= num_inputs || !input_blocks[idx]) {
+  if (idx >= num_inputs || !input_blocks_[idx]) {
     throw invalidParam("Invalid input index");
   }
-  return input_blocks[idx]->getNumItems();
+  return input_blocks_[idx]->getNumItems();
 }
 
 int Client::getInputLength(int idx) {
-  if (idx >= num_inputs || !input_blocks[idx]) {
+  if (idx >= num_inputs || !input_blocks_[idx]) {
     throw invalidParam("Invalid input index");
   }
-  return input_blocks[idx]->getLength();
+  return input_blocks_[idx]->getLength();
 }
 
 void* Client::getOutputPtr(int idx) {
-  if (idx >= num_outputs || !output_blocks[idx]) {
+  if (idx >= num_outputs || !output_blocks_[idx]) {
     throw invalidParam("Output not ready or index out of range");
   }
-  return output_blocks[idx]->getData();
+  return output_blocks_[idx]->getData();
 }
 
 int Client::getOutputNumItems(int idx) {
-  if (idx >= num_outputs || !output_blocks[idx]) {
+  if (idx >= num_outputs || !output_blocks_[idx]) {
     throw invalidParam("Output not ready or index out of range");
   }
-  return output_blocks[idx]->getNumItems();
+  return output_blocks_[idx]->getNumItems();
 }
 
 int Client::getOutputLength(int idx) {
-  if (idx >= num_outputs || !output_blocks[idx]) {
+  if (idx >= num_outputs || !output_blocks_[idx]) {
     throw invalidParam("Output not ready or index out of range");
   }
-  return output_blocks[idx]->getLength();
+  return output_blocks_[idx]->getLength();
 }
 
 void Client::start(bool blocking) {
@@ -196,16 +206,23 @@ void Client::start(bool blocking) {
   try {
     // send request
     TaskMsg request_msg;
-    prepareRequest(request_msg);
-    send(request_msg);
-
-    VLOG(2) << "Sent a request";
-
-    // wait on reply for ACCREQUEST
     TaskMsg reply_msg;
-    recv(reply_msg);
+    {
+      PLACE_TIMER1("prepareRequest");
+      prepareRequest(request_msg);
+    }
+    {
+      PLACE_TIMER1("send and receive reply");
+      send(request_msg);
+
+      VLOG(2) << "Sent a request";
+
+      // wait on reply for ACCREQUEST
+      recv(reply_msg);
+    }
 
     if (reply_msg.type() == ACCGRANT) {
+      PLACE_TIMER1("prepareData");
 
       TaskMsg data_msg;
       prepareData(data_msg, reply_msg);
@@ -217,10 +234,14 @@ void Client::start(bool blocking) {
     }
 
     TaskMsg finish_msg;
-    // wait on reply for ACCDATA
-    recv(finish_msg);
+    {
+      PLACE_TIMER1("wait finish_msg");
+      // wait on reply for ACCDATA
+      recv(finish_msg);
+    }
 
     if (finish_msg.type() == ACCFINISH) {
+      PLACE_TIMER1("processOutput");
       processOutput(finish_msg);
     }
     else {
@@ -250,16 +271,16 @@ void Client::prepareRequest(TaskMsg &msg) {
     DataMsg *data_msg = msg.add_data();
     
     // check if the data is scalar
-    if (input_blocks[i]->getNumItems() == 1 && 
-        input_blocks[i]->getItemLength() == 1)
+    if (input_blocks_[i]->getNumItems() == 1 && 
+        input_blocks_[i]->getItemLength() == 1)
     {
-      char* data = (char*)input_blocks[i]->getData();
+      char* data = (char*)input_blocks_[i]->getData();
       data_msg->set_scalar_value(*((long long*)data));
       VLOG(2) << "Sent scalar input " << i;
     }
     else {
-      data_msg->set_partition_id(block_info[i].first);
-      if (!block_info[i].second) {
+      data_msg->set_partition_id(block_info_[i].first);
+      if (!block_info_[i].second) {
         data_msg->set_cached(false);
       }
     }
@@ -272,11 +293,11 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
   VLOG(1) << "Start writing data to memory";
   accdata_msg.set_type(ACCDATA);
 
-  int blockIdx = 0;  // index to input_blocks
+  int blockIdx = 0;  // index to input_blocks_
   for (int i = 0; i < reply_msg.data_size(); i++) {
     // skip scalar input blocks
-    while (input_blocks[blockIdx]->getNumItems() == 1 && 
-           input_blocks[blockIdx]->getItemLength() == 1)
+    while (input_blocks_[blockIdx]->getNumItems() == 1 && 
+           input_blocks_[blockIdx]->getItemLength() == 1)
     {
       blockIdx ++; 
     }
@@ -284,14 +305,18 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
       PLACE_TIMER1(std::string("input block ") + std::to_string((uint64_t)i));
 
       DataMsg *data_msg = accdata_msg.add_data();
-      data_msg->set_partition_id(block_info[blockIdx].first);
+      data_msg->set_partition_id(block_info_[blockIdx].first);
 
-      DataBlock_ptr block = input_blocks[blockIdx];
+      DataBlock_ptr block = input_blocks_[blockIdx];
+      BlockSizeInfo info = input_size_info_[blockIdx];
 
       data_msg->set_file_path(block->get_path());
-      data_msg->set_num_elements(block->getNumItems());
-      data_msg->set_element_length(block->getItemLength());
-      data_msg->set_element_size(block->getItemSize());
+      //data_msg->set_num_elements(block->getNumItems());
+      //data_msg->set_element_length(block->getItemLength());
+      //data_msg->set_element_size(block->getItemSize());
+      data_msg->set_num_elements(info.num_items);
+      data_msg->set_element_length(info.item_length);
+      data_msg->set_element_size(info.data_width * info.item_length);
       
       VLOG(1) << "Finish writing " << i;
     }
@@ -332,7 +357,7 @@ void Client::processOutput(TaskMsg &msg) {
 
     DataBlock_ptr block(new DataBlock(path, num_items, item_length, item_size));
 
-    output_blocks[i] = block;
+    output_blocks_[i] = block;
   }
   VLOG(1) << "Finish reading output";
 }

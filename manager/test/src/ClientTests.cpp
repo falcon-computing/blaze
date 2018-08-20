@@ -24,18 +24,18 @@ TEST_F(ClientTests, CheckBlockAllocation) {
   try {
     void* ptr = client.createInput(0, 4, 4, sizeof(int), BLAZE_INPUT);
     ASSERT_NE(ptr, (void*)NULL);
-    ASSERT_EQ(1,   client.input_blocks.size());
+    ASSERT_EQ(1,   client.input_blocks_.size());
     ASSERT_EQ(ptr, client.getInputPtr(0));
     ASSERT_EQ(4,   client.getInputNumItems(0));
     ASSERT_EQ(16,  client.getInputLength(0));
 
     // new allocation should not overwrite old one
     // NOTE: now we allow it to overwrite, if it's not cached
-    void* new_ptr = client.createInput(0, 16, 4, sizeof(int), BLAZE_INPUT);
+    void* new_ptr = client.createInput(0, 2, 4, sizeof(int), BLAZE_INPUT);
     //ASSERT_EQ(ptr, new_ptr);
     ASSERT_EQ(new_ptr, client.getInputPtr(0));
-    ASSERT_EQ(16,   client.getInputNumItems(0));
-    ASSERT_EQ(64,  client.getInputLength(0));
+    ASSERT_EQ(4,   client.getInputNumItems(0));
+    ASSERT_EQ(16,  client.getInputLength(0));
   }
   catch (std::exception &e) {
     // should not be any exception
