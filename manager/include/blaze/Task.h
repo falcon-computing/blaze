@@ -28,6 +28,10 @@ public:
   virtual uint64_t estimateClientTime() { return 0;}
   virtual uint64_t estimateTaskTime() { return 0; }
 
+  // called before task is executed, usually need to wait for TaskEnv 
+  // being set correctly
+  virtual void prepare() {;}
+
   // wrapper around compute(), added indicator for task status
   void execute() {
     status = EXECUTING;

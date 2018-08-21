@@ -46,8 +46,8 @@ class Timer {
 #define CLASS_NAME typeid(*this).name()
 #define FUNC_NAME CONCAT_FNAME(CLASS_NAME, __func__)
 
-#define PLACE_TIMER Timer __timer_obj(FUNC_NAME);
-#define PLACE_TIMER1(s) Timer __timer_obj(CONCAT_FNAME(FUNC_NAME, s));
+#define PLACE_TIMER blaze::Timer __timer_obj(FUNC_NAME);
+#define PLACE_TIMER1(s) blaze::Timer __timer_obj(CONCAT_FNAME(FUNC_NAME, s));
 
 } // namespace blaze
 #endif

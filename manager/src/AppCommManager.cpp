@@ -19,6 +19,7 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
+#include "blaze/Timer.h"
 #include "acc_conf.pb.h"
 
 namespace blaze {
@@ -46,6 +47,7 @@ void AppCommManager::process(socket_ptr sock) {
   sock->set_option(option); 
   
   try {
+    PLACE_TIMER;
     // 1. Handle ACCREQUEST
     TaskMsg task_msg;
     TaskMsg reply_msg;
@@ -125,6 +127,8 @@ void AppCommManager::process(socket_ptr sock) {
       bool wait_accdata = false;
 
       // 1.3 iterate through each input block
+      {
+        PLACE_TIMER1("process AccRequest");
       for (int i = 0; i < task_msg.data_size(); i++) {
 
         DataMsg recv_block = task_msg.data(i);
@@ -274,12 +278,15 @@ void AppCommManager::process(socket_ptr sock) {
                   reply_block->sampled())));
         }
       }
+      }
 
+      uint64_t finish_time;
+      { PLACE_TIMER1("Modify waittime");
       // 1.4 decide to reject the task if wait time is too long
       uint64_t client_time = task->estimateClientTime();
       uint64_t delay_time  = task_manager.lock()->get_queue_delay();
       uint64_t task_time   = task->estimateTaskTime();
-      uint64_t finish_time = task_time + delay_time;
+               finish_time = task_time + delay_time;
 
       if (task_time != 0 && finish_time > client_time) {
         VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
@@ -289,6 +296,7 @@ void AppCommManager::process(socket_ptr sock) {
       }
       else {
         task_manager.lock()->modify_queue_delay(task_time, true);
+      }
       }
 
       // 1.5 send msg back to client
@@ -305,6 +313,7 @@ void AppCommManager::process(socket_ptr sock) {
       // 2. Handle ACCDATA
       if (wait_accdata) {
 
+        PLACE_TIMER1("Handle AccData");
         TaskMsg data_msg;
         try {
           recv(data_msg, sock);
@@ -470,6 +479,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
       } // 2. Finish handling ACCDATA
 
+      { PLACE_TIMER1("Wait task ready")
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(
@@ -477,6 +487,7 @@ void AppCommManager::process(socket_ptr sock) {
       }
 
       VLOG(2) << "Task ready, enqueue to be executed";
+      }
 
       // check if task_manager is still valid
       if (!task_manager.lock()) {

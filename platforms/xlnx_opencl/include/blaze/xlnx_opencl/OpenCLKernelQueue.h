@@ -32,6 +32,7 @@ class OpenCLKernelQueue {
 
  private:
   void do_execute();
+  void do_prepare();
 
   TaskManager* task_manager_;
   TaskEnv_ptr  env_;
@@ -45,8 +46,10 @@ class OpenCLKernelQueue {
   mutable boost::atomic<uint64_t> num_tasks_;
   mutable boost::atomic<uint64_t> wait_time_;
 
+  TaskQueue prep_queue_;
+  TaskQueue exe_queue_;
 
-  TaskQueue queue_;
+  boost::shared_ptr<boost::thread> preparer_;
   boost::shared_ptr<boost::thread> executor_;
 };
 } // namespace blaze

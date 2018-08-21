@@ -20,14 +20,23 @@ OpenCLKernelQueue::OpenCLKernelQueue(
   num_tasks_(0), wait_time_(0)
 {
   // start a thread to execute
+  {
+  boost::shared_ptr<boost::thread> t(new boost::thread(
+      boost::bind(&OpenCLKernelQueue::do_prepare, this)));
+  preparer_ = t;
+  }
+
+  {
   boost::shared_ptr<boost::thread> t(new boost::thread(
       boost::bind(&OpenCLKernelQueue::do_execute, this)));
-
   executor_ = t;
+  }
 }
 
 OpenCLKernelQueue::~OpenCLKernelQueue() {
-  // interrupt thread
+  // interrupt threads
+  preparer_->interrupt();
+  preparer_->join();
   executor_->interrupt();
   executor_->join();
 }
@@ -38,25 +47,8 @@ bool OpenCLKernelQueue::enqueue(Task* task) {
   task_manager_->set_env(task, env_);
   task_manager_->set_conf(task, conf_);
 
-  if (queue_.push(task)) {
-    // increase wait time and num_task
-    num_tasks_.fetch_add(1);
-
-    if (has_time_estimate_) {
-      uint64_t est = task->estimateTaskTime();
-      if (est == 0) {
-        has_time_estimate_ = false;
-      }
-      else {
-        wait_time_.fetch_add(est);
-      }
-    }
-
-    return true;
-  }
-  else {
-    return false;
-  }
+  if (prep_queue_.push(task)) return true;
+  else return false;
 }
 
 uint64_t OpenCLKernelQueue::get_num_tasks() {
@@ -68,11 +60,52 @@ uint64_t OpenCLKernelQueue::get_wait_time() {
   else return num_tasks_.load();
 }
 
-void OpenCLKernelQueue::do_execute() {
+void OpenCLKernelQueue::do_prepare() {
+  DLOG(INFO) << "Started preparer";
   while (power_) {
     Task* task = nullptr;
-    while (!queue_.pop(task)) {
-      boost::this_thread::sleep_for(boost::chrono::milliseconds(1)); 
+    while (!prep_queue_.pop(task)) {
+      boost::this_thread::sleep_for(boost::chrono::microseconds(1)); 
+    }
+
+    if (!task) {
+      LOG(ERROR) << "Task already destroyed";
+      continue;
+    }
+
+    try {
+      PLACE_TIMER1("prepareInput()");
+
+      task->prepare();
+    }
+    catch (std::runtime_error &e) {
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task::prepareInput() error " << e.what();
+    }
+
+    while (!exe_queue_.push(task)) {
+      boost::this_thread::sleep_for(boost::chrono::microseconds(1)); 
+    }
+    // increase wait time after adding it to task queue
+    num_tasks_.fetch_add(1);
+
+    if (has_time_estimate_) {
+      uint64_t est = task->estimateTaskTime();
+      if (est == 0) {
+        has_time_estimate_ = false;
+      }
+      else {
+        wait_time_.fetch_add(est);
+      }
+    }
+  }
+}
+
+void OpenCLKernelQueue::do_execute() {
+  DLOG(INFO) << "Started executor";
+  while (power_) {
+    Task* task = nullptr;
+    while (!exe_queue_.pop(task)) {
+      boost::this_thread::sleep_for(boost::chrono::microseconds(1)); 
     }
 
     if (!task) {
@@ -82,13 +115,13 @@ void OpenCLKernelQueue::do_execute() {
 
     // execute one task
     try {
-      PLACE_TIMER1("Execute Task");
+      PLACE_TIMER1("execute()");
 
       // start execution
       task->execute();
     }
     catch (std::runtime_error &e) {
-      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task::compute() error " << e.what();
     }
 
     // decrease wait time and num_task

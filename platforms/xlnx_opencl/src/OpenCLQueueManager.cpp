@@ -277,13 +277,16 @@ bool OpenCLQueueManager::schedule(std::string acc_id, Task* task) {
   for (auto k : kernel_table_[acc_id]) {
     auto q = queue_table_[k];
     uint64_t wait_time = q->get_wait_time();
+    DLOG_IF(INFO, VLOG_IS_ON(2)) << "kernel " << k
+      << " has wait time: " << wait_time; 
     if (wait_time < min_queue_time) {
       fastest_q = q;
       fastest_k = k;
       min_queue_time = wait_time;
     } 
   }
-  DLOG(INFO) << "To schedule a task to kernel: " << fastest_k;
+  DLOG_IF(INFO, VLOG_IS_ON(2)) << 
+    "To schedule a task to kernel: " << fastest_k;
 
   // schedule to fastest_q
   return fastest_q->enqueue(task);
