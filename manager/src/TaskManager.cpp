@@ -18,11 +18,19 @@ namespace blaze {
 TaskManager::~TaskManager() {
   power = false; 
   task_workers.join_all();
-  DLOG(INFO) << "TaskManager is destroyed";
+  DVLOG(2) << "TaskManager is destroyed";
 }
 
 bool TaskManager::isEmpty() {
   return execution_queue.empty();
+}
+
+void TaskManager::set_env(Task* task, TaskEnv_ptr env) {
+  if (task) task->env = env;
+}
+
+void TaskManager::set_conf(Task* task, ConfigTable_ptr conf) {
+  if (task) task->conf_ = conf;
 }
 
 Task_ptr TaskManager::create() {
@@ -31,7 +39,7 @@ Task_ptr TaskManager::create() {
   Task_ptr task(createTask(), destroyTask);
 
   // link the TaskEnv
-  task->env = platform->getEnv(acc_id);
+  task->env = platform->getEnv();
 
   // give task an unique ID
   task->task_id = nextTaskId.fetch_add(1);
@@ -47,13 +55,13 @@ void TaskManager::modify_queue_delay(uint64_t cur_delay, bool add_or_sub) {
   if (add_or_sub) {
     uint64_t before = get_queue_delay();
     queue_delay.fetch_add(cur_delay);
-    DLOG(INFO) << "Queueing delay increases from " << before
+    DVLOG(2) << "Queueing delay increases from " << before
       << " to " << get_queue_delay();
   }
   else {
     uint64_t before = get_queue_delay();
     queue_delay.fetch_sub(cur_delay);
-    DLOG(INFO) << "Queueing delay decreases from " << before
+    DVLOG(2) << "Queueing delay decreases from " << before
       << " to " << get_queue_delay();
   }
 }

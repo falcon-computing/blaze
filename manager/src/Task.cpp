@@ -1,6 +1,5 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include <stdio.h>
 
 #ifdef NDEBUG
@@ -28,11 +27,15 @@ Task::Task(int _num_args):
 }
 
 Task::~Task() {
-  DLOG(INFO) << "Task is destroyed";
+  DVLOG(2) << "Task is destroyed";
 }
 
 TaskEnv* Task::getEnv() { 
-  return env.get();
+  if (env.lock()) return env.lock().get();
+  else {
+    DLOG(ERROR) << "TaskEnv is already destroyed";
+    throw runtimeError(__func__);
+  }
 }
 
 bool Task::isInputReady(int64_t block_id) {
@@ -45,11 +48,12 @@ bool Task::isInputReady(int64_t block_id) {
   }
 }
 
-char* Task::getOutput(
+void* Task::getOutput(
     int idx, 
     int item_length, 
     int num_items,
-    int data_width) 
+    int data_width,
+    ConfigTable_ptr conf) 
 {
   if (idx < output_blocks.size()) {
     // if output already exists, return the pointer 
@@ -58,8 +62,8 @@ char* Task::getOutput(
   }
   else {
     // if output does not exist, create one
-    DataBlock_ptr block = env->createBlock(num_items, 
-        item_length, item_length*data_width, 0, BLAZE_OUTPUT_BLOCK);
+    DataBlock_ptr block = env.lock()->create_block(num_items, 
+        item_length, item_length*data_width, 0, DataBlock::SHARED, conf);
 
     output_blocks.push_back(block);
 
@@ -67,27 +71,11 @@ char* Task::getOutput(
   }
 }
 
-char* Task::getOutput(
-    int idx, 
-    int item_length, 
-    int num_items,
-    int data_width,
-    std::pair<std::string, int> ext_flag) 
-{
-  if (idx < output_blocks.size()) {
-    // if output already exists, return the pointer 
-    // to the existing block
-    return output_blocks[idx]->getData();
-  }
-  else {
-    // if output does not exist, create one
-    DataBlock_ptr block = env->createBlock(num_items, 
-        item_length, item_length*data_width, ext_flag, 0, BLAZE_OUTPUT_BLOCK);
+void Task::setOutput(int idx, DataBlock_ptr block) {
+  if (idx >= output_blocks.size()) 
+    output_blocks.resize(idx+1);
 
-    output_blocks.push_back(block);
-
-    return block->getData();
-  }
+  output_blocks[idx] = block;
 }
 
 int Task::getInputLength(int idx) { 
@@ -113,7 +101,7 @@ int Task::getInputNumItems(int idx) {
   }
 }
 
-char* Task::getInput(int idx) {
+void* Task::getInput(int idx) {
 
   if (idx < input_blocks.size() &&
       input_table.find(input_blocks[idx]) != input_table.end())
@@ -121,14 +109,15 @@ char* Task::getInput(int idx) {
     return input_table[input_blocks[idx]]->getData();      
   }
   else {
-    throw std::runtime_error("getInput out of bound idx");
+    DLOG(ERROR) << "getInput out of bound idx";
+    throw internalError(__func__ + std::string(" failed"));
   }
 }
 
 void Task::addConfig(int idx, std::string key, std::string val) {
-
   config_table[idx][key] = val;
 }
+
 std::string Task::getConfig(int idx, std::string key) 
 {
   if (config_table.find(idx) != config_table.end() &&
@@ -145,9 +134,9 @@ void Task::addInputBlock(
     DataBlock_ptr block = NULL_DATA_BLOCK) 
 {
   if (input_blocks.size() >= num_input) {
-    throw std::runtime_error(
-        "Inconsistancy between num_args in ACC Task"
-        " with the number of blocks in ACCREQUEST");
+    DLOG(ERROR) << "Inconsistancy between num_args in ACC Task" <<
+        " with the number of blocks in ACCREQUEST";
+    throw internalError(__func__ + std::string(" failed"));
   }
   // add the block to the input list
   input_blocks.push_back(partition_id);
@@ -228,16 +217,13 @@ bool Task::isReady() {
   else {
     bool ready = true;
     int num_ready_curr = 0;
-    for (std::map<int64_t, DataBlock_ptr>::iterator iter = input_table.begin();
-        iter != input_table.end();
-        iter ++)
-    {
+    for (auto b : input_table) {
       // a block may be added but not initialized
-      if (iter->second == NULL_DATA_BLOCK || !iter->second->isReady()) {
+      if (!b.second || !b.second->isReady()) {
         ready = false;
         break;
       }
-      num_ready_curr++;
+      num_ready_curr ++;
     }
     if (ready && num_ready_curr == num_input) {
       status = READY;

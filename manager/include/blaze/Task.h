@@ -1,14 +1,12 @@
 #ifndef TASK_H
 #define TASK_H
-
-#include "blaze/Common.h"
-#include <utility>
 #include <string>
+#include <utility>
+
+#include "blaze/ConfigTable.h"
+#include "blaze/Common.h"
 
 namespace blaze {
-
-// forward declaration of 
-template <typename U, typename T> class BlazeTest;
 
 /**
  * Task is the base clase of an accelerator task
@@ -21,9 +19,6 @@ friend class AppCommManager;
 friend class QueueManager;
 friend class TaskManager;
 
-template <typename U, typename T> 
-friend class BlazeTest;
-
 public:
   Task(int _num_args);
   virtual ~Task();
@@ -32,6 +27,10 @@ public:
   virtual void compute() {;}
   virtual uint64_t estimateClientTime() { return 0;}
   virtual uint64_t estimateTaskTime() { return 0; }
+
+  // called before task is executed, usually need to wait for TaskEnv 
+  // being set correctly
+  virtual void prepare() {;}
 
   // wrapper around compute(), added indicator for task status
   void execute() {
@@ -52,17 +51,24 @@ public:
 
   bool isInputReady(int64_t block_id);
 
+  template<typename T> 
+  bool get_conf(std::string key, T &val) {
+    return conf_->get_conf(key, val);
+  }
+
 protected:
 
-  char* getOutput(int idx, int item_length, int num_items, int data_width);
+  void* getOutput(int idx, 
+      int item_length, int num_items, int data_width, 
+      ConfigTable_ptr conf = NULL_ConfigTable_ptr);
 
-  char* getOutput(int idx, int item_length, int num_items, int data_width, std::pair<std::string, int> ext_flag);
+  void setOutput(int idx, DataBlock_ptr block);
   
   int getInputLength(int idx);
 
   int getInputNumItems(int idx);
 
-  char* getInput(int idx);
+  void* getInput(int idx);
 
   // add a configuration for a dedicated block 
   void addConfig(int idx, std::string key, std::string val);
@@ -106,7 +112,10 @@ private:
   int task_id;
 
   // pointer to the TaskEnv
-  TaskEnv_ptr env;
+  TaskEnv_ref env;
+
+  // pointer to a config table
+  ConfigTable_ptr conf_;
 
   // number of total input blocks
   int num_input;

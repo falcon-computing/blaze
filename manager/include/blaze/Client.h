@@ -19,10 +19,16 @@ namespace blaze {
 
 typedef boost::shared_ptr<boost::thread> client_event;
 
+typedef struct {
+  int num_items;
+  int item_length;
+  int data_width;
+} BlockSizeInfo;
+
 class Client : public BaseClient {
   FRIEND_TEST(ClientTests, CheckBlockAllocation);
   FRIEND_TEST(ClientTests, CheckPrepareRequest);
-public:
+ public:
   Client(std::string _acc_id, 
          int _num_inputs, 
          int _num_outputs,
@@ -34,14 +40,6 @@ public:
                      int data_width, 
                      int type = BLAZE_INPUT);
 
-  void* createInput( int idx,
-                     int num_items, 
-                     int item_length, 
-                     int data_width, 
-                     std::pair<std::string, int>& ext_flag,
-                     int type = BLAZE_INPUT);
-
-
   void* createOutput(int idx,
                      int num_items, 
                      int item_length, 
@@ -50,13 +48,6 @@ public:
   // copy data to an input block from a pointer,
   // allocate the space if the block has not been created
   void setInput(int idx, void* src, 
-                int num_items = 0,
-                int item_length = 0, 
-                int data_width = 0,
-                int type = BLAZE_INPUT);
-
-  void setInput(int idx, void* src, 
-                std::pair<std::string, int>& ext_flag,
                 int num_items = 0,
                 int item_length = 0, 
                 int data_width = 0,
@@ -80,7 +71,14 @@ public:
   // pure virtual method to be overloaded
   virtual void compute() = 0;
 
-private:
+ protected:
+  std::vector<DataBlock_ptr> input_blocks_;
+  std::vector<DataBlock_ptr> output_blocks_;
+  std::vector<std::pair<int64_t, bool> > block_info_;
+
+  std::vector<BlockSizeInfo> input_size_info_;
+
+ private:
   // helper functions in communication flow
   void prepareRequest(TaskMsg &msg);
   void prepareData(TaskMsg &data_msg, TaskMsg &reply_msg);
@@ -92,9 +90,6 @@ private:
   // input/output data blocks
   int num_inputs;
   int num_outputs;
-  std::vector<DataBlock_ptr> input_blocks;
-  std::vector<DataBlock_ptr> output_blocks;
-  std::vector<std::pair<int64_t, bool> > block_info;
 };
 
 } // namespace blaze

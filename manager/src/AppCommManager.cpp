@@ -19,6 +19,7 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
+#include "blaze/Timer.h"
 #include "acc_conf.pb.h"
 
 namespace blaze {
@@ -46,6 +47,7 @@ void AppCommManager::process(socket_ptr sock) {
   sock->set_option(option); 
   
   try {
+    PLACE_TIMER;
     // 1. Handle ACCREQUEST
     TaskMsg task_msg;
     TaskMsg reply_msg;
@@ -125,6 +127,8 @@ void AppCommManager::process(socket_ptr sock) {
       bool wait_accdata = false;
 
       // 1.3 iterate through each input block
+      {
+        PLACE_TIMER1("process AccRequest");
       for (int i = 0; i < task_msg.data_size(); i++) {
 
         DataMsg recv_block = task_msg.data(i);
@@ -144,7 +148,7 @@ void AppCommManager::process(socket_ptr sock) {
            */
           task->addInputBlock(i, block);
 
-          DLOG(INFO) << "Received an scalar value";
+          DVLOG(2) << "Received an scalar value";
         }
         // 1.3.2 if this is not a scalar, then its an array
         else {
@@ -188,7 +192,7 @@ void AppCommManager::process(socket_ptr sock) {
                * NOTE: at this point multiple threads may try 
                * to create the same block, only one can be successful
                */
-              bool created = block_manager->getAlloc(blockId, block,
+              bool created = block_manager->get_alloc(blockId, block,
                   num_elements, element_length, element_size);
 
               /* the return boolean indicates whether this is the 
@@ -197,6 +201,9 @@ void AppCommManager::process(socket_ptr sock) {
                */
               if (created) {
                 reply_block->set_cached(false); 
+                // TODO: this part needs to be coordinated with
+                // client design
+                reply_block->set_file_path(block->get_path()); 
 
                 // wait for data in ACCDATA 
                 wait_accdata = true; 
@@ -219,13 +226,13 @@ void AppCommManager::process(socket_ptr sock) {
 
               block = NULL_DATA_BLOCK;
 
-              DLOG(INFO) << "Add a non-cachable block to task, id=" << blockId;
+              DVLOG(2) << "Add a non-cachable block to task, id=" << blockId;
 
               // mark the block to skip cache
               cache_table.insert(std::make_pair(blockId, false));
             }
             else {
-              DLOG(INFO) << "Add a cachable block to task, id=" << blockId;
+              DVLOG(2) << "Add a cachable block to task, id=" << blockId;
 
               if (block_manager->contains(blockId)) {
 
@@ -271,12 +278,15 @@ void AppCommManager::process(socket_ptr sock) {
                   reply_block->sampled())));
         }
       }
+      }
 
+      uint64_t finish_time;
+      { PLACE_TIMER1("Modify waittime");
       // 1.4 decide to reject the task if wait time is too long
       uint64_t client_time = task->estimateClientTime();
       uint64_t delay_time  = task_manager.lock()->get_queue_delay();
       uint64_t task_time   = task->estimateTaskTime();
-      uint64_t finish_time = task_time + delay_time;
+               finish_time = task_time + delay_time;
 
       if (task_time != 0 && finish_time > client_time) {
         VLOG(1) << "Reject because Queueing delay = " << delay_time * 1e-9 << " secs, " 
@@ -286,6 +296,7 @@ void AppCommManager::process(socket_ptr sock) {
       }
       else {
         task_manager.lock()->modify_queue_delay(task_time, true);
+      }
       }
 
       // 1.5 send msg back to client
@@ -302,6 +313,7 @@ void AppCommManager::process(socket_ptr sock) {
       // 2. Handle ACCDATA
       if (wait_accdata) {
 
+        PLACE_TIMER1("Handle AccData");
         TaskMsg data_msg;
         try {
           recv(data_msg, sock);
@@ -311,7 +323,7 @@ void AppCommManager::process(socket_ptr sock) {
               std::string("Error in receiving ACCDATA ")+
               std::string(e.what()));
         }
-        DLOG(INFO) << "Received ACCDATA";
+        DVLOG(2) << "Received ACCDATA";
 
         // Acquire data from Spark
         if (data_msg.type() != ACCDATA) {
@@ -319,7 +331,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
 
         // Loop through all the DataMsg
-        for (int i=0; i<data_msg.data_size(); i++) {
+        for (int i = 0; i < data_msg.data_size(); i++) {
 
           DataMsg recv_block = data_msg.data(i);
 
@@ -347,11 +359,10 @@ void AppCommManager::process(socket_ptr sock) {
           if (!block_status.first) { // block is not cached
 
             // check required fields
-            if (!recv_block.has_file_path()) {
+            if (blockId >= 0 && !recv_block.has_file_path()) {
               throw AccFailure(std::string("Missing information for block " )+
                   std::to_string((long long)blockId));
             }
-            std::string path = recv_block.file_path();
 
             // 2.1.1 Read data from filesystem 
             if (recv_block.has_num_elements() && 
@@ -364,6 +375,8 @@ void AppCommManager::process(socket_ptr sock) {
 
               if (blockId >=0) {
 
+                std::string path = recv_block.file_path();
+
                 // if block is regular input then expect sizing information
                 if (!recv_block.has_num_elements() ||
                     !recv_block.has_element_length() ||
@@ -371,17 +384,10 @@ void AppCommManager::process(socket_ptr sock) {
                 {
                   throw AccFailure("Missing block size in ACCDATA");
                 }
-
                 
                 int num_elements    = recv_block.num_elements();
                 int element_length  = recv_block.element_length();
                 int element_size    = recv_block.element_size();
-                std::map<std::string, int> ext_flags;
-                for ( int idx = 0; idx < recv_block.ext_flag_size(); ++idx) {
-                    DLOG(INFO) << "receive ext flag on this block, key is " << recv_block.ext_flag(idx).key() << " value is " << recv_block.ext_flag(idx).value() ;
-                    ext_flags[recv_block.ext_flag(idx).key()] = recv_block.ext_flag(idx).value();
-                }
-
 
                 // check task config table to see if task is aligned
                 int align_width = 0;
@@ -392,20 +398,18 @@ void AppCommManager::process(socket_ptr sock) {
                 if ( cache_table.find(blockId) != cache_table.end() &&
                     !cache_table[blockId]) 
                 {
-                  DLOG(INFO) << "Skip cache for block " << blockId;
+                  DVLOG(2) << "Skip cache for block " << blockId;
 
                   // the block should skip cache
-                  block = platform->createBlock(
+                  // and force allocation to be shared mode so that
+                  // client is in-charge of deleting
+                  block = block_manager->create_block(path,
                       num_elements, element_length, element_size,
-                      align_width);
-                  for ( auto it = ext_flags.cbegin(); it != ext_flags.cend(); ++it ) {
-                    DLOG(INFO) << "add ext flag to a new data block, key is " << it->first << " value is " << it->second ;
-                    block->addExtFlag(*it);
-                  }
+                      align_width, DataBlock::SHARED);
                 }
                 else {
                   // the block needs to be created and add to cache
-                  block_manager->getAlloc(
+                  block_manager->get_alloc(
                       blockId, block,
                       num_elements, element_length, element_size, 
                       align_width);
@@ -415,19 +419,14 @@ void AppCommManager::process(socket_ptr sock) {
                 // if the block is a broadcast then it already resides in scratch
                 block = block_manager->get(blockId);
               }
-
-              try {
-                block->readFromMem(path);
-              }
-              catch (std::exception &e) {
-                DLOG(ERROR) << "readFromMem error: " << e.what();
-                throw AccFailure(std::string("readFromMem error"));
-              }
+              // TODO do a dummy run for now
+              block->readFromMem("");
+              block->setReady();
 
               // NOTE: only remove normal input file
-              if (!deleteFile(path)) {
-                DLOG(WARNING) << "Did not remove file for block " << blockId;
-              } 
+              //if (!deleteFile(path)) {
+              //  DLOG(WARNING) << "Did not remove file for block " << blockId;
+              //} 
             }
           }
           else { 
@@ -437,7 +436,10 @@ void AppCommManager::process(socket_ptr sock) {
 
           // 2.2 add block to Task input table
           if (block_status.second) { // block is sampled
+            DLOG(ERROR) << "This feature is currently deprecated";
+            throw internalError("Using Block::sample() is no longer supported");
 
+#if 0
             if (!recv_block.has_mask_path() || 
                 !recv_block.has_num_elements())
             {
@@ -463,6 +465,7 @@ void AppCommManager::process(socket_ptr sock) {
               throw AccFailure(std::string("Cannot mask for block ")+
                   std::to_string((long long)blockId));
             }
+#endif
           }
           try {
             // add missing block to Task input_table, block should be ready
@@ -472,17 +475,19 @@ void AppCommManager::process(socket_ptr sock) {
                 std::to_string((long long)blockId)+(" because: ")+
                 std::string(e.what()));
           }
-          VLOG(1) << "Finish reading data for block " << blockId;
+          RVLOG(INFO, 1) << "Finish reading data for block " << blockId;
         }
       } // 2. Finish handling ACCDATA
 
+      { PLACE_TIMER1("Wait task ready")
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(
             boost::chrono::microseconds(1)); 
       }
 
-      VLOG(2) << "Task ready, enqueue to be executed";
+      RVLOG(INFO, 2) << "Task ready, enqueue to be executed";
+      }
 
       // check if task_manager is still valid
       if (!task_manager.lock()) {
@@ -494,6 +499,7 @@ void AppCommManager::process(socket_ptr sock) {
       // add task to application queue
       task_manager.lock()->enqueue(app_id, task.get());
 
+      { PLACE_TIMER1("waiting for task");
       // wait on task finish
       uint64_t wait_time = 0;
       // longest wait time is 16 x finish_time
@@ -509,10 +515,11 @@ void AppCommManager::process(socket_ptr sock) {
 
         if (finish_time > 0 && max_wait_time < wait_time) {
           // handle time out in a catch block
-          VLOG(1) << "Task time out";
+          RVLOG(ERROR, 1) << "Task time out";
           
           handleTaskTimeout(sock, acc_id, task);
         }
+      }
       }
 
       // 3. Handle ACCFINISH message and output data
@@ -529,7 +536,8 @@ void AppCommManager::process(socket_ptr sock) {
         }
         task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
-        VLOG(1) << "Task finished, starting to read output";
+        RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
+
         // add block information to finish message 
         // for all output blocks
         int64_t outId = 0;
@@ -537,44 +545,33 @@ void AppCommManager::process(socket_ptr sock) {
 
         // NOTE: there should not be more than one block
         while (task->getOutputBlock(block))  {
+          PLACE_TIMER1("process output");
+          block->writeToMem("");
 
-          // use thread id to create unique output file path
-          std::stringstream path_stream;
-
-          path_stream << local_dir << "/"
-                      << "output-"
-                      << getTid() 
-                      << std::setw(12) << std::setfill('0') << rand() 
-                      << outId
-                      << ".dat";
-          std::string path = path_stream.str();
-          try {
-            // write the block to output shared memory
-            block->writeToMem(path);
-          } 
-          catch (std::exception &e) {
-            throw AccFailure(
-                std::string("writeToMem error: ")+
-                e.what()+
-                std::string("; path=")+path);
-          }
           // construct DataMsg
           // NOTE: not considering output data aligned allocation
           DataMsg *block_info = finish_msg.add_data();
           block_info->set_partition_id(outId);
-          block_info->set_file_path(path); 
+          block_info->set_file_path(block->get_path()); 
           block_info->set_num_elements(block->getNumItems());	
           block_info->set_element_length(block->getItemLength());	
           block_info->set_element_size(block->getItemSize());	
+          if (block->getFlag() == DataBlock::OWNED) {
+            // block is going to be owned by NAM, so client don't 
+            // delete it, NAM needs to make sure it block is not
+            // deleted before client finish reading
+            block_info->set_cached(true);
+          }
 
           outId ++;
         }
         finish_msg.set_type(ACCFINISH);
+
         try {
           send(finish_msg, sock);
-          VLOG(1) << "Task finished, sent an ACCFINISH";
+          RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
         } catch (std::exception &e) {
-          LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot send ACCFINISH";
+          RVLOG(ERROR, 1) << "Cannot send ACCFINISH";
         }
       }
       else {
@@ -642,10 +639,9 @@ void AppCommManager::process(socket_ptr sock) {
       char msg[500];
       sprintf(msg, "Unknown message type: %d, discarding message\n",
           task_msg.type());
-      throw (AccFailure(msg));
+      throw AccFailure(msg);
     }
   }
-  
   catch (AccReject &e)  {
 
     TaskMsg reply_msg;

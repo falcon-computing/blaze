@@ -16,7 +16,6 @@ add_dependencies(blaze Google FalconLM)
 target_link_libraries(blaze blaze_message)
 
 set(HEADER_FILES
-    ${include_dir}/AccAgent.h
     ${include_dir}/BaseClient.h
     ${include_dir}/Client.h
     ${include_dir}/Common.h

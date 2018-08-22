@@ -12,6 +12,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 
+#include "Block.h"
 #include "Common.h"
 
 namespace blaze {
@@ -56,8 +57,21 @@ public:
 
   // create a block and add it to cache/scratch
   // return true if a new block is created
-  virtual bool getAlloc(int64_t tag, DataBlock_ptr &block,
-      int num_items, int item_length, int item_size, int align_width=0);
+  virtual bool get_alloc(int64_t tag, DataBlock_ptr &block,
+      int num_items, int item_length, 
+      int item_size, int align_width = 0);
+
+  // create a block without adding it to manager
+  virtual DataBlock_ptr create_block(
+      int num_items, int item_length, int item_size, 
+      int align_width = 0,
+      DataBlock::Flag flag = DataBlock::SHARED);
+
+  // create a block without adding it to manager
+  virtual DataBlock_ptr create_block(std::string path,
+      int num_items, int item_length, int item_size, 
+      int align_width = 0, 
+      DataBlock::Flag flag = DataBlock::OWNED);
 
   // get a block from cache table or scratch table
   virtual DataBlock_ptr get(int64_t tag);

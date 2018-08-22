@@ -8,22 +8,47 @@
 #include "blaze/Block.h"
 #include "blaze/BlockManager.h"
 #include "blaze/Platform.h"
+#include "blaze/TaskEnv.h"
 
 namespace blaze {
 
 BlockManager::~BlockManager() {
-  DLOG(INFO) << "Destroying block manager";
+  DVLOG(2) << "Destroying block manager";
+}
+
+DataBlock_ptr BlockManager::create_block(
+      int num_items, int item_length, int item_size, 
+      int align_width, DataBlock::Flag flag)
+{
+  // TODO: should record the size of the data for 
+  // memory usage monitoring
+  //
+  // NOTE: does not check lock() since BlockManager
+  // should be destroyed before Platform is destroyed
+  return platform->getEnv().lock()->create_block(
+                num_items, item_length, item_size,
+                align_width, flag);
+}
+
+DataBlock_ptr BlockManager::create_block(
+      std::string path,
+      int num_items, int item_length, int item_size, 
+      int align_width, DataBlock::Flag flag)
+{
+  return platform->getEnv().lock()->create_block(path,
+                num_items, item_length, item_size,
+                align_width, flag);
 }
 
 // create a block if it does not exist in the manager
 // return true if a new block is created
-bool BlockManager::getAlloc(
+bool BlockManager::get_alloc(
     int64_t tag, 
     DataBlock_ptr &block,
     int num_items,
     int item_length,
     int item_size,
-    int align_size)
+    int align_width)
 {
   // guarantee exclusive access
   boost::lock_guard<BlockManager> guard(*this);
@@ -31,16 +56,15 @@ bool BlockManager::getAlloc(
   if (!contains(tag)) {
 
     // create block never throw exception
+    DataBlock::Flag flag = DataBlock::SHARED;
     if (tag < 0) {
-      block = platform->createBlock(
-          num_items, item_length, item_size, align_size, 
-          BLAZE_SHARED_BLOCK);
-    } else {
-      block = platform->createBlock(
-          num_items, item_length, item_size, align_size, 
-          BLAZE_INPUT_BLOCK);
+      flag = DataBlock::OWNED;
     }
-
+    // create a block to share
+    // only happens when creating a scratch block
+    block = create_block(num_items, item_length, 
+        item_size, align_width, flag);
+    
     try {
       do_add(tag, block);
 

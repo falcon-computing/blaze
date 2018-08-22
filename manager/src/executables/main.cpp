@@ -28,6 +28,7 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/QueueManager.h"
 #include "blaze/TaskManager.h"
+#include "blaze/Timer.h"
 
 using namespace blaze;
 
@@ -157,8 +158,10 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // print timer information every 5 minutes in debug mode
   while (1) {
-    boost::this_thread::sleep_for(boost::chrono::seconds(60)); 
+    boost::this_thread::sleep_for(boost::chrono::seconds(300)); 
+    print_timers();
   }
 
 #ifdef USELICENSE

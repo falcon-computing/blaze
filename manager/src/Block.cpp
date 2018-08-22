@@ -1,9 +1,11 @@
+#include <boost/filesystem.hpp>
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
+#include <boost/smart_ptr.hpp>
+#include <fstream>
 #include <stdio.h>
 #include <string.h>
 #include <stdexcept>
-
-#include <boost/smart_ptr.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 
 #ifdef NDEBUG
 #define LOG_HEADER "Block"
@@ -11,147 +13,225 @@
 #include <glog/logging.h>
 
 #include "blaze/Block.h"
+#include "blaze/Timer.h"
 
 namespace blaze {
 
-// create basic data block 
-DataBlock::DataBlock(
-    int _num_items, 
-    int _item_length,
-    int _item_size,
-    int _align_width,
-    int _flag):
-  num_items(_num_items),
-  item_length(_item_length),
-  align_width(_align_width),
-  flag(_flag),
-  allocated(false),
-  ready(false),
-  copied(false),
-  data(NULL)
-{
-  data_width = _item_size / _item_length;
-
-  if (_align_width == 0 ||
-      _item_size % _align_width == 0) 
-  {
-    item_size = _item_size;
-    aligned = false;
-  }
-  else {
-    item_size = (_item_length*data_width + _align_width - 1) /
-      _align_width * _align_width;
-    aligned = true;
-  }
-  length = num_items * item_length;
-  size   = num_items * item_size;
-
-  if (length <= 0 || size <= 0 || data_width < 1) {
-    throw std::runtime_error("Invalid parameters");
-  }
-
-  // NOTE: lazy allocation
-  //data = new char[_size];
-
+static inline std::string get_block_path() {
+  std::stringstream ss;
+  ss << local_dir << "/"
+     << "blaze-block-"
+     << getTid() << "-"
+     << getTS() << ".dat";
+  return ss.str();
 }
 
-DataBlock::DataBlock(
+void DataBlock::calc_sizes(
     int _num_items, 
     int _item_length,
     int _item_size,
-    std::pair<std::string, int>& ext_flag,
-    int _align_width,
-    int _flag):
-  num_items(_num_items),
-  item_length(_item_length),
-  align_width(_align_width),
-  flag(_flag),
-  allocated(false),
-  ready(false),
-  copied(false),
-  data(NULL)
+    int _align_width) 
 {
-
   data_width = _item_size / _item_length;
 
   if (_align_width == 0 ||
       _item_size % _align_width == 0) 
   {
     item_size = _item_size;
-    aligned = false;
+    is_aligned_ = false;
   }
   else {
     item_size = (_item_length*data_width + _align_width - 1) /
       _align_width * _align_width;
-    aligned = true;
+    is_aligned_ = true;
   }
   length = num_items * item_length;
-  size   = num_items * item_size;
+  size_  = num_items * item_size;
 
-  if (length <= 0 || size <= 0 || data_width < 1) {
+  if (length <= 0 || size_ <= 0 || data_width < 1) {
     throw std::runtime_error("Invalid parameters");
   }
+}
 
-  // NOTE: lazy allocation
-  //data = new char[_size];
-  addExtFlag(ext_flag);
+void DataBlock::map_region() {
+  PLACE_TIMER;
+  using namespace boost::interprocess;
+
+  boost::shared_ptr<file_mapping> m_file(new file_mapping(
+        mm_file_path_.c_str(), read_write));
+
+  boost::shared_ptr<mapped_region> m_region(new mapped_region(
+        *m_file, read_write, 0, size_));
+
+  mm_region_ = m_region;
+  mm_file_   = m_file;
+}
+
+// create basic data block from path
+DataBlock::DataBlock(
+    std::string path,
+    int _num_items, 
+    int _item_length,
+    int _item_size,
+    int _align_width,
+    Flag _flag,
+    ConfigTable_ptr _conf):
+  num_items(_num_items),
+  item_length(_item_length),
+  align_width(_align_width),
+  flag_(_flag),
+  mm_file_path_(path),
+  conf_(_conf)
+{
+  PLACE_TIMER1("constrct 1");
+  calc_sizes(_num_items, _item_length, _item_size, _align_width);
+
+  if (path.empty() || !file_exists(mm_file_path_)) {
+    DLOG(ERROR) << "block path: " << path << " is invalid";
+    throw fileError(__func__);
+  }
+  map_region();
+  is_ready_ = true;
+}
+
+// allocate a block with a pre-allocated pth
+DataBlock::DataBlock(
+    int _num_items, 
+    int _item_length,
+    int _item_size,
+    int _align_width,
+    Flag _flag,
+    ConfigTable_ptr _conf):
+  num_items(_num_items),
+  item_length(_item_length),
+  align_width(_align_width),
+  flag_(_flag),
+  conf_(_conf)
+{
+  PLACE_TIMER1("constrct 2");
+  calc_sizes(_num_items, _item_length, _item_size, _align_width);
+
+  // create a memory mapped region
+  mm_file_path_ = get_block_path();
+
+  if (file_exists(mm_file_path_)) {
+    DLOG(ERROR) << "block path "<< mm_file_path_ << " already exists";
+    throw fileError(__func__ + std::string(" failed"));
+  }
+  else {
+    PLACE_TIMER1("allocate mmap region");
+    std::filebuf fbuf;
+    fbuf.open(mm_file_path_, 
+        std::ios_base::in | std::ios_base::out | 
+        std::ios_base::trunc | std::ios_base::binary);
+
+    // set the size
+    fbuf.pubseekoff(size_-1, std::ios_base::beg);
+    fbuf.sputc(0);
+  }
+
+  map_region();
+
+  // setup the flags
+  if (_flag == SHARED) {
+    // block is to share with client/host
+    is_ready_ = true;
+  }
+  else { // flag == OWNED
+    // block is a scratch, for client/host to write
+    // but will be deleted by owner
+    is_ready_ = false;
+  }
 }
 
 DataBlock::DataBlock(const DataBlock &block) {
 
-  DLOG(INFO) << "Create a duplication of a block";
+  DVLOG(2) << "Create a duplication of a block";
 
-  flag = block.flag;
   num_items = block.num_items;
   item_length = block.item_length;
   item_size = block.item_length;
   data_width = block.data_width;
   align_width = block.align_width;
   length = block.length;
-  size = block.size;
 
-  allocated = block.allocated;
-  aligned = block.aligned;
-  ready = block.ready;
-  copied = true;
+  flag_ = SHARED;
+  size_ = block.size_;
 
-  data = block.data;
+  is_aligned_ = block.is_aligned_;
+  is_ready_  = block.is_ready_;
+
+  mm_region_ = block.mm_region_;
 }
 
 DataBlock::~DataBlock() {
-  if (data && !copied) {
-    delete data; 
+  if (mm_region_ && flag_ == OWNED) {
+    boost::interprocess::file_mapping::remove(mm_file_path_.c_str());
+    boost::filesystem::remove(boost::filesystem::path(mm_file_path_));
   }
+  // mm_region_ should be released by itself
 }
 
+std::string DataBlock::get_path() {
+  return mm_file_path_;
+}
+
+// Deprecated
+#if 0
 void DataBlock::alloc() {
-  if (!allocated) {
-    data = new char[size];
-    allocated = true;
+  if (!mm_region_ && size_ > 0) {
+
+    if (!mm_file_path_.empty()) {
+      using namespace boost::interprocess;
+      // create a mmap file 
+      boost::shared_ptr<file_mapping> m_file(
+          new file_mapping(mm_file_path_, read_write));
+
+      if (!m_file) {
+        DLOG(INFO) << "failed to map mmfile " << mm_file_path;
+        throw internalError("DataBlock::alloc() error");
+      }
+
+      mm_file_ = m_file;
+
+      // allocate the mmfile region
+      boost::shared_ptr<bi::mapped_region> region(
+          new mapped_region(*mm_file, read_write, 0, size_));
+
+      mm_region_ = region;
+    }
+    else {
+      DLOG(INFO) << "cannot allocate before file path is set";
+      throw internalError("DataBlock::alloc() error");
+    }
   }
 }
+#endif
 
-char* DataBlock::getData() { 
-  boost::lock_guard<DataBlock> guard(*this);
-  alloc();
-  return data; 
+void* DataBlock::getData() { 
+  return mm_region_->get_address(); 
+}
+
+void DataBlock::setReady() {
+  if (flag_ == OWNED) {
+    is_ready_ = true;
+  }
 }
 
 bool DataBlock::isAllocated() { 
-  boost::lock_guard<DataBlock> guard(*this);
-  return allocated; 
+  return true;
 }
 
 bool DataBlock::isReady() { 
-  boost::lock_guard<DataBlock> guard(*this);
-  return ready; 
+  return is_ready_; 
 }
 
 void DataBlock::writeData(void* src, size_t _size) {
-  if (_size > size) {
+  if (_size > size_) {
     throw std::runtime_error("Not enough space left in Block");
   }
-  if (!aligned) {
+  PLACE_TIMER;
+  if (!is_aligned_) {
     boost::lock_guard<DataBlock> guard(*this);
     writeData(src, _size, 0);
   }
@@ -162,7 +242,7 @@ void DataBlock::writeData(void* src, size_t _size) {
       writeData((void*)((char*)src + k*data_size), 
           data_size, k*item_size);
     }  
-    ready = true;
+    is_ready_ = true;
   }
 }
 
@@ -173,31 +253,30 @@ void DataBlock::writeData(
     size_t _size, 
     size_t _offset)
 {
-  if (_offset+_size > size) {
-    throw std::runtime_error("Exists block size");
+  if (_offset+_size > size_) {
+    throw std::runtime_error("exceeds block size");
   }
-  // lazy allocation
-  alloc();
+  PLACE_TIMER;
 
-  memcpy((void*)(data+_offset), src, _size);
+  memcpy((char*)mm_region_->get_address()+_offset, src, _size);
 
-  if (_offset + _size == size) {
-    ready = true;
+  if (_offset + _size == size_) {
+    is_ready_ = true;
   }
 }
 
 // write data to an array
 void DataBlock::readData(void* dst, size_t size) {
-  if (allocated) {
-    memcpy(dst, (void*)data, size);
-  }
-  else {
-    throw std::runtime_error("Block memory not allocated");
-  }
+  PLACE_TIMER;
+  memcpy(dst, mm_region_->get_address(), size);
 }
 
+// Deprecated
 DataBlock_ptr DataBlock::sample(char* mask) {
 
+#if 1
+  throw internalError("Block::sample is deprecated");
+#else
   // count the total number of 
   int masked_items = 0;
   for (int i=0; i<num_items; i++) {
@@ -218,7 +297,7 @@ DataBlock_ptr DataBlock::sample(char* mask) {
   for (int i=0; i<num_items; i++) {
     if (mask[i] != 0) {
       memcpy(masked_data+k*item_size, 
-             data+i*item_size, 
+             mm_region_->get_address()+i*item_size, 
              item_size);
       k++;
     }
@@ -226,57 +305,16 @@ DataBlock_ptr DataBlock::sample(char* mask) {
   block->ready = true;
 
   return block;
+#endif
 }
 
 void DataBlock::readFromMem(std::string path) {
-
-  if (ready) {
-    return;
-  }
-
-  boost::iostreams::mapped_file_source fin;
-
-  //int data_length = length; 
-  int data_size = size;
-
-  fin.open(path, data_size);
-
-  if (fin.is_open()) {
-    
-    void* data = (void*)fin.data();
-
-    writeData(data, data_size);
-
-    fin.close();
-  }
-  else {
-    throw std::runtime_error(std::string("Cannot find file: ") + path);
-  }
+  is_ready_ = true;
+  DVLOG(2) << "Calling a dummy function";
 }
 
 void DataBlock::writeToMem(std::string path) {
-
-  int data_size = size;
-
-  boost::iostreams::mapped_file_params param(path); 
-  param.flags = boost::iostreams::mapped_file::mapmode::readwrite;
-  param.new_file_size = data_size;
-  param.length = data_size;
-  boost::iostreams::mapped_file_sink fout(param);
-
-  if (!fout.is_open()) {
-    throw fileError(std::string("Cannot write file: ") + path);
-  }
-  // push data to file
-  readData((void*)fout.data(), data_size);
-  fout.close();
-
-  // change permission
-  // NOTE: here there might be a security issue need to be addressed
-  boost::filesystem::wpath wpath(path);
-  boost::filesystem::permissions(wpath, boost::filesystem::add_perms |
-                                        boost::filesystem::group_read |
-                                        boost::filesystem::others_read);
+  DVLOG(2) << "Calling a dummy function";
 }
 
 } // namespace

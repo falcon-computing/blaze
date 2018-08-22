@@ -18,10 +18,10 @@ public:
   virtual ~QueueManager();
 
   // add a new queue regarding an existing accelerator
-  void add(std::string id, std::string lib_path);
+  virtual void add(AccWorker &conf);
 
   // remove a task manager in queue_table
-  void remove(std::string id);
+  virtual void remove(std::string id);
 
   // start the executor for one task queue
   virtual void start(std::string id);

@@ -22,7 +22,7 @@ Platform::Platform(std::map<std::string, std::string> &conf_table)
 
 }
 Platform::~Platform() {
-  DLOG(INFO) << "Platform is removed";
+  DVLOG(1) << "Platform is removed";
 }
 
 // Start TaskQueues for the CPU platform
@@ -34,7 +34,7 @@ void Platform::addQueue(AccWorker &conf) {
   }
 
   // add a TaskManager, and the scheduler should be started
-  queue_manager->add(conf.id(), conf.path());
+  queue_manager->add(conf);
 
   // start a corresponding executor
   queue_manager->start(conf.id());
@@ -47,30 +47,6 @@ void Platform::removeQueue(std::string id) {
   queue_manager->remove(id);
   //boost::thread executor(
   //    boost::bind(&QueueManager::remove, queue_manager.get(), id));
-}
-
-// create a block object for the specific platform
-DataBlock_ptr Platform::createBlock(
-    int num_items, int item_length, int item_size, 
-    int align_width, int flag) 
-{
-  return env->createBlock(num_items, item_length, 
-      item_size, align_width, flag);
-}
-
-// create a block object for the specific platform
-DataBlock_ptr Platform::createBlock(
-    int num_items, int item_length, int item_size, 
-    std::pair<std::string, int>& ext_flag,
-    int align_width, int flag)
-{
-  return env->createBlock(num_items, item_length, 
-      item_size, ext_flag, align_width, flag);
-}
-
-DataBlock_ptr Platform::createBlock(const DataBlock& block) 
-{
-  return env->createBlock(block);
 }
 
 // remove a shard block from the block manager
@@ -100,8 +76,7 @@ BlockManager* Platform::getBlockManager() {
 }
 
 TaskManager_ref Platform::getTaskManager(std::string acc_id) {
-  TaskManager_ref ret = queue_manager->get(acc_id);
-  return ret;
+  return queue_manager->get(acc_id);
 }
 
 // get an entry in the config_table matching the key
@@ -114,7 +89,7 @@ std::string Platform::getConfig(std::string &key) {
 }
 
 // get TaskEnv to pass to Task
-TaskEnv_ptr Platform::getEnv(std::string id) {
+TaskEnv_ref Platform::getEnv() {
   return env;
 }
 } // namespace blaze

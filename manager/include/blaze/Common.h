@@ -1,5 +1,5 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef BLAZE_COMMON_H
+#define BLAZE_COMMON_H
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
@@ -15,6 +15,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <sys/stat.h>
 #include <vector>
 
 namespace blaze {
@@ -24,9 +25,13 @@ namespace blaze {
 #define BLAZE_SHARED_BLOCK 1
 #define BLAZE_OUTPUT_BLOCK 2
 
+// macros for glog
+#define RVLOG(type, v) LOG_IF(type, VLOG_IS_ON(v))
+
 // forward declaration of all classes
 class BaseClient;
 class BlockManager;
+class ConfigTable;
 class CommManager;
 class DataBlock;
 class Task;
@@ -38,6 +43,7 @@ class QueueManager;
 
 // typedef of boost smart pointer object
 typedef boost::shared_ptr<BlockManager>     BlockManager_ptr;
+typedef boost::shared_ptr<ConfigTable>      ConfigTable_ptr;
 typedef boost::shared_ptr<CommManager>      CommManager_ptr;
 typedef boost::shared_ptr<DataBlock>        DataBlock_ptr;
 typedef boost::weak_ptr<DataBlock>          DataBlock_ref;
@@ -48,6 +54,7 @@ typedef boost::shared_ptr<QueueManager>     QueueManager_ptr;
 typedef boost::shared_ptr<Task>             Task_ptr;
 typedef boost::shared_ptr<TaskEnv>          TaskEnv_ptr;
 typedef boost::shared_ptr<TaskManager>      TaskManager_ptr;
+typedef boost::weak_ptr<TaskEnv>            TaskEnv_ref;
 typedef boost::weak_ptr<TaskManager>        TaskManager_ref;
 
 typedef boost::shared_ptr<boost::asio::io_service>        ios_ptr;
@@ -71,6 +78,11 @@ void send(::google::protobuf::Message&, socket_ptr);
 std::string saveFile(std::string path, const std::string &contents);
 std::string readFile(std::string path);
 bool deleteFile(std::string path);
+
+static bool file_exists(std::string path) {
+  struct stat buf;
+  return (stat(path.c_str(), &buf) == 0);
+}
 
 // parameters
 static std::string local_dir("/tmp");
@@ -98,6 +110,12 @@ class fileError : public std::runtime_error {
 public:
   explicit fileError(const std::string& what_arg):
     std::runtime_error(what_arg) {;}
+};
+
+class runtimeError : public std::runtime_error {
+public:
+  explicit runtimeError(const std::string &what):
+    std::runtime_error(std::string("runtimer error: ") + what) {;}
 };
 
 class internalError : public std::runtime_error {

@@ -41,7 +41,7 @@ namespace blaze {
     clock_gettime(CLOCK_REALTIME, &tr);
     struct tm *l_time = localtime(&tr.tv_sec);
     char t_str[100];
-    strftime(t_str, sizeof(t_str), "%Y-%m-%d %H:%M:%S", l_time);
+    strftime(t_str, sizeof(t_str), "%Y%m%d-%H%M%S", l_time);
 
     std::string ts_str(t_str);
     std::string us_str = std::to_string((long long int)tr.tv_nsec/1000);
@@ -51,7 +51,7 @@ namespace blaze {
       us_str = "0" + us_str;
     }
 
-    ts_str += "." + us_str;
+    ts_str += us_str;
 
     return ts_str;
   }
