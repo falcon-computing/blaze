@@ -61,6 +61,8 @@ protected:
   void* getOutput(int idx, 
       int item_length, int num_items, int data_width, 
       ConfigTable_ptr conf = NULL_ConfigTable_ptr);
+
+  void setOutput(int idx, DataBlock_ptr block);
   
   int getInputLength(int idx);
 

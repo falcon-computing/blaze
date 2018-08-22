@@ -61,7 +61,7 @@ uint64_t OpenCLKernelQueue::get_wait_time() {
 }
 
 void OpenCLKernelQueue::do_prepare() {
-  DLOG(INFO) << "Started preparer";
+  DVLOG(1) << "Started preparer";
   while (power_) {
     Task* task = nullptr;
     while (!prep_queue_.pop(task)) {
@@ -69,7 +69,7 @@ void OpenCLKernelQueue::do_prepare() {
     }
 
     if (!task) {
-      LOG(ERROR) << "Task already destroyed";
+      RVLOG(ERROR, 1) << "Task already destroyed";
       continue;
     }
 
@@ -101,7 +101,7 @@ void OpenCLKernelQueue::do_prepare() {
 }
 
 void OpenCLKernelQueue::do_execute() {
-  DLOG(INFO) << "Started executor";
+  DVLOG(1) << "Started executor";
   while (power_) {
     Task* task = nullptr;
     while (!exe_queue_.pop(task)) {
@@ -109,7 +109,7 @@ void OpenCLKernelQueue::do_execute() {
     }
 
     if (!task) {
-      LOG(ERROR) << "Task already destroyed";
+      RVLOG(ERROR, 1) << "Task already destroyed";
       continue;
     }
 

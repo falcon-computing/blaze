@@ -30,7 +30,7 @@ OpenCLQueueManager::OpenCLQueueManager(
     throw std::runtime_error("Cannot create OpenCLQueueManager");
   }
 
-  DLOG(INFO) << "Set FPGA reconfigure counter = " << _reconfig_timer;
+  DVLOG(2) << "Set FPGA reconfigure counter = " << _reconfig_timer;
 
   // start executor
   executors.create_thread(
@@ -42,7 +42,7 @@ OpenCLQueueManager::~OpenCLQueueManager() {
   //executors.interrupt_all();
   power_ = false;
   executors.join_all();
-  DLOG(INFO) << "Stopped OpenCLQueueManager";
+  DVLOG(1) << "Stopped OpenCLQueueManager";
 }
 
 void OpenCLQueueManager::add(AccWorker &conf) {
@@ -108,7 +108,7 @@ void OpenCLQueueManager::add(AccWorker &conf) {
       if (res.first == kernel_name.end()) {
         // the key is for kernel
         key.assign(res.second + 1, it->first.end()); 
-        DLOG(INFO) << "Add conf key: " << key 
+        DVLOG(2) << "Add conf key: " << key 
                    << " to kernel " << kernel_name; 
 
         // add the config to table
@@ -132,7 +132,7 @@ void OpenCLQueueManager::add(AccWorker &conf) {
   // pass all remaining configurations to all kernels
   if (!key_val.empty()) {
     for (auto p : key_val) {
-      DLOG(INFO) << "Add conf key: " << p.first;
+      DVLOG(2) << "Add conf key: " << p.first;
       for (auto c : conf_list) {
         c->write_conf(p.first, p.second);
       }
@@ -148,7 +148,7 @@ void OpenCLQueueManager::add(AccWorker &conf) {
 
 void OpenCLQueueManager::start() {
   // do nothing since the executors are already started
-  DLOG(INFO) << "FPGAQueue started";
+  //DVLOG(1) << "FPGAQueue started";
 }
 
 void OpenCLQueueManager::do_start() {
@@ -203,7 +203,7 @@ void OpenCLQueueManager::do_start() {
       // first need to remove the related kernels
       // TODO: this part cause trouble since we don't wait for queue to finish
       if (!curr_acc_.empty() && curr_acc_ != queue_name) {
-        DLOG(INFO) << "Removing kernels for acc: " << curr_acc_;
+        DVLOG(1) << "Removing kernels for acc: " << curr_acc_;
         remove_kernels(queue_name);
 
         // change program in OpenCLPlatform, so that Env is refreshed
@@ -260,7 +260,7 @@ void OpenCLQueueManager::do_start() {
     // if the timer is up, switch to the next queue
     ready_queues.pop_front(); 
   }
-  DLOG(INFO) << "OpenCLQueue executor is finished";
+  DVLOG(1) << "OpenCLQueue executor is finished";
 }
 
 bool OpenCLQueueManager::schedule(std::string acc_id, Task* task) {
@@ -300,7 +300,7 @@ void OpenCLQueueManager::setup_kernels(std::string acc_id)
     throw invalidParam(__func__);
   }
   for (auto kernel_name : kernel_table_[acc_id]) {
-    DLOG(INFO) << "Setup kernel " << kernel_name;
+    DVLOG(1) << "Setup kernel " << kernel_name;
 
     // create a new OpenCLEnv with new kernel
     OpenCLEnv* env = dynamic_cast<OpenCLEnv*>(platform->getEnv().lock().get());
@@ -322,7 +322,6 @@ void OpenCLQueueManager::setup_kernels(std::string acc_id)
     TaskEnv_ptr task_env(new OpenCLEnv(*env));
 
     ((OpenCLEnv*)task_env.get())->kernel_ = kernel;
-    DLOG(INFO) << "setup cl_kernel for " << kernel_name;
 
     env_table_[kernel_name] = task_env;
 

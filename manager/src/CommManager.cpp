@@ -61,7 +61,7 @@ CommManager::~CommManager() {
   ios->stop();
   comm_threads.interrupt_all();
   comm_threads.join_all();
-  DLOG(INFO) << "Stopped CommManager";
+  DVLOG(1) << "Stopped CommManager";
 }
 
 void CommManager::startAccept() {

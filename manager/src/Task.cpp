@@ -27,7 +27,7 @@ Task::Task(int _num_args):
 }
 
 Task::~Task() {
-  DLOG(INFO) << "Task is destroyed";
+  DVLOG(2) << "Task is destroyed";
 }
 
 TaskEnv* Task::getEnv() { 
@@ -69,6 +69,13 @@ void* Task::getOutput(
 
     return block->getData();
   }
+}
+
+void Task::setOutput(int idx, DataBlock_ptr block) {
+  if (idx >= output_blocks.size()) 
+    output_blocks.resize(idx+1);
+
+  output_blocks[idx] = block;
 }
 
 int Task::getInputLength(int idx) { 

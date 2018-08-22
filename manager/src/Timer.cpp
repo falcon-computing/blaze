@@ -10,10 +10,14 @@ static std::map<std::string, uint64_t> g_total_time;
 //std::map<std::string, uint64_t> g_last_time;
 
 void print_timers() {
+  VLOG(TIMER_VERBOSE-1) << "===================";
+  VLOG(TIMER_VERBOSE-1) << " ITEM,\t TIME (us)";
+  VLOG(TIMER_VERBOSE-1) << "===================";
   for (auto p : g_total_time) {
-    VLOG(TIMER_VERBOSE-1) << "Total time for " << p.first
-      << " is " << p.second << " us";
+    VLOG(TIMER_VERBOSE-1) << "\"" << p.first << "\""
+      << ", " << p.second << "";
   }
+  VLOG(TIMER_VERBOSE-1) << "===================";
 }
 
 uint64_t get_global_etime(std::string s) {
@@ -26,18 +30,6 @@ void add_global_etime(std::string s, uint64_t t) {
   if (g_total_time.count(s)) g_total_time[s] += t;
   else g_total_time[s] = t;
 }
-
-// unit: us
-//uint64_t get_last_etime(std::string s) {
-//  if (g_last_time.count(s)) return g_last_time[s];
-//  else 0;
-//}
-//
-//void add_last_etime(std::string s, uint64_t t) {
-//  if (g_last_time.count(s)) g_last_time[s] += t;
-//  else g_last_time[s] = t;
-//}
-
 
 Timer::Timer(std::string func): func_(func), auto_mode_(true)
 {
@@ -74,7 +66,6 @@ void Timer::stop() {
 
 #ifdef TIMER_REPORT
     add_global_etime(func_, e_time);
-    //add_last_etime(func_, e_time);
 #endif
   }
   started_ = false;

@@ -13,7 +13,7 @@
 namespace blaze {
 
 BlockManager::~BlockManager() {
-  DLOG(INFO) << "Destroying block manager";
+  DVLOG(2) << "Destroying block manager";
 }
 
 DataBlock_ptr BlockManager::create_block(

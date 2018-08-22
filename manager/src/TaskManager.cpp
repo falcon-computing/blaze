@@ -18,7 +18,7 @@ namespace blaze {
 TaskManager::~TaskManager() {
   power = false; 
   task_workers.join_all();
-  DLOG(INFO) << "TaskManager is destroyed";
+  DVLOG(2) << "TaskManager is destroyed";
 }
 
 bool TaskManager::isEmpty() {
@@ -55,13 +55,13 @@ void TaskManager::modify_queue_delay(uint64_t cur_delay, bool add_or_sub) {
   if (add_or_sub) {
     uint64_t before = get_queue_delay();
     queue_delay.fetch_add(cur_delay);
-    DLOG(INFO) << "Queueing delay increases from " << before
+    DVLOG(2) << "Queueing delay increases from " << before
       << " to " << get_queue_delay();
   }
   else {
     uint64_t before = get_queue_delay();
     queue_delay.fetch_sub(cur_delay);
-    DLOG(INFO) << "Queueing delay decreases from " << before
+    DVLOG(2) << "Queueing delay decreases from " << before
       << " to " << get_queue_delay();
   }
 }

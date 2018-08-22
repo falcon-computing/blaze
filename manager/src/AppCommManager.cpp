@@ -148,7 +148,7 @@ void AppCommManager::process(socket_ptr sock) {
            */
           task->addInputBlock(i, block);
 
-          DLOG(INFO) << "Received an scalar value";
+          DVLOG(2) << "Received an scalar value";
         }
         // 1.3.2 if this is not a scalar, then its an array
         else {
@@ -226,13 +226,13 @@ void AppCommManager::process(socket_ptr sock) {
 
               block = NULL_DATA_BLOCK;
 
-              DLOG(INFO) << "Add a non-cachable block to task, id=" << blockId;
+              DVLOG(2) << "Add a non-cachable block to task, id=" << blockId;
 
               // mark the block to skip cache
               cache_table.insert(std::make_pair(blockId, false));
             }
             else {
-              DLOG(INFO) << "Add a cachable block to task, id=" << blockId;
+              DVLOG(2) << "Add a cachable block to task, id=" << blockId;
 
               if (block_manager->contains(blockId)) {
 
@@ -323,7 +323,7 @@ void AppCommManager::process(socket_ptr sock) {
               std::string("Error in receiving ACCDATA ")+
               std::string(e.what()));
         }
-        DLOG(INFO) << "Received ACCDATA";
+        DVLOG(2) << "Received ACCDATA";
 
         // Acquire data from Spark
         if (data_msg.type() != ACCDATA) {
@@ -398,7 +398,7 @@ void AppCommManager::process(socket_ptr sock) {
                 if ( cache_table.find(blockId) != cache_table.end() &&
                     !cache_table[blockId]) 
                 {
-                  DLOG(INFO) << "Skip cache for block " << blockId;
+                  DVLOG(2) << "Skip cache for block " << blockId;
 
                   // the block should skip cache
                   // and force allocation to be shared mode so that
@@ -421,7 +421,7 @@ void AppCommManager::process(socket_ptr sock) {
               }
               // TODO do a dummy run for now
               block->readFromMem("");
-              block->set_ready();
+              block->setReady();
 
               // NOTE: only remove normal input file
               //if (!deleteFile(path)) {
@@ -475,7 +475,7 @@ void AppCommManager::process(socket_ptr sock) {
                 std::to_string((long long)blockId)+(" because: ")+
                 std::string(e.what()));
           }
-          VLOG(1) << "Finish reading data for block " << blockId;
+          RVLOG(INFO, 1) << "Finish reading data for block " << blockId;
         }
       } // 2. Finish handling ACCDATA
 
@@ -486,7 +486,7 @@ void AppCommManager::process(socket_ptr sock) {
             boost::chrono::microseconds(1)); 
       }
 
-      VLOG(2) << "Task ready, enqueue to be executed";
+      RVLOG(INFO, 2) << "Task ready, enqueue to be executed";
       }
 
       // check if task_manager is still valid
@@ -499,6 +499,7 @@ void AppCommManager::process(socket_ptr sock) {
       // add task to application queue
       task_manager.lock()->enqueue(app_id, task.get());
 
+      { PLACE_TIMER1("waiting for task");
       // wait on task finish
       uint64_t wait_time = 0;
       // longest wait time is 16 x finish_time
@@ -514,10 +515,11 @@ void AppCommManager::process(socket_ptr sock) {
 
         if (finish_time > 0 && max_wait_time < wait_time) {
           // handle time out in a catch block
-          VLOG(1) << "Task time out";
+          RVLOG(ERROR, 1) << "Task time out";
           
           handleTaskTimeout(sock, acc_id, task);
         }
+      }
       }
 
       // 3. Handle ACCFINISH message and output data
@@ -534,7 +536,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
         task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
-        VLOG(1) << "Task finished, starting to read output";
+        RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
 
         // add block information to finish message 
         // for all output blocks
@@ -543,7 +545,7 @@ void AppCommManager::process(socket_ptr sock) {
 
         // NOTE: there should not be more than one block
         while (task->getOutputBlock(block))  {
-          
+          PLACE_TIMER1("process output");
           block->writeToMem("");
 
           // construct DataMsg
@@ -554,6 +556,12 @@ void AppCommManager::process(socket_ptr sock) {
           block_info->set_num_elements(block->getNumItems());	
           block_info->set_element_length(block->getItemLength());	
           block_info->set_element_size(block->getItemSize());	
+          if (block->getFlag() == DataBlock::OWNED) {
+            // block is going to be owned by NAM, so client don't 
+            // delete it, NAM needs to make sure it block is not
+            // deleted before client finish reading
+            block_info->set_cached(true);
+          }
 
           outId ++;
         }
@@ -561,9 +569,9 @@ void AppCommManager::process(socket_ptr sock) {
 
         try {
           send(finish_msg, sock);
-          VLOG(1) << "Task finished, sent an ACCFINISH";
+          RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
         } catch (std::exception &e) {
-          LOG_IF(ERROR, VLOG_IS_ON(1)) << "Cannot send ACCFINISH";
+          RVLOG(ERROR, 1) << "Cannot send ACCFINISH";
         }
       }
       else {

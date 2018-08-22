@@ -41,7 +41,7 @@ PlatformManager::~PlatformManager() {
   // remove all platforms
   while (!platform_table.empty()) {
     auto it = platform_table.begin();
-    DLOG(INFO) << "Remove " << it->first << 
+    DVLOG(1) << "Remove " << it->first << 
                   " before destroying platform manager";
     removePlatform(it->first);
   }
@@ -82,7 +82,7 @@ void PlatformManager::registerPlatform(AccPlatform conf) {
         ": " << e.what();
     }
   }
-  DLOG(INFO) << "Platform " << id << " is registered";
+  DVLOG(1) << "Platform " << id << " is registered";
 }
 
 void PlatformManager::openPlatform(std::string id) {
@@ -121,7 +121,7 @@ void PlatformManager::openPlatform(std::string id) {
   // using its own cache
   if (cache_loc.compare(id) != 0 && platform_table.count(cache_loc)) {
     platform->block_manager = platform_table[cache_loc]->block_manager;
-    DLOG(INFO) << "Use block manager on " << cache_loc;
+    DVLOG(1) << "Use block manager on " << cache_loc;
   }
   else {
     if (cache_loc.compare(id) != 0) {
@@ -133,18 +133,18 @@ void PlatformManager::openPlatform(std::string id) {
         (size_t)cache_limit << 20, 
         (size_t)scratch_limit << 20);
 
-    DLOG(INFO) << "Create a block manager for platform " << id;
+    DVLOG(1) << "Create a block manager for platform " << id;
   }
 
   // print extend configs
   if (!conf_table.empty()) {
-    VLOG(1) << "Extra Configurations for the platform:";
+    RVLOG(INFO, 1) << "Extra Configurations for the platform:";
     std::map<std::string, std::string>::iterator iter;
     for (iter  = conf_table.begin();
         iter != conf_table.end();
         iter ++)
     {
-      VLOG(1) << "[""" << iter->first << """] = "
+      RVLOG(INFO, 1) << "[""" << iter->first << """] = "
         << iter->second;
     }
   }
@@ -153,11 +153,11 @@ void PlatformManager::openPlatform(std::string id) {
   // a platform. therefore we need to register all previosu AccWorkers
   if (acc_conf_table.count(id)) {
     for (auto worker : acc_conf_table[id]) {
-      DLOG(INFO) << "Restoring old ACC: " << worker.id();
+      DVLOG(1) << "Restoring old ACC: " << worker.id();
       registerAcc(id, worker);
     }
     acc_conf_table.erase(id);
-    DLOG(INFO) << "Removing " << id << " from acc_conf_table";
+    DVLOG(1) << "Removing " << id << " from acc_conf_table";
   }
 }
 
@@ -184,7 +184,7 @@ void PlatformManager::removePlatform(std::string id) {
     // remove queue based on AccWorker.id()
     std::string acc_id = it.second.id();
     removeAcc("", acc_id, id);
-    DLOG(INFO) << "Removing " << id << " from platform";
+    DVLOG(1) << "Removing " << id << " from platform";
 
     // add AccWorker to acc_conf_table
     workers.push_back(it.second);
@@ -197,7 +197,7 @@ void PlatformManager::removePlatform(std::string id) {
   // then when platform_ptr goes out-of-scope it should destruct
   platform_table.erase(id);
 
-  DLOG(INFO) << "Platform " << id << " is removed";
+  DVLOG(1) << "Platform " << id << " is removed";
 }
 
 bool PlatformManager::accExists(std::string acc_id) {
@@ -257,7 +257,7 @@ void PlatformManager::registerAcc(
   // lock all tables to guarantee exclusive access
   boost::lock_guard<PlatformManager> guard(*this);
 
-  DLOG(INFO) << "Adding acc: " << acc_conf.id();
+  DVLOG(1) << "Adding acc: " << acc_conf.id();
 
   // check if acc of the same already exists
   if (acc_table.find(acc_conf.id()) != acc_table.end()) {

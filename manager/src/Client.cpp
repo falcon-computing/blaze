@@ -77,7 +77,7 @@ void* Client::createInput(
 
   // NOTE: allow user to overwrite input blocks
   if (input_blocks_[idx]) {
-    DLOG(INFO) << "block already allocated";
+    DVLOG(1) << "block already allocated";
 
     if (input_blocks_[idx]->getSize() < num_items * item_length * data_width) {
       throw invalidParam("input block size too big");
@@ -130,7 +130,8 @@ void* Client::createOutput(
   }
   // create a new block and add it to output table
   DataBlock_ptr block(new DataBlock(num_items, 
-        item_length, item_length*data_width));
+        item_length, item_length*data_width, 0, 
+        DataBlock::OWNED));
 
   output_blocks_[idx] = block;
 
@@ -355,9 +356,22 @@ void Client::processOutput(TaskMsg &msg) {
     std::string path = data_msg.file_path();
     VLOG(1) << "Reading output from " << path;
 
-    DataBlock_ptr block(new DataBlock(path, num_items, item_length, item_size));
+    if (data_msg.has_cached() && data_msg.cached()) {
+      // if the block is cached, that means it is owned
+      // by NAM, so we don't delete it 
+      DataBlock_ptr block(new DataBlock(
+            path, num_items, item_length, item_size, 
+            0, DataBlock::SHARED));
 
-    output_blocks_[i] = block;
+      output_blocks_[i] = block;
+    }
+    else {
+      DataBlock_ptr block(new DataBlock(
+            path, num_items, item_length, item_size, 
+            0, DataBlock::OWNED));
+
+      output_blocks_[i] = block;
+    }
   }
   VLOG(1) << "Finish reading output";
 }

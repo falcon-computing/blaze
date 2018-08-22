@@ -9,7 +9,9 @@
 #endif
 #include <glog/logging.h>
 
+#include "blaze/Timer.h"
 #include "blaze/xlnx_opencl/OpenCLBlock.h"
+#include "blaze/xlnx_opencl/OpenCLEnv.h"
 
 namespace blaze {
 
@@ -48,15 +50,14 @@ OpenCLBlock::~OpenCLBlock() {
   if (is_allocated_) {
     clReleaseMemObject(buffer_);
   }
-  DLOG(INFO) << "Destroyed one OpenCLBlock";
+  DVLOG(1) << "Destroyed one OpenCLBlock";
 }
 
 void OpenCLBlock::alloc() {
-
   if (is_allocated_) return;
-  // NOTE: assuming buffer allocation is thread-safe
-  uint64_t start_t = getUs();
+  PLACE_TIMER;
 
+  // NOTE: assuming buffer allocation is thread-safe
   cl_context context = env->getContext();
   cl_int err = 0;
   cl_mem_ext_ptr_t ext_flag;
@@ -66,16 +67,17 @@ void OpenCLBlock::alloc() {
     XCL_MEM_DDR_BANK2, XCL_MEM_DDR_BANK3};
 
   // TODO: use memory_mapped address as host_ptr for now
+  // do we need to align it?
 
   int bank_id = 0;
   if (conf_->get_conf("bankID", bank_id)) {
     ext_flag.flags = bankID[bank_id];
-    DLOG(INFO) << "Setting bankID = " << bank_id;
+    DVLOG(2) << "Setting bankID = " << bank_id;
   }
   ext_flag.obj = mm_region_->get_address();
   ext_flag.param = 0;
 
-  DLOG(INFO) << "Allocating OpenCLBlock of size " << 
+  DVLOG(3) << "Allocating OpenCLBlock of size " << 
     (double)size_ /1024/1024 << "MB";
 
   buffer_ = clCreateBuffer(
@@ -87,11 +89,6 @@ void OpenCLBlock::alloc() {
     throw std::runtime_error("Failed to allocate OpenCL block");
   }
   is_allocated_ = true;
-
-  uint64_t elapse_t = getUs() - start_t;
-  DLOG(INFO) << "Finished allocating OpenCLBlock of size " << 
-    (double)size_ /1024/1024 << "MB takes " <<
-    elapse_t << "us.";
 }
 
 void OpenCLBlock::readFromMem(std::string path) {
@@ -105,6 +102,7 @@ void OpenCLBlock::writeToMem(std::string path) {
 }
 
 void OpenCLBlock::writeData(void* src, size_t _size) {
+  PLACE_TIMER;
   if (_size > size_) {
     throw std::runtime_error("Not enough space left in Block");
   }
@@ -115,15 +113,10 @@ void OpenCLBlock::writeData(void* src, size_t _size) {
   uint64_t start_t = getUs();
   writeData(src, _size, 0);
   is_ready_ = true;
-
-  uint64_t elapse_t = getUs() - start_t;
-  DLOG(INFO) << "Writting OpenCLBlock of size " << 
-    (double)size_ /1024/1024 << "MB takes " <<
-    elapse_t << "us.";
 }
 
 void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
-
+  PLACE_TIMER;
   if (offset+_size > size_) {
     throw std::runtime_error("Exists block size");
   }
@@ -139,6 +132,7 @@ void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
   // NOTE: this is unnecessary if the OpenCL runtime is thread-safe
   //boost::lock_guard<OpenCLEnv> guard(*env);
   //env->lock();
+  
   cl_event event;
   int err = clEnqueueMigrateMemObjects(command, 
       1, &buffer_, 0, offset, NULL, &event);
@@ -151,7 +145,6 @@ void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
   }
   clWaitForEvents(1, &event);
   clReleaseEvent(event);
-  DLOG(INFO) << "Finished writing input data";
 
   //env->unlock();
 
@@ -163,9 +156,7 @@ void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
 // write data to an array
 void OpenCLBlock::readData(void* dst, size_t size) {
   if (is_allocated_) {
-
-    DLOG(INFO) << "Starting to read output data";
-
+    PLACE_TIMER;
     // get the command queue handler
     cl_command_queue command = env->getCmdQueue();
     //cl_event event;
@@ -189,7 +180,6 @@ void OpenCLBlock::readData(void* dst, size_t size) {
 
     clWaitForEvents(1, &event);
     clReleaseEvent(event);
-    DLOG(INFO) << "Finished reading output data";
   }
   else {
     throw std::runtime_error("Block memory not allocated");

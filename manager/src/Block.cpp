@@ -83,9 +83,11 @@ DataBlock::DataBlock(
   mm_file_path_(path),
   conf_(_conf)
 {
+  PLACE_TIMER1("constrct 1");
   calc_sizes(_num_items, _item_length, _item_size, _align_width);
 
   if (path.empty() || !file_exists(mm_file_path_)) {
+    DLOG(ERROR) << "block path: " << path << " is invalid";
     throw fileError(__func__);
   }
   map_region();
@@ -106,6 +108,7 @@ DataBlock::DataBlock(
   flag_(_flag),
   conf_(_conf)
 {
+  PLACE_TIMER1("constrct 2");
   calc_sizes(_num_items, _item_length, _item_size, _align_width);
 
   // create a memory mapped region
@@ -143,7 +146,7 @@ DataBlock::DataBlock(
 
 DataBlock::DataBlock(const DataBlock &block) {
 
-  DLOG(INFO) << "Create a duplication of a block";
+  DVLOG(2) << "Create a duplication of a block";
 
   num_items = block.num_items;
   item_length = block.item_length;
@@ -209,7 +212,7 @@ void* DataBlock::getData() {
   return mm_region_->get_address(); 
 }
 
-void DataBlock::set_ready() {
+void DataBlock::setReady() {
   if (flag_ == OWNED) {
     is_ready_ = true;
   }
@@ -307,11 +310,11 @@ DataBlock_ptr DataBlock::sample(char* mask) {
 
 void DataBlock::readFromMem(std::string path) {
   is_ready_ = true;
-  DLOG(INFO) << "Calling a dummy function";
+  DVLOG(2) << "Calling a dummy function";
 }
 
 void DataBlock::writeToMem(std::string path) {
-  DLOG(INFO) << "Calling a dummy function";
+  DVLOG(2) << "Calling a dummy function";
 }
 
 } // namespace

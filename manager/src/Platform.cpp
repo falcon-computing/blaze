@@ -22,7 +22,7 @@ Platform::Platform(std::map<std::string, std::string> &conf_table)
 
 }
 Platform::~Platform() {
-  DLOG(INFO) << "Platform is removed";
+  DVLOG(1) << "Platform is removed";
 }
 
 // Start TaskQueues for the CPU platform

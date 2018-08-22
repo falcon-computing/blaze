@@ -21,7 +21,7 @@
 namespace blaze {
 
 QueueManager::~QueueManager() {
-  DLOG(INFO) << "QueueManager is destroyed";
+  DVLOG(1) << "QueueManager is destroyed";
 }
 
 void QueueManager::add(AccWorker &conf) {
@@ -94,14 +94,14 @@ void QueueManager::remove(std::string id) {
   queue_table.erase(id);
   this->unlock();
 
-  DLOG(INFO) << "Stopping the TaskManager for " << id;
+  DVLOG(2) << "Stopping the TaskManager for " << id;
   task_manager->stop();
 
   // wait for TaskManager to exit gracefully
   while (task_manager->isBusy()) {
     boost::this_thread::sleep_for(boost::chrono::microseconds(1000));
   }
-  DLOG(INFO) << "TaskManager for " << id << " is successfully stopped";
+  DVLOG(1) << "TaskManager for " << id << " is successfully stopped";
 
   // release the loaded library using dlclose
   // reset errors
@@ -118,7 +118,7 @@ void QueueManager::remove(std::string id) {
                 << error;
   }
   else {
-    DLOG(INFO) << "Task implementation for " << id << " is successfully unloaded";
+    DVLOG(2) << "Task implementation for " << id << " is successfully unloaded";
 
     // only remove item from table if dlclose is successful
     // otherwise prevent new accelerator with the same id 
@@ -155,7 +155,7 @@ void QueueManager::setTaskInputBlock(
 {
   if (idx < task->input_blocks.size()) {
     int64_t block_id = task->input_blocks[idx];
-    DLOG(INFO) << "Reset task input block " << block_id;
+    DVLOG(2) << "Reset task input block " << block_id;
     task->inputBlockReady(block_id, block);
   }
 }

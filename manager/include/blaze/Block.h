@@ -82,12 +82,12 @@ public:
   int getItemSize() { return item_size; }
   int getLength() { return length; }
   int getSize() { return size_; }
-
-  void set_ready();
+  Flag getFlag() { return flag_; }
 
   // status check of DataBlock needs to be exclusive
   bool isAllocated();
   bool isReady();
+  void setReady();
 
 protected:
   Flag flag_;       

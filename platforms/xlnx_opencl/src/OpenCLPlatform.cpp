@@ -5,6 +5,7 @@
 
 #include "blaze/BlockManager.h"
 #include "blaze/Platform.h"
+#include "blaze/Timer.h"
 #include "blaze/xlnx_opencl/OpenCLEnv.h"
 #include "blaze/xlnx_opencl/OpenCLPlatform.h"
 #include "blaze/xlnx_opencl/OpenCLQueueManager.h"
@@ -57,7 +58,7 @@ OpenCLPlatform::OpenCLPlatform(
       "this binary only supports Xilinx FPGAs";
     throw std::runtime_error("No supported platform found");
   }
-  DLOG(INFO) << "Found Xilinx OpenCLPlatform at " << platform_idx;
+  DVLOG(1) << "Found Xilinx OpenCLPlatform at " << platform_idx;
 
   // Connect to a compute device
   err = clGetDeviceIDs(
@@ -125,9 +126,8 @@ OpenCLPlatform::~OpenCLPlatform() {
       sizeof(cl_uint),
       (void*)&(ref_count),
       &ret_size);
-  DLOG(INFO) << "CL_DEVICE_REFERENCE_COUNT = " << ref_count;
 
-  DLOG(INFO) << "OpenCLPlatform is destroyed";
+  DVLOG(1) << "OpenCLPlatform is destroyed";
 }
 
 void OpenCLPlatform::createBlockManager(
@@ -168,7 +168,7 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
     throw invalidParam("Invalid configuration");
   }
 
-  DLOG(INFO) << "Load Bitstream from file " << program_path.c_str();
+  DVLOG(2) << "Load Bitstream from file " << program_path.c_str();
 
   // Load binary from disk
   int n_i = load_file(
@@ -216,7 +216,7 @@ void OpenCLPlatform::removeQueue(std::string id) {
   bitstreams.erase(id);
   //kernel_list.erase(id);
 
-  DLOG(INFO) << "Removed queue for " << id;
+  DVLOG(1) << "Removed queue for " << id;
 }
 
 void OpenCLPlatform::changeProgram(std::string acc_id) {
@@ -231,17 +231,12 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
   // check if corresponding kernel is current
   if (curr_acc_id.compare(acc_id) != 0) {
-
-    start_t = getUs();
+    PLACE_TIMER;
 
     // release previous kernel
     if (curr_program) {
       clReleaseProgram(curr_program);
     }
-
-    elapse_t = getUs() - start_t;
-    DLOG(INFO) << "Releasing program and kernel takes " << 
-      elapse_t << "us.";
 
     if (bitstreams.find(acc_id) == bitstreams.end()) {
       DLOG(ERROR) << "Bitstream not setup correctly";
