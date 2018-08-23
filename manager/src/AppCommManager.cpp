@@ -139,7 +139,7 @@ void AppCommManager::process(socket_ptr sock) {
           int64_t scalar_val = recv_block.scalar_value();
 
           // add the scalar as a new block
-          DataBlock_ptr block(new DataBlock(1, 1, 8));
+          DataBlock_ptr block(new DataBlock(1, 1, 8, 0, DataBlock::OWNED));
           block->writeData((void*)&scalar_val, 8);
 
           /* skip BlockManager and directly add it to task
@@ -348,7 +348,7 @@ void AppCommManager::process(socket_ptr sock) {
             DLOG(WARNING) << "Skipping ready block " << blockId;
             break;
           }
-          VLOG(1) << "Start reading data for block " << blockId;
+          VLOG(2) << "Start reading data for block " << blockId;
 
           // block_status: <cached, sampled>
           std::pair<bool, bool> block_status = block_table[blockId];
@@ -475,7 +475,7 @@ void AppCommManager::process(socket_ptr sock) {
                 std::to_string((long long)blockId)+(" because: ")+
                 std::string(e.what()));
           }
-          RVLOG(INFO, 1) << "Finish reading data for block " << blockId;
+          RVLOG(INFO, 2) << "Finish reading data for block " << blockId;
         }
       } // 2. Finish handling ACCDATA
 
@@ -536,7 +536,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
         task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
-        RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
+        RVLOG(INFO, 1) << "Task finished, sent an ACCFINISH";
 
         // add block information to finish message 
         // for all output blocks

@@ -77,7 +77,7 @@ void* Client::createInput(
 
   // NOTE: allow user to overwrite input blocks
   if (input_blocks_[idx]) {
-    DVLOG(1) << "block already allocated";
+    DVLOG(1) << "block " << idx << " already allocated";
 
     if (input_blocks_[idx]->getSize() < num_items * item_length * data_width) {
       throw invalidParam("input block size too big");
@@ -94,6 +94,7 @@ void* Client::createInput(
           DataBlock::OWNED));
 
     input_blocks_[idx] = block;
+    //DVLOG(1) << "Allocate block " << idx;
 
     // generate block info include (id, cached)
     int64_t block_id = ((int64_t)getTid()<<10) + idx;
