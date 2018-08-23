@@ -16,10 +16,7 @@
 #define LOG_HEADER "main"
 #include <glog/logging.h>
 
-// use flexlm
-#ifdef USELICENSE
-#include "falcon-lic/license.h"
-#endif
+#include "falcon-lic/genome.h"
 
 #include "blaze/AppCommManager.h"
 #include "blaze/BlockManager.h"
@@ -37,25 +34,12 @@ int main(int argc, char** argv) {
   FLAGS_logtostderr = 1;
   google::InitGoogleLogging(argv[0]);
 
-#ifdef USELICENSE
-  // check license
-  namespace fc   = falconlic;
-#if DEPLOYMENT == aws
-  fc::enable_aws();
-#elif DEPLOYMENT == hwc
-  fc::enable_hwc();
-#endif
-  fc::enable_flexlm();
-
-  namespace fclm = falconlic::flexlm;
-  fclm::add_feature(fclm::FALCON_DNA);
-  int licret = fc::license_verify();
-  if (licret != fc::SUCCESS) {
+  int licret = license_verify();
+  if (licret != 0) {
     LOG(ERROR) << "Cannot authorize software usage: " << licret;
     LOG(ERROR) << "Please contact support@falcon-computing.com for details.";
     return licret;
   }
-#endif
   
   srand(time(NULL));
 
@@ -163,11 +147,6 @@ int main(int argc, char** argv) {
     boost::this_thread::sleep_for(boost::chrono::seconds(300)); 
     print_timers();
   }
-
-#ifdef USELICENSE
-  // release license
-  fc::license_clean();
-#endif
 
   return 0;
 }

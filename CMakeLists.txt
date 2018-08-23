@@ -35,6 +35,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS
 # current manager has issue with -O3, so default to O2 instead
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -Wall -DUSELICENSE")
 
+if(DEPLOYMENT_DST) 
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DDEPLOY_${DEPLOYMENT_DST}")
+    set(BIN_VERSION "${GIT_VERSION}-${DEPLOYMENT_DST}")
+    message(STATUS "destination deployment platform is ${DEPLOYMENT_DST}")
+else()
+    set(BIN_VERSION "${GIT_VERSION}")
+endif()
+
+if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    set(BIN_VERSION "${BIN_VERSION}-dev")
+endif()
+
 message(STATUS "version: ${BIN_VERSION}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVERSION=\\\"${BIN_VERSION}\\\"")
 

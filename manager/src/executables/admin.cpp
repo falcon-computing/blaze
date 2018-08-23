@@ -6,12 +6,8 @@
 #define LOG_HEADER "Admin"
 #include <glog/logging.h>
 
-// use flexlm
-#ifdef USELICENSE
-#include "falcon-lic/license.h"
-#endif
-
 #include "blaze/Admin.h"
+#include "falcon-lic/genome.h"
 
 using namespace blaze;
 
@@ -22,24 +18,12 @@ int main(int argc, char** argv) {
   FLAGS_logtostderr = 1;
   FLAGS_v = 1;
 
-#ifdef USELICENSE
-  namespace fc   = falconlic;
-#if DEPLOYMENT == aws
-  fc::enable_aws();
-#elif DEPLOYMENT == hwc
-  fc::enable_hwc();
-#endif
-  fc::enable_flexlm();
-
-  namespace fclm = falconlic::flexlm;
-  fclm::add_feature(fclm::FALCON_DNA);
-  int licret = fc::license_verify();
-  if (licret != fc::SUCCESS) {
+  int licret = license_verify();
+  if (licret != 0) {
     LOG(ERROR) << "Cannot authorize software usage: " << licret;
     LOG(ERROR) << "Please contact support@falcon-computing.com for details.";
     return licret;
   }
-#endif
 
   srand(time(NULL));
 
@@ -73,11 +57,6 @@ int main(int argc, char** argv) {
   else {
     admin.deleteAcc(*conf);
   }
-
-#ifdef USELICENSE
-  // release license
-  fc::license_clean();
-#endif
 
   return 0;
 }
