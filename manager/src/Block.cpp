@@ -128,6 +128,8 @@ DataBlock::DataBlock(
     // set the size
     fbuf.pubseekoff(size_-1, std::ios_base::beg);
     fbuf.sputc(0);
+
+    DVLOG(1) << "Allocate block at " << mm_file_path_;
   }
 
   map_region();
@@ -168,6 +170,7 @@ DataBlock::~DataBlock() {
   if (mm_region_ && flag_ == OWNED) {
     boost::interprocess::file_mapping::remove(mm_file_path_.c_str());
     boost::filesystem::remove(boost::filesystem::path(mm_file_path_));
+    DVLOG(1) << "Release block at " << mm_file_path_;
   }
   // mm_region_ should be released by itself
 }
@@ -232,11 +235,9 @@ void DataBlock::writeData(void* src, size_t _size) {
   }
   PLACE_TIMER;
   if (!is_aligned_) {
-    boost::lock_guard<DataBlock> guard(*this);
     writeData(src, _size, 0);
   }
   else {
-    boost::lock_guard<DataBlock> guard(*this);
     for (int k=0; k<num_items; k++) {
       int data_size = item_length*data_width;
       writeData((void*)((char*)src + k*data_size), 
