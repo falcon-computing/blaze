@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <boost/system/error_code.hpp>
+#include <boost/thread/thread.hpp>
 #include <fcntl.h>
 #include <fstream>
 #include <ifaddrs.h>
@@ -29,11 +30,20 @@
 
 using namespace blaze;
 
+
+void sigint_handler(int s) {
+  throw std::runtime_error("");
+}
+
 int main(int argc, char** argv) {
 
   FLAGS_logtostderr = 1;
   google::InitGoogleLogging(argv[0]);
 
+  signal(SIGINT, sigint_handler);
+  signal(SIGTERM, sigint_handler);
+
+  // print timer information every 5 minutes in debug mode
   int licret = license_verify();
   if (licret != 0) {
     LOG(ERROR) << "Cannot authorize software usage: " << licret;
@@ -142,11 +152,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // print timer information every 5 minutes in debug mode
   while (1) {
-    boost::this_thread::sleep_for(boost::chrono::seconds(300)); 
-    print_timers();
+    try {
+      boost::this_thread::sleep_for(boost::chrono::seconds(300)); 
+      print_timers();
+    }
+    catch(std::runtime_error const& ) {
+      break;
+    }
   }
+  print_timers();
 
   return 0;
 }
