@@ -127,8 +127,7 @@ void AppCommManager::process(socket_ptr sock) {
       bool wait_accdata = false;
 
       // 1.3 iterate through each input block
-      {
-        PLACE_TIMER1("process AccRequest");
+      { PLACE_TIMER1("process AccRequest");
       for (int i = 0; i < task_msg.data_size(); i++) {
 
         DataMsg recv_block = task_msg.data(i);
@@ -482,8 +481,7 @@ void AppCommManager::process(socket_ptr sock) {
       { PLACE_TIMER1("Wait task ready")
       // wait on task ready
       while (!task->isReady()) {
-        boost::this_thread::sleep_for(
-            boost::chrono::microseconds(1)); 
+        boost::this_thread::sleep_for(boost::chrono::microseconds(1));
       }
 
       RVLOG(INFO, 2) << "Task ready, enqueue to be executed";
@@ -538,6 +536,8 @@ void AppCommManager::process(socket_ptr sock) {
 
         RVLOG(INFO, 1) << "Task finished, sent an ACCFINISH";
 
+        bool wait_ack = false;
+
         // add block information to finish message 
         // for all output blocks
         int64_t outId = 0;
@@ -561,6 +561,7 @@ void AppCommManager::process(socket_ptr sock) {
             // delete it, NAM needs to make sure it block is not
             // deleted before client finish reading
             block_info->set_cached(true);
+            wait_ack = true;
           }
 
           outId ++;
@@ -572,6 +573,21 @@ void AppCommManager::process(socket_ptr sock) {
           RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
         } catch (std::exception &e) {
           RVLOG(ERROR, 1) << "Cannot send ACCFINISH";
+        }
+
+        // wait for client ack to keep the task context
+        try {
+          TaskMsg ack_msg;
+          recv(ack_msg, sock);
+
+          if (ack_msg.type() == ACCFINISH) {
+            DVLOG(2) << "Got client ack message";
+          }
+          else {
+            throw AccFailure("Fail to get client ACK");
+          }
+        } catch (std::exception &e) {
+          throw AccFailure("Fail to get client ACK");
         }
       }
       else {
@@ -689,6 +705,7 @@ void AppCommManager::process(socket_ptr sock) {
     DLOG(ERROR) << "Unexpected exception: " << e.what();
   }
 }
+
 void AppCommManager::handleAccRegister(TaskMsg &msg) {
 
   if (!msg.has_acc()) {

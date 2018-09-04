@@ -23,7 +23,8 @@ Client::Client(
   input_blocks_(_num_inputs),
   output_blocks_(_num_outputs),
   block_info_(_num_inputs, std::make_pair(0, false)),
-  input_size_info_(_num_inputs)
+  input_size_info_(_num_inputs),
+  send_ack_(false)
 {
   srand(time(NULL));
 
@@ -251,7 +252,19 @@ void Client::start(bool blocking) {
         << " instead of ACCFINISH";
       throw std::runtime_error("did not receive ACCFINISH");
     }
-     
+    
+    // reply an ACCFINISH if one or more output blocks
+    // are owned by NAM
+    if (send_ack_) {
+      TaskMsg msg;
+      msg.set_type(ACCFINISH);
+      try {
+        send(msg);
+      } catch (std::exception &e) {
+        RVLOG(ERROR, 1) << "Fail to send ACK to NAM";
+        // do nothing if we cannot send an ACK message
+      }
+    }
   }
   catch (std::exception &e) {
     VLOG(1) << "Task failed because: " << e.what();
@@ -365,6 +378,8 @@ void Client::processOutput(TaskMsg &msg) {
             0, DataBlock::SHARED));
 
       output_blocks_[i] = block;
+
+      send_ack_ = true;
     }
     else {
       DataBlock_ptr block(new DataBlock(

@@ -90,6 +90,8 @@ class Client : public BaseClient {
   // input/output data blocks
   int num_inputs;
   int num_outputs;
+
+  bool send_ack_;
 };
 
 } // namespace blaze
