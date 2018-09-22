@@ -5,7 +5,6 @@
 
 #include "blaze/BlockManager.h"
 #include "blaze/Platform.h"
-#include "blaze/Timer.h"
 #include "blaze/xlnx_opencl/OpenCLEnv.h"
 #include "blaze/xlnx_opencl/OpenCLPlatform.h"
 #include "blaze/xlnx_opencl/OpenCLQueueManager.h"
@@ -84,7 +83,13 @@ OpenCLPlatform::OpenCLPlatform(
 
   // Create a command commands
   cl_command_queue cmd_queue = clCreateCommandQueue(
-      context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
+      context, device_id, 
+#ifndef NO_PROFILING
+      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE, 
+#else
+      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+#endif
+      &err);
 
   if (!cmd_queue) {
     throw std::runtime_error(

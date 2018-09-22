@@ -9,7 +9,6 @@
 #endif
 #include <glog/logging.h>
 
-#include "blaze/Timer.h"
 #include "blaze/xlnx_opencl/OpenCLBlock.h"
 #include "blaze/xlnx_opencl/OpenCLEnv.h"
 

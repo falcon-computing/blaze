@@ -19,7 +19,6 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
-#include "blaze/Timer.h"
 #include "acc_conf.pb.h"
 
 namespace blaze {
@@ -47,7 +46,7 @@ void AppCommManager::process(socket_ptr sock) {
   sock->set_option(option); 
   
   try {
-    PLACE_TIMER;
+
     // 1. Handle ACCREQUEST
     TaskMsg task_msg;
     TaskMsg reply_msg;
@@ -72,6 +71,7 @@ void AppCommManager::process(socket_ptr sock) {
           std::string("Error in receiving TaskMsg: ")+
           std::string(e.what()));
     }
+    ksight::IntvTimer __timer("Processing ACCREQ " + task_msg.acc_id());
     if (task_msg.type() == ACCREQUEST) {
 
       if (!task_msg.has_acc_id() || !task_msg.has_app_id()) {
@@ -280,7 +280,6 @@ void AppCommManager::process(socket_ptr sock) {
       }
 
       uint64_t finish_time;
-      { PLACE_TIMER1("Modify waittime");
       // 1.4 decide to reject the task if wait time is too long
       uint64_t client_time = task->estimateClientTime();
       uint64_t delay_time  = task_manager.lock()->get_queue_delay();
@@ -295,7 +294,6 @@ void AppCommManager::process(socket_ptr sock) {
       }
       else {
         task_manager.lock()->modify_queue_delay(task_time, true);
-      }
       }
 
       // 1.5 send msg back to client
@@ -478,7 +476,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
       } // 2. Finish handling ACCDATA
 
-      { PLACE_TIMER1("Wait task ready")
+      { PLACE_TIMER1("waiting for task ready")
       // wait on task ready
       while (!task->isReady()) {
         boost::this_thread::sleep_for(boost::chrono::microseconds(1));

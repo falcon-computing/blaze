@@ -16,7 +16,9 @@ link_directories(
 add_library(xlnx_opencl SHARED ${SRC_LIST})
 add_dependencies(xlnx_opencl 
     blaze
-    blaze_message)
+    blaze_message
+    Google
+    KSight)
 
 target_link_libraries(xlnx_opencl
     xilinxopencl)

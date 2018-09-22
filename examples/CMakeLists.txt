@@ -4,7 +4,7 @@ include_directories(
 
 function(compile_task proj_name)
   add_library(${proj_name} SHARED ${proj_name}.cpp)
-  add_dependencies(${proj_name} Google)
+  add_dependencies(${proj_name} Google KSight)
   target_link_libraries(${proj_name}
     blaze
     blaze_message)

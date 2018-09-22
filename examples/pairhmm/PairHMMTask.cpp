@@ -6,18 +6,16 @@
 #include <glog/logging.h>
 
 #include "blaze/xlnx_opencl/OpenCLEnv.h" 
+#include "ksight/tools.h"
 #include "PairHMMFpgaInterface.h"
 #include "PairHMMTask.h"
 
-#ifndef LOCAL_BLAZE
-#include "blaze/Timer.h"
-#else
-#include "acc_lib/Timer.h"
+#ifdef LOCAL_BLAZE
 double peak_kernel_gcups = 0;
 double curr_kernel_gcups = 0;
 #endif
 
-PairHMM::PairHMM(): blaze::Task(3) 
+PairHMM::PairHMM(): blaze::Task(3), timer_("PairHMM Task")
 {
   ;
 }
@@ -38,7 +36,7 @@ void PairHMM::prepare() {
   read_t* reads = NULL;
   hap_t*  haps  = NULL;
 
-  num_cell = *((int*)getInput(0));
+  num_cell = *((uint64_t*)getInput(0));
 
   num_read = deserialize(getInput(1), reads);
   num_hap  = deserialize(getInput(2), haps);
@@ -53,10 +51,10 @@ void PairHMM::prepare() {
   if (!env->getScratch("input", input_)) {
     PairHMMInput_ptr input(new PairHMMInput(env, bank));
     input_ = input;
-    DLOG(INFO) << "Creating a new PairHMMInput";
+    DVLOG(2) << "Creating a new PairHMMInput";
   }
   else {
-    DLOG(INFO) << "Getting a new PairHMMInput from Scratch";
+    DVLOG(2) << "Getting a new PairHMMInput from Scratch";
   }
   }
 
@@ -103,7 +101,12 @@ void PairHMM::prepare() {
 }
 
 void PairHMM::compute() {
-  PLACE_TIMER;
+  std::string kernel_name;
+  get_conf("kernel_name", kernel_name);
+  ksight::IntvTimer i_timer("pairhmm compute");
+
+  PLACE_TIMER1(kernel_name);
+  uint64_t start_ts = blaze::getUs();
 
   cl_kernel        kernel  = env->getKernel();
   cl_command_queue command = env->getCmdQueue();
@@ -113,20 +116,31 @@ void PairHMM::compute() {
   clSetKernelArg(kernel, 2, sizeof(int), &num_hap);
   clSetKernelArg(kernel, 3, sizeof(cl_mem), (cl_mem*)output_->getData());
 
-  uint64_t k_start = blaze::getUs();
+  uint64_t w_start = blaze::getUs();
 
-  { PLACE_TIMER1("kernel");
+  { PLACE_TIMER1(kernel_name + " kernel");
   cl_event event;
   cl_int err = clEnqueueTask(command, kernel, 0, NULL, &event);
   if (err != CL_SUCCESS) {
     throw std::runtime_error("failed to enqueue kernel");
   }
   clWaitForEvents(1, &event);
+
+#ifndef NO_PROFILING
+  cl_ulong k_start, k_end;
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(k_start), &k_start, NULL);
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(k_end), &k_end, NULL);
+
+  ksight::ksight.add(kernel_name + " cells", (uint64_t)num_cell);
+  ksight::Interval<uint64_t> intv(start_ts, blaze::getUs());
+  ksight::ksight.add("pairhmm kernel", intv);
+#endif
+
   clReleaseEvent(event);
   }
 
 #ifdef LOCAL_BLAZE
-  double gcups = (double)num_cell / (blaze::getUs() - k_start) / 1e3;
+  double gcups = (double)num_cell / (blaze::getUs() - w_start) / 1e3;
   curr_kernel_gcups = gcups;
   peak_kernel_gcups = std::max(gcups, peak_kernel_gcups);
 #endif

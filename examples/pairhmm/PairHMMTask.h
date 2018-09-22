@@ -75,11 +75,12 @@ class PairHMM : public blaze::Task {
     return std::stoi(conf);
   }
 
+  ksight::IntvTimer timer_;
   blaze::OpenCLEnv* env;
 
-  int num_cell;
-  int num_read;
-  int num_hap;
+  uint64_t num_cell;
+  int      num_read;
+  int      num_hap;
   PairHMMInput_ptr     input_;
   blaze::DataBlock_ptr output_;
 };

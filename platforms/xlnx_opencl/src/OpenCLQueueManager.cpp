@@ -9,7 +9,6 @@
 
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
-#include "blaze/Timer.h"
 #include "blaze/xlnx_opencl/OpenCLKernelQueue.h"
 #include "blaze/xlnx_opencl/OpenCLPlatform.h"
 #include "blaze/xlnx_opencl/OpenCLQueueManager.h"
@@ -176,13 +175,9 @@ void OpenCLQueueManager::do_start() {
       // here a round-robin policy is enforced
       // iterate through all task queues
       if (ready_queues.empty()) {
-        std::map<std::string, TaskManager_ptr>::iterator iter;
-        for (iter = queue_table.begin();
-            iter != queue_table.end();
-            ++iter)
-        {
-          if (!iter->second->isEmpty()) {
-            ready_queues.push_back(*iter);
+        for (auto q : queue_table) {
+          if (!q.second->isEmpty()) {
+            ready_queues.push_back(q);
           }
         }
       }
@@ -248,12 +243,14 @@ void OpenCLQueueManager::do_start() {
         counter = 0;
       }
       else { 
-        DLOG_EVERY_N(INFO, 50) << "Queue " << queue_name 
+        if (VLOG_IS_ON(1)) {
+          DLOG_EVERY_N(INFO, 50) << "Queue " << queue_name 
                                << " empty for " << counter << "ms";
+        }
 
         // start counter
         boost::this_thread::sleep_for(boost::chrono::milliseconds(1)); 
-        
+
         counter++;
       }
     }
@@ -287,6 +284,9 @@ bool OpenCLQueueManager::schedule(std::string acc_id, Task* task) {
   }
   DLOG_IF(INFO, VLOG_IS_ON(2)) << 
     "To schedule a task to kernel: " << fastest_k;
+#ifndef NO_PROFILING
+  ksight::ksight.add(fastest_k + std::string(" num task"), 1);
+#endif
 
   // schedule to fastest_q
   return fastest_q->enqueue(task);
