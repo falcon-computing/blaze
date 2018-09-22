@@ -10,6 +10,7 @@
 namespace blaze {
 class ConfigTable {
 public:
+
   template<typename T> 
   bool get_conf(std::string key, T &val) {
     if (!table_.count(key)) return false;
@@ -22,6 +23,17 @@ public:
       return false;
     }
     return true;
+  }
+
+  template<typename T> 
+  T get_conf(std::string key) {
+    T ret;  
+    if (get_conf(key, ret)) {
+      return ret;
+    }
+    else {
+      throw invalidParam("invalid conf key: " + key);
+    }
   }
 
   template<typename T>

@@ -13,7 +13,6 @@
 #include <glog/logging.h>
 
 #include "blaze/Block.h"
-#include "blaze/Timer.h"
 
 namespace blaze {
 

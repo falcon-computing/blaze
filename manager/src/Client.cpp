@@ -2,12 +2,11 @@
 #include <sstream>
 #include <iomanip>
 
-//#define LOG_HEADER "Client"
+#define LOG_HEADER "Client"
 #include <glog/logging.h>
 
 #include "blaze/Block.h"
 #include "blaze/Client.h"
-#include "blaze/Timer.h"
 
 namespace blaze {
 

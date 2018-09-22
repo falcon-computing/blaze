@@ -2,11 +2,10 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/thread/thread.hpp>
 
-#include "blaze/xlnx_opencl/OpenCLKernelQueue.h"
 #include "blaze/Task.h"
 #include "blaze/TaskEnv.h"
 #include "blaze/TaskManager.h"
-#include "blaze/Timer.h"
+#include "blaze/xlnx_opencl/OpenCLKernelQueue.h"
 
 namespace blaze {
 
@@ -19,6 +18,7 @@ OpenCLKernelQueue::OpenCLKernelQueue(
   power_(true), has_time_estimate_(true),
   num_tasks_(0), wait_time_(0)
 {
+  DVLOG(1) << "Started queue for kernel " << conf_->get_conf<std::string>("kernel_name");
   // start a thread to execute
   {
   boost::shared_ptr<boost::thread> t(new boost::thread(
@@ -47,8 +47,14 @@ bool OpenCLKernelQueue::enqueue(Task* task) {
   task_manager_->set_env(task, env_);
   task_manager_->set_conf(task, conf_);
 
-  if (prep_queue_.push(task)) return true;
-  else return false;
+  if (prep_queue_.push(task)) {
+    // increase wait time after adding it to task queue
+    num_tasks_.fetch_add(1);
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 uint64_t OpenCLKernelQueue::get_num_tasks() {
@@ -70,6 +76,7 @@ void OpenCLKernelQueue::do_prepare() {
 
     if (!task) {
       RVLOG(ERROR, 1) << "Task already destroyed";
+      num_tasks_.fetch_sub(1);
       continue;
     }
 
@@ -85,8 +92,6 @@ void OpenCLKernelQueue::do_prepare() {
     while (!exe_queue_.push(task)) {
       boost::this_thread::sleep_for(boost::chrono::microseconds(1)); 
     }
-    // increase wait time after adding it to task queue
-    num_tasks_.fetch_add(1);
 
     if (has_time_estimate_) {
       uint64_t est = task->estimateTaskTime();

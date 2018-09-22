@@ -18,6 +18,9 @@
 #include <sys/stat.h>
 #include <vector>
 
+// for profiling
+#include "ksight/tools.h"
+
 namespace blaze {
 
 // constant parameter definition

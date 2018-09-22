@@ -4,7 +4,7 @@
 #include <string.h>
 #include <vector>
 
-#include "blaze/Timer.h"
+#include "ksight/tools.h"
 #include "PairHMMHostInterface.h"
 
 // Encode a scalar value to serialized data

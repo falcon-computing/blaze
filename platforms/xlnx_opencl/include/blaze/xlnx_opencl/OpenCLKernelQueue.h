@@ -41,6 +41,7 @@ class OpenCLKernelQueue {
   ConfigTable_ptr conf_;
   bool power_;
   bool has_time_estimate_;
+  std::string kernel_name_;
 
   // for task estimation
   mutable boost::atomic<uint64_t> num_tasks_;

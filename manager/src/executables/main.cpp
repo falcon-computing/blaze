@@ -26,10 +26,8 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/QueueManager.h"
 #include "blaze/TaskManager.h"
-#include "blaze/Timer.h"
 
 using namespace blaze;
-
 
 void sigint_handler(int s) {
   throw std::runtime_error("");
@@ -43,7 +41,6 @@ int main(int argc, char** argv) {
   signal(SIGINT, sigint_handler);
   signal(SIGTERM, sigint_handler);
 
-  // print timer information every 5 minutes in debug mode
   int licret = license_verify();
   if (licret != 0) {
     LOG(ERROR) << "Cannot authorize software usage: " << licret;
@@ -154,14 +151,16 @@ int main(int argc, char** argv) {
 
   while (1) {
     try {
-      boost::this_thread::sleep_for(boost::chrono::seconds(300)); 
-      print_timers();
+      boost::this_thread::sleep_for(boost::chrono::seconds(5)); 
+      //print_timers();
+      ksight::ksight.print(); 
     }
     catch(std::runtime_error const& ) {
       break;
     }
   }
-  print_timers();
+  ksight::ksight.print(); 
+  ksight::ksight.print_total(); 
 
   return 0;
 }
