@@ -40,6 +40,7 @@ add_dependencies(admin Google FalconLM KSight)
 target_link_libraries(admin
     blaze
     ${Google_LIBRARIES}
+    ${FalconLM_LIBRARIES}
     ${KSight_LIBRARIES}
     ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
