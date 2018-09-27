@@ -39,6 +39,8 @@ int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
 
   signal(SIGINT, sigint_handler);
+  signal(SIGQUIT, sigint_handler);
+  signal(SIGTRAP, sigint_handler);
   signal(SIGTERM, sigint_handler);
 
   int licret = license_verify();
