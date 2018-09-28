@@ -44,8 +44,10 @@ PlatformManager::~PlatformManager() {
                   " before destroying platform manager";
     removePlatform(it->first);
   }
+#ifndef NO_PROFILE
   // print global timers when platform manager is destroyed
   ksight::ksight.print_total();
+#endif
 }
 
 void PlatformManager::registerPlatform(AccPlatform conf) {

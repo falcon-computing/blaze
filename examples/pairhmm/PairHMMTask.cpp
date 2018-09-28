@@ -126,7 +126,7 @@ void PairHMM::compute() {
   }
   clWaitForEvents(1, &event);
 
-#ifndef NO_PROFILING
+#ifndef NO_PROFILE
   cl_ulong k_start, k_end;
   clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(k_start), &k_start, NULL);
   clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(k_end), &k_end, NULL);

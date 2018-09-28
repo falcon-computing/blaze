@@ -155,14 +155,18 @@ int main(int argc, char** argv) {
     try {
       boost::this_thread::sleep_for(boost::chrono::seconds(5)); 
       //print_timers();
+#ifndef NO_PROFILE
       ksight::ksight.print(); 
+#endif
     }
     catch(std::runtime_error const& ) {
       break;
     }
   }
+#ifndef NO_PROFILE
   ksight::ksight.print(); 
   ksight::ksight.print_total(); 
+#endif
 
   return 0;
 }
