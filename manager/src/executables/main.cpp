@@ -38,11 +38,6 @@ int main(int argc, char** argv) {
   FLAGS_logtostderr = 1;
   google::InitGoogleLogging(argv[0]);
 
-  signal(SIGINT, sigint_handler);
-  signal(SIGQUIT, sigint_handler);
-  signal(SIGTRAP, sigint_handler);
-  signal(SIGTERM, sigint_handler);
-
   int licret = license_verify();
   if (licret != 0) {
     LOG(ERROR) << "Cannot authorize software usage: " << licret;
@@ -93,6 +88,11 @@ int main(int argc, char** argv) {
 
   // setup PlatformManager
   PlatformManager platform_manager(conf);
+
+  signal(SIGINT, sigint_handler);
+  signal(SIGQUIT, sigint_handler);
+  signal(SIGTRAP, sigint_handler);
+  signal(SIGTERM, sigint_handler);
 
   // check all network interfaces on this computer, and 
   // open a communicator on each interface using the same port
