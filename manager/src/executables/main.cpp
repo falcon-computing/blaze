@@ -163,10 +163,6 @@ int main(int argc, char** argv) {
       break;
     }
   }
-#ifndef NO_PROFILE
-  ksight::ksight.print(); 
-  ksight::ksight.print_total(); 
-#endif
 
   return 0;
 }

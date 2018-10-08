@@ -32,7 +32,7 @@ execute_process(
     OUTPUT_VARIABLE GIT_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS -fPIC -DVERSION=\\\"${BIN_VERSION}\\\"")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DBOOST_NO_CXX11_SCOPED_ENUMS -fPIC")
 # current manager has issue with -O3, so default to O2 instead
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -Wall -DUSELICENSE")
 
@@ -46,6 +46,8 @@ endif()
 
 if(NO_PROFILE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_PROFILE")
+else()
+  message(STATUS "Profiling is enabled")
 endif()
 
 if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
