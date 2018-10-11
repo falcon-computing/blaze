@@ -4,128 +4,102 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef NDEBUG
 #define LOG_HEADER  "OpenCLBlock"
+#endif
 #include <glog/logging.h>
 
 #include "blaze/altr_opencl/OpenCLBlock.h"
+#include "blaze/altr_opencl/OpenCLEnv.h"
 
 namespace blaze {
 
-void OpenCLBlock::alloc() {
+OpenCLBlock::OpenCLBlock(OpenCLEnv* _env, 
+      std::string path,
+      int _num_items, 
+      int _item_length,
+      int _item_size,
+      int _align_width,
+      DataBlock::Flag _flag,
+      ConfigTable_ptr conf):
+  env(_env), 
+  is_allocated_(false),
+  buffer_(nullptr),
+  DataBlock(path, _num_items, _item_length, _item_size, _align_width, _flag, conf)
+{
+  ;
+}
 
-  if (!allocated) {
-    // NOTE: assuming buffer allocation is thread-safe
-    uint64_t start_t = getUs();
-
-    cl_context context = env->getContext();
-    cl_int err = 0;
-
-    DLOG(INFO) << "Allocating OpenCLBlock of size " << 
-      (double)size /1024/1024 << "MB";
-
-    data = clCreateBuffer(
-        context, CL_MEM_READ_ONLY,  
-        size, NULL, &err);
-
-    if (err != CL_SUCCESS) {
-      throw std::runtime_error("Failed to allocate OpenCL block");
-    }
-    allocated = true;
-
-    uint64_t elapse_t = getUs() - start_t;
-    DLOG(INFO) << "Finished allocating OpenCLBlock of size " << 
-      (double)size /1024/1024 << "MB takes " <<
-      elapse_t << "us.";
+OpenCLBlock::OpenCLBlock(OpenCLEnv* _env, 
+      int _num_items, 
+      int _item_length,
+      int _item_size,
+      int _align_width,
+      DataBlock::Flag _flag,
+      ConfigTable_ptr conf):
+  env(_env), 
+  is_allocated_(false),
+  buffer_(nullptr),
+  DataBlock(_num_items, _item_length, _item_size, _align_width, _flag, conf)
+{
+  ;
+}
+  
+OpenCLBlock::~OpenCLBlock() {
+  if (is_allocated_) {
+    clReleaseMemObject(buffer_);
   }
+  DVLOG(1) << "Destroyed one OpenCLBlock";
+}
+
+void OpenCLBlock::alloc() {
+  if (is_allocated_) return;
+  PLACE_TIMER;
+
+  // NOTE: assuming buffer allocation is thread-safe
+  cl_context context = env->getContext();
+  cl_int err = 0;
+
+  // TODO: use memory_mapped address as host_ptr for now
+  // do we need to align it?
+
+  /*
+  int bank_id = 0;
+  if (conf_->get_conf("bankID", bank_id)) {
+    ext_flag.flags = bankID[bank_id];
+    DVLOG(2) << "Setting bankID = " << bank_id;
+  }
+  ext_flag.obj = mm_region_->get_address();
+  ext_flag.param = 0;
+  */
+
+  DVLOG(3) << "Allocating OpenCLBlock of size " << 
+    (double)size_ /1024/1024 << "MB";
+
+  buffer_ = clCreateBuffer(
+      context, 
+      CL_MEM_READ_WRITE,
+      size_, NULL, &err);
+
+  if (err != CL_SUCCESS) {
+    throw std::runtime_error("Failed to allocate OpenCL block");
+  }
+  is_allocated_ = true;
 }
 
 void OpenCLBlock::readFromMem(std::string path) {
-
-  boost::iostreams::mapped_file_source fin;
-
-  fin.open(path, size);
-
-  if (fin.is_open()) {
-    
-    uint64_t start_t = getUs();
-
-    // first copy data from shared memory to a temp buffer 
-    // NOTE: Altera OpenCL requires host ptr to be aligned to 64-byte
-    char* temp_data;
-    posix_memalign((void**)&temp_data, 512, size);
-    char* mem_ptr = (char*)fin.data();
-
-    if (aligned) {
-      for (int k=0; k<num_items; k++) {
-
-        // element size in memory
-        int data_size = item_length*data_width;
-
-        // memcpy is parallel among all tasks
-        memcpy((void*)(temp_data+k*item_size), 
-            (void*)(mem_ptr+k*data_size), data_size);
-      }
-    }
-    else {
-      memcpy((void*)temp_data, (void*)mem_ptr, size);
-    }
-
-    uint64_t elapse_t = getUs() - start_t;
-    DLOG(INFO) << "Read " <<
-      (double)size /1024/1024 << "MB of data from mmap file takes " <<
-      elapse_t << "us.";
-
-    // then write temp buffer to FPGA, will be serialized among all tasks
-    writeData(temp_data, size);
-
-    free(temp_data);
-    fin.close();
-  }
-  else {
-    throw std::runtime_error(std::string("Cannot find file: ") + path);
-  }
+  // then write temp buffer to FPGA, will be serialized among all tasks
+  writeData(NULL, size_);
 }
 
 void OpenCLBlock::writeToMem(std::string path) {
-
-  // lazy allocation
-  //alloc();
-
-  int data_size = size;
-
-  boost::iostreams::mapped_file_params param(path); 
-  param.flags = boost::iostreams::mapped_file::mapmode::readwrite;
-  param.new_file_size = data_size;
-  param.length = data_size;
-  boost::iostreams::mapped_file_sink fout(param);
-
-  if (!fout.is_open()) {
-    throw fileError(std::string("Cannot write file: ") + path);
-  }
-
   // first copy data from FPGA to a temp buffer, will be serialized among all tasks
-  // NOTE: Altera OpenCL requires host ptr to be aligned to 64-byte
-  char* temp_data;
-  posix_memalign((void**)&temp_data, 512, data_size);
-
-  readData(temp_data, data_size);
-
-  // then copy data from temp buffer to shared memory, in parallel among all tasks
-  memcpy((void*)fout.data(), temp_data, data_size);
-
-  free(temp_data);
-  fout.close();
-
-  // change permission
-  // NOTE: here there might be a security issue need to be addressed
-  boost::filesystem::wpath wpath(path);
-  boost::filesystem::permissions(wpath, boost::filesystem::add_perms |
-      boost::filesystem::group_read |
-      boost::filesystem::others_read);
+  readData(NULL, size_);
 }
 
 void OpenCLBlock::writeData(void* src, size_t _size) {
-  if (_size > size) {
+  PLACE_TIMER;
+  if (_size > size_) {
     throw std::runtime_error("Not enough space left in Block");
   }
 
@@ -134,18 +108,14 @@ void OpenCLBlock::writeData(void* src, size_t _size) {
 
   uint64_t start_t = getUs();
   writeData(src, _size, 0);
-  ready = true;
-
-  uint64_t elapse_t = getUs() - start_t;
-  DLOG(INFO) << "Writting OpenCLBlock of size " << 
-    (double)size /1024/1024 << "MB takes " <<
-    elapse_t << "us.";
+  is_ready_ = true;
 }
 
 void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
-
-  if (offset+_size > size) {
-    throw std::runtime_error("Exists block size");
+  // NOTE: src is not used
+  PLACE_TIMER;
+  if (offset+_size > size_) {
+    throw std::runtime_error("Exceeds block size");
   }
 
   // lazy allocation
@@ -153,55 +123,55 @@ void OpenCLBlock::writeData(void* src, size_t _size, size_t offset) {
 
   // get the command queue handler
   cl_command_queue command = env->getCmdQueue();
-  cl_event event;
+  //cl_event event;
 
   // use a lock on TaskEnv to guarantee single-thread access to command queues
   // NOTE: this is unnecessary if the OpenCL runtime is thread-safe
   //boost::lock_guard<OpenCLEnv> guard(*env);
-  env->lock();
-
-  int err = clEnqueueWriteBuffer(
-      command, data, CL_TRUE, offset, 
-      _size, src, 0, NULL, &event);
-  DLOG(INFO) << "clEnqueueWriteBuffer finished";
-  env->unlock();
+  //env->lock();
+  
+  int err = clEnqueueWriteBuffer(command, 
+      buffer_, CL_TRUE, offset, _size,
+      mm_region_->get_address(), 0, NULL, NULL);
 
   if (err != CL_SUCCESS) {
     DLOG(ERROR) << "clEnqueueWriteBuffer error: " << err;
     DLOG(ERROR) << "block infomation: size=" << _size ;
-    throw std::runtime_error("Failed to write to OpenCL block");
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "failed to write host data to cl_buffer";
+    throw runtimeError(__func__);
   }
 
-  if (offset + _size == size) {
-    ready = true;
-  }
+  //env->unlock();
+
+  if (offset + _size == size_) {
+    is_ready_ = true;
+  } // TODO: need to confirm the logics here
 }
 
 // write data to an array
 void OpenCLBlock::readData(void* dst, size_t size) {
-  if (allocated) {
-
-    DLOG(INFO) << "Starting to read output data";
-
+  // NOTE: dst is not used
+  if (is_allocated_) {
+    PLACE_TIMER;
     // get the command queue handler
     cl_command_queue command = env->getCmdQueue();
-    cl_event event;
+    //cl_event event;
 
     // use a lock on TaskEnv to guarantee single-thread 
     // access to command queues
     // NOTE: this is unnecessary if the OpenCL runtime is thread-safe
-    boost::lock_guard<OpenCLEnv> guard(*env);
+    //boost::lock_guard<OpenCLEnv> guard(*env);
 
-    int err = clEnqueueReadBuffer(
-      command, data, CL_TRUE, 0, 
-      size, dst, 0, NULL, &event);
+    int err = clEnqueueReadBuffer(command, 
+        buffer_, CL_TRUE, 0, size,
+        mm_region_->get_address(), 0, NULL, NULL);
 
     if (err != CL_SUCCESS) {
       DLOG(ERROR) << "clEnqueueReadBuffer error: " << err;
       DLOG(ERROR) << "block infomation: size=" << size;
-      throw std::runtime_error("Failed to write to OpenCL block");
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "failed to write host data to cl_buffer";
+      throw runtimeError(__func__);
     }
-    DLOG(INFO) << "Finished reading output data";
   }
   else {
     throw std::runtime_error("Block memory not allocated");
@@ -209,7 +179,7 @@ void OpenCLBlock::readData(void* dst, size_t size) {
 }
 
 DataBlock_ptr OpenCLBlock::sample(char* mask) {
-
+#if 0
   // count the total number of 
   int masked_items = 0;
   for (int i=0; i<num_items; i++) {
@@ -238,7 +208,7 @@ DataBlock_ptr OpenCLBlock::sample(char* mask) {
   // array of cl_event to wait until all buffer copy is finished
   cl_event *events = new cl_event[num_items];
 
-  for (int i=0; i<num_items; i++) {
+  for (int i = 0; i < num_items; i++) {
     if (mask[i] != 0) {
       err = clEnqueueCopyBuffer(command, 
           data, masked_data,
@@ -259,11 +229,16 @@ DataBlock_ptr OpenCLBlock::sample(char* mask) {
   if (err != CL_SUCCESS) {
     throw std::runtime_error("Error during sampling");
   }
+
+  for (int i = 0 ; i < num_items; i++) {
+    clReleaseEvent(events[i]);
+  }
   ocl_block->ready = true;
 
   delete [] events;
 
   return block;
+#endif
 }
 
 } // namespace
