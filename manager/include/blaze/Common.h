@@ -31,6 +31,9 @@ namespace blaze {
 // macros for glog
 #define RVLOG(type, v) LOG_IF(type, VLOG_IS_ON(v))
 
+// global flags
+extern bool gf_profile;
+
 // forward declaration of all classes
 class BaseClient;
 class BlockManager;

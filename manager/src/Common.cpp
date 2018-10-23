@@ -20,6 +20,8 @@
 
 namespace blaze {
 
+  bool gf_profile = false;
+
   uint64_t getUs() {
     struct timespec tr;
     clock_gettime(CLOCK_REALTIME, &tr);

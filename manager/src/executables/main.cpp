@@ -74,6 +74,8 @@ int main(int argc, char** argv) {
   int gam_port = conf->gam_port();  // port for GAM
   local_dir    = conf->local_dir(); // local dir for temp files
 
+  gf_profile   = conf->profile();
+
   // create local dir
   try {
     local_dir += "/nam-" + getUid();
@@ -156,7 +158,9 @@ int main(int argc, char** argv) {
       boost::this_thread::sleep_for(boost::chrono::seconds(5)); 
       //print_timers();
 #ifndef NO_PROFILE
-      ksight::ksight.print(); 
+      if (gf_profile) {
+        ksight::ksight.print(); 
+      }
 #endif
     }
     catch(std::runtime_error const& ) {

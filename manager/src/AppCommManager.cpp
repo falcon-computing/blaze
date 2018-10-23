@@ -532,7 +532,7 @@ void AppCommManager::process(socket_ptr sock) {
         }
         task_manager.lock()->modify_queue_delay(expected_delay_time, false);
 
-        RVLOG(INFO, 1) << "Task finished, sent an ACCFINISH";
+        RVLOG(INFO, 1) << "Task finished";
 
         bool wait_ack = false;
 
@@ -568,7 +568,7 @@ void AppCommManager::process(socket_ptr sock) {
 
         try {
           send(finish_msg, sock);
-          RVLOG(INFO, 2) << "Task finished, sent an ACCFINISH";
+          RVLOG(INFO, 2) << "Sent an ACCFINISH";
         } catch (std::exception &e) {
           RVLOG(ERROR, 1) << "Cannot send ACCFINISH";
         }
