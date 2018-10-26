@@ -1,11 +1,13 @@
+#ifdef NDEBUG
 #define LOG_HEADER "OpenCLPlatform"
+#endif
 #include <glog/logging.h>
 
+#include "blaze/BlockManager.h"
+#include "blaze/Platform.h"
 #include "blaze/altr_opencl/OpenCLEnv.h"
 #include "blaze/altr_opencl/OpenCLPlatform.h"
 #include "blaze/altr_opencl/OpenCLQueueManager.h"
-#include "blaze/BlockManager.h"
-#include "blaze/Platform.h"
 
 #define MAX_PLATFORMS 32
 
@@ -15,8 +17,7 @@ OpenCLPlatform::OpenCLPlatform(
     std::map<std::string, std::string> &conf_table
     ): 
   Platform(conf_table),
-  curr_program(NULL), 
-  curr_kernel(NULL)
+  curr_program(NULL)
 {
   // start platform setting up
   int err;
@@ -33,7 +34,7 @@ OpenCLPlatform::OpenCLPlatform(
         "No OpenCL platform exists on this host");
   }
 
-  // iterate through all platforms and find Altera FPGA
+  // iterate through all platforms and find Intel/Altera FPGA
   int platform_idx = 0;
   for (platform_idx=0; platform_idx<num_platforms; platform_idx++) {
     char cl_platform_name[1001];
@@ -43,22 +44,21 @@ OpenCLPlatform::OpenCLPlatform(
         1000, (void *)cl_platform_name, NULL);
 
     if (err != CL_SUCCESS) {
-      LOG(ERROR) << "clGetPlatformInfo(CL_PLATFORM_NAME) "
+      DLOG(ERROR) << "clGetPlatformInfo(CL_PLATFORM_NAME) "
         << "failed on platform " << platform_idx;;
     }
-    DLOG(INFO) << "Found platform: " << cl_platform_name;
-
-    if (strstr(cl_platform_name, "Altera")!=NULL) {
+    if (strstr(cl_platform_name, "Intel")!=NULL ||
+        strstr(cl_platform_name, "Altera")!=NULL) {
       // found platform
       break;
     }
   }
-  if (platform_idx>=num_platforms) {
-    LOG(ERROR) << "No Altera platform found, this binary only " <<
-      "supports Altera FPGAs";
+  if (platform_idx >= num_platforms) {
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "No Intel/Altera platform found, " <<
+      "this binary only supports Intel/Altera FPGAs";
     throw std::runtime_error("No supported platform found");
   }
-  DLOG(INFO) << "Found Altera OpenCLPlatform at " << platform_idx;
+  DVLOG(1) << "Found Intel/Altera OpenCLPlatform at " << platform_idx;
 
   // Connect to a compute device
   err = clGetDeviceIDs(
@@ -82,16 +82,33 @@ OpenCLPlatform::OpenCLPlatform(
         "Failed to create a compute context!");
   }
 
-  // Create a command commands
-  cl_command_queue cmd_queue = clCreateCommandQueue(
-      context, device_id, 0, &err);
+  // Create command queues
+  int num_cmd_queues = 1;
+  if (conf_table.find("num_command_queues") != conf_table.end()) {
+    num_cmd_queues = std::max(1, stoi(conf_table["num_command_queues"]));
+  }
+  //DLOG(INFO) << num_cmd_queues;
 
-  if (!cmd_queue) {
-    throw std::runtime_error(
-        "Failed to create a command queue context!");
+  std::vector<cl_command_queue> cmd_queues_list;
+  for (int i = 0; i < num_cmd_queues; i++) {
+    cl_command_queue cmd_queue = clCreateCommandQueue(
+        context, device_id, 
+#ifndef NO_PROFILING
+        CL_QUEUE_PROFILING_ENABLE, 
+#else
+        0,
+#endif
+        &err);
+
+    if (!cmd_queue) {
+      throw std::runtime_error(
+          "Failed to create a command queue context!");
+    }
+
+    cmd_queues_list.push_back(cmd_queue);
   }
 
-  env = new OpenCLEnv(context, cmd_queue, device_id);
+  env = new OpenCLEnv(context, cmd_queues_list, device_id);
 
   TaskEnv_ptr ep(env);
   env_ptr = ep;
@@ -109,9 +126,26 @@ OpenCLPlatform::OpenCLPlatform(
 }
 
 OpenCLPlatform::~OpenCLPlatform() {
+  checkCLRun(clFinish(env->getCmdQueue()));
+  
+  if (curr_program) {
+    checkCLRun(clReleaseProgram(curr_program));
+  }
+  for (int i = 0; i < env->getNumCmdQueues(); i++)
+    checkCLRun(clReleaseCommandQueue(env->getCmdQueue(i)));
+  checkCLRun(clReleaseContext(env->getContext()));
 
-  clReleaseCommandQueue(env->getCmdQueue());
-  clReleaseContext(env->getContext());
+  //checkCLRun(clReleaseDevice(env->getDeviceId()));
+  // reference device
+  cl_uint ref_count = 0;
+  size_t ret_size = 0;
+  clGetDeviceInfo(env->getDeviceId(),
+      CL_DEVICE_REFERENCE_COUNT,
+      sizeof(cl_uint),
+      (void*)&(ref_count),
+      &ret_size);
+
+  DVLOG(1) << "OpenCLPlatform is destroyed";
 }
 
 void OpenCLPlatform::createBlockManager(
@@ -130,6 +164,11 @@ BlockManager* OpenCLPlatform::getBlockManager() {
 
 void OpenCLPlatform::addQueue(AccWorker &conf) {
 
+  // Need to run the same thing in base class
+  if (acc_table.count(conf.id()) == 0) {
+    acc_table.insert(std::make_pair(conf.id(), conf));
+  }
+
   int err;
   int status = 0;
   size_t n_t = 0;
@@ -137,21 +176,17 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
 
   // get specific ACC Conf from key-value pair
   std::string program_path;
-  std::string kernel_name;
 
   for (int i=0; i<conf.param_size(); i++) {
     if (conf.param(i).key().compare("program_path")==0) {
       program_path = conf.param(i).value();
     }
-    if (conf.param(i).key().compare("kernel_name")==0) {
-      kernel_name = conf.param(i).value();
-    }
   }
-  if (program_path.empty() || kernel_name.empty()) {
+  if (program_path.empty()) {
     throw invalidParam("Invalid configuration");
   }
 
-  DLOG(INFO) << "Load Bitstream from file " << program_path.c_str();
+  DVLOG(2) << "Load Bitstream from file " << program_path.c_str();
 
   // Load binary from disk
   int n_i = load_file(
@@ -160,7 +195,7 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
 
   if (n_i < 0) {
     throw fileError(
-        "failed to load kernel from xclbin");
+        "failed to load kernel from bitstream");
   }
   n_t = n_i;
 
@@ -168,38 +203,38 @@ void OpenCLPlatform::addQueue(AccWorker &conf) {
   bitstreams[conf.id()] = std::make_pair(n_i, kernelbinary);
 
   // save kernel name
-  kernel_list[conf.id()] = kernel_name;
+  //kernel_list[conf.id()] = kernel_name;
 
   // add a TaskManager, and the scheduler should be started
   // NOTE: this must come after bitstreams.insert() otherwise
   // changeProgram() will not find correct bitstream
-  queue_manager->add(conf.id(), conf.path());
+  queue_manager->add(conf);
 
   // changeProgram to switch to current accelerator
   try {
     changeProgram(conf.id());
   }
   catch (internalError &e) {
-
     // if there is error, then remove acc from queue
     removeQueue(conf.id());
-
-
     throw e;
   }
 }
 
 void OpenCLPlatform::removeQueue(std::string id) {
   // asynchronously call queue_manager->remove(id)
-  boost::thread executor(
-      boost::bind(&QueueManager::remove, queue_manager.get(), id));
+  //boost::thread executor(
+  //    boost::bind(&QueueManager::remove, queue_manager.get(), id));
+  
+  // do synchronous remove instead
+  queue_manager->remove(id);
 
   // remove bitstream from table
   delete [] bitstreams[id].second;
   bitstreams.erase(id);
-  kernel_list.erase(id);
+  //kernel_list.erase(id);
 
-  DLOG(INFO) << "Removed queue for " << id;
+  DVLOG(1) << "Removed queue for " << id;
 }
 
 void OpenCLPlatform::changeProgram(std::string acc_id) {
@@ -214,30 +249,20 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
 
   // check if corresponding kernel is current
   if (curr_acc_id.compare(acc_id) != 0) {
-
-    start_t = getUs();
+    PLACE_TIMER;
 
     // release previous kernel
-    if (curr_program && curr_kernel) {
-      // (mhhuang) change the order
-      clReleaseKernel(curr_kernel);
+    if (curr_program) {
       clReleaseProgram(curr_program);
     }
 
-    elapse_t = getUs() - start_t;
-    DLOG(INFO) << "Releasing program and kernel takes " << 
-      elapse_t << "us.";
-
-    if (bitstreams.find(acc_id) == bitstreams.end() ||
-        kernel_list.find(acc_id) == kernel_list.end()) 
-    {
+    if (bitstreams.find(acc_id) == bitstreams.end()) {
       DLOG(ERROR) << "Bitstream not setup correctly";
       throw internalError("Cannot find bitstream information");
     }
 
     // load bitstream from memory
     std::pair<int, unsigned char*> bitstream = bitstreams[acc_id];
-    std::string kernel_name = kernel_list[acc_id];
 
     cl_context context = env->getContext();
     cl_device_id device_id = env->getDeviceId();
@@ -262,67 +287,38 @@ void OpenCLPlatform::changeProgram(std::string acc_id) {
           (const unsigned char **) &kernelbinary, 
           &status, &err);
     } catch (std::exception &e) {
-      LOG(ERROR) << "clCreateProgramWithBinary throws " << e.what();
-      throw internalError("clCreateProgramWithBinary fails");
+      DLOG(ERROR) << "clCreateProgramWithBinary throws " << e.what();
+      throw internalError("Intel/Altera OpenCL error");
     }
 
-    if ((!program) || (err!=CL_SUCCESS)) {
-      LOG(ERROR) << "clCreateProgramWithBinary error, ret=" << err;
-      throw internalError(
-          "Failed to create compute program from binary");
+    if ((!program) || (err != CL_SUCCESS)) {
+      DLOG(ERROR) << "clCreateProgramWithBinary error, ret=" << err;
+      throw internalError("Intel/Altera OpenCL error");
     }
 
     elapse_t = getUs() - start_t;
-    VLOG(1) << "clCreateProgramWithBinary takes " << 
+    VLOG(2) << "clCreateProgramWithBinary takes " << 
       elapse_t << "us.";
 
     start_t = getUs();
 
-    // Create the compute kernel in the program we wish to run
-    cl_kernel kernel = clCreateKernel(
-        program, kernel_name.c_str(), &err);
-
-    if (!kernel || err != CL_SUCCESS) {
-      LOG(ERROR) << "clCreateKernel error, ret=" << err;
-      throw internalError(
-          "Failed to create compute kernel");
-    }
-
-    elapse_t = getUs() - start_t;
-    DLOG(INFO) << "clCreateKernel takes " << elapse_t << "us.";
-
     // setup current accelerator info
     curr_program = program;
-    curr_kernel = kernel;
     curr_acc_id = acc_id;
 
     // switch kernel handler to OpenCLEnv
-    env->changeKernel(kernel);
+    env->program_ = program;
 
-    LOG(INFO) << "Switched to new accelerator: " << acc_id;
+    VLOG(2) << "Switched to new accelerator: " << acc_id;
   }
 }  
 
-cl_kernel& OpenCLPlatform::getKernel() {
-  return curr_kernel;
+cl_program& OpenCLPlatform::getProgram() {
+  return curr_program;
 }
 
-TaskEnv_ptr OpenCLPlatform::getEnv(std::string id) {
+TaskEnv_ref OpenCLPlatform::getEnv() {
   return env_ptr; 
-}
-
-DataBlock_ptr OpenCLPlatform::createBlock(
-    int num_items, 
-    int item_length,
-    int item_size, 
-    int align_width,
-    int flag)
-{
-  DataBlock_ptr block(new OpenCLBlock(env,
-        num_items, item_length, item_size, 
-        align_width, flag));  
-
-  return block;
 }
 
 int OpenCLPlatform::load_file(

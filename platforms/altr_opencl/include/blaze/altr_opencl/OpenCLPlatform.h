@@ -15,22 +15,21 @@
 
 namespace blaze {
 
+#define checkCLRun(cmd) { \
+  cl_int err = cmd; \
+  if (err != CL_SUCCESS) \
+    DLOG(ERROR) << #cmd << " failed"; \
+  DLOG(INFO) << #cmd << " succeeded"; \
+}
+
 class OpenCLPlatform : public Platform {
 
 public:
-
   OpenCLPlatform(std::map<std::string, std::string> &conf_table);
 
-  ~OpenCLPlatform();
+  virtual ~OpenCLPlatform();
 
-  virtual TaskEnv_ptr getEnv(std::string id);
-
-  virtual DataBlock_ptr createBlock(
-      int num_items, 
-      int item_length,
-      int item_size, 
-      int align_width = 0,
-      int flag = BLAZE_INPUT_BLOCK);
+  virtual TaskEnv_ref getEnv();
 
   virtual void createBlockManager(size_t cache_limit, size_t scratch_limit);
   virtual BlockManager* getBlockManager();
@@ -40,10 +39,9 @@ public:
 
   void changeProgram(std::string acc_id);
 
-  cl_kernel& getKernel();
+  cl_program& getProgram();
 
 private:
-
   int load_file(const char* filename, char** result);
   
   OpenCLEnv*  env;
@@ -51,10 +49,8 @@ private:
 
   std::string curr_acc_id;
   cl_program  curr_program;
-  cl_kernel   curr_kernel;
 
   std::map<std::string, std::pair<int, unsigned char*> > bitstreams;
-  std::map<std::string, std::string> kernel_list;
   //std::map<std::string, cl_kernel>  kernels;
 };
 
