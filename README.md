@@ -1,3 +1,6 @@
+### Jenkins Build-Status
+[![Build Status](http://us-1.falcon-computing.com:8080/buildStatus/icon?job=Falcon-Build-BLAZE)](http://us-1.falcon-computing.com:8080/job/Falcon-Build-BLAZE/)
+
 # Blaze: Deploying Accelerators at Datacenter Scale
 ### Description
 Blaze is an accelerator-aware programming framework for warehouse-scale accelerator deployment. Blaze provides a programming interface that is compatible to Spark, an in-memory compute engine for large-scale data processing, and a runtime system that provides transparent accelerator management. With Blaze, the deployment effort of accelerator task is reduced by more than 10x compared to traditional frameworks such as OpenCL. Blaze is designed to efficiently manage accelerator platforms with intelligent data caching and task pipelining schemes to minimize the communication and data movement overheads.
