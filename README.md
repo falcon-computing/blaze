@@ -1,5 +1,6 @@
 ### Jenkins Build-Status
-[![Build Status](http://us-1.falcon-computing.com:8080/buildStatus/icon?job=Falcon-Build-BLAZE)](http://us-1.falcon-computing.com:8080/job/Falcon-Build-BLAZE/)
+AWS [![Build Status](http://us-1.falcon-computing.com:8080/buildStatus/icon?job=Falcon-Build-BLAZE)](http://us-1.falcon-computing.com:8080/job/Falcon-Build-BLAZE/)
+Local [![Build Status](http://us-1.falcon-computing.com:8080/buildStatus/icon?job=Falcon-Build-BLAZE-Internal)](http://us-1.falcon-computing.com:8080/view/Internal/job/Falcon-Build-BLAZE-Internal/)
 
 # Blaze: Deploying Accelerators at Datacenter Scale
 ### Description
