@@ -15,6 +15,11 @@ agent {label 'merlin'}
                             sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=Internal on AWS -DDEPLOYMENT_DST=aws -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon2/blaze .. "
                             sh "make -j 8"
                             sh "make install"
+			    sh "cd ~/falcon2;tar zcf blaze-Internal-aws.tgz blaze/; mv blaze-Internal-aws.tgz ~/"
+			    link = sh(returnStdout: true, script: 'cd ~/; link=s3://fcs-cicd-test/release/aws/blaze/blaze-Internal-aws.tgz; echo $link; echo $link > latest')
+                        	sh "cd ~/; aws s3 cp blaze-Internal-aws.tgz s3://fcs-cicd-test/release/aws/blaze/blaze-Internal-aws.tgz"
+                        	sh "cd ~/; aws s3 cp latest s3://fcs-cicd-test/release/aws/blaze/latest"
+                        	sh "cd ~/; rm -f latest"
                             }
                         }
                     }
