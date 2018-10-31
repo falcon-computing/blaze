@@ -84,3 +84,7 @@ add_subdirectory(common)
 add_subdirectory(manager)
 add_subdirectory(platforms)
 add_subdirectory(examples)
+
+add_custom_target(package
+    COMMAND tar zcf blaze-latest.tgz blaze
+    COMMAND aws s3 cp blaze-latest.tgz s3://fcs-build-public/ --acl public-read)
