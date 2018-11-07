@@ -5,6 +5,7 @@ agent {label 'merlin'}
         stage ("build-local-blaze") {
             steps {
                  dir("ws-blaze") {
+		 checkout scm
                  script {
 //                    git branch: 'release', url: 'git@github.com:falcon-computing/blaze.git'
                         sh "rm -rf release"
