@@ -5,7 +5,6 @@ agent {label 'merlin'}
             steps {
                  dir("ws-blaze") {
                  script {
-//                    git branch: 'release', url: 'git@github.com:falcon-computing/blaze.git'
                         sh "rm -rf release"
                         sh "mkdir release"
                         dir("release"){
