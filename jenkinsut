@@ -4,7 +4,7 @@ agent {label 'merlin'}
     stages {
         stage ("build-local-blaze") {
             steps {
-                 dir("ws-blaze") {
+//                 dir("ws-blaze") {
 		              checkout scm
                  script {
                         sh "rm -rf release"
@@ -19,7 +19,7 @@ agent {label 'merlin'}
                             
                             }
                         }
-                    }
+//                    }
                 }
             }
         }
