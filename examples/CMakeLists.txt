@@ -8,8 +8,8 @@ function(compile_task proj_name)
   target_link_libraries(${proj_name}
     blaze
     blaze_message)
-  install(TARGETS ${proj_name}
-    LIBRARY DESTINATION examples)
+#install(TARGETS ${proj_name}
+#LIBRARY DESTINATION examples)
 endfunction(compile_task)
 
 function(compile_xlnx_task proj_name)

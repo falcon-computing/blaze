@@ -42,24 +42,24 @@ private:
   int             reconfig_timer;
   OpenCLPlatform* ocl_platform;
 
+  boost::thread_group executors;
+
   std::string curr_acc_;
 
   // map acc_id to conf tables
   //std::map<std::string, AccWorker> acc_conf_table_;
 
+  // map kernel_name to OpenCLEnv
+  std::map<std::string, TaskEnv_ptr> env_table_;
+
   // map acc_id to a list of kernel names
   std::map<std::string, std::vector<std::string> > kernel_table_;
 
   // map kernel_name to kernel queues
-  std::map<std::string, OpenCLKernelQueue_ptr> queue_table_;
-
-  // map kernel_name to kernel queues
   std::map<std::string, ConfigTable_ptr> conf_table_;
 
-  // map kernel_name to OpenCLEnv
-  std::map<std::string, TaskEnv_ptr> env_table_;
-
-  boost::thread_group executors;
+  // map kernel_name to kernel queues
+  std::map<std::string, OpenCLKernelQueue_ptr> queue_table_;
 };
 } // namespace blaze
 

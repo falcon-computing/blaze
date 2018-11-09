@@ -38,7 +38,7 @@ OpenCLQueueManager::OpenCLQueueManager(
 
 OpenCLQueueManager::~OpenCLQueueManager() {
   // interrupt all executors
-  //executors.interrupt_all();
+  executors.interrupt_all();
   power_ = false;
   executors.join_all();
   DVLOG(1) << "Stopped OpenCLQueueManager";
