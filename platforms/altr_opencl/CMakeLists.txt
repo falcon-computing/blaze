@@ -17,14 +17,20 @@ add_library(altr_opencl SHARED ${SRC_LIST})
 add_dependencies(altr_opencl 
     blaze
     blaze_message
+    IntelAltera
     Google
     KSight)
 
 target_link_libraries(altr_opencl
     ${IntelAltera_LIBRARIES})
 
+set(HEADER_FILES
+    ${include_dir}/OpenCLBlock.h
+    ${include_dir}/OpenCLCommon.h
+    ${include_dir}/OpenCLEnv.h)
+
 set_target_properties(altr_opencl PROPERTIES
-    PUBLIC_HEADER "${include_dir}/OpenCLEnv.h;${include_dir}/OpenCLCommon.h")
+    PUBLIC_HEADER "${HEADER_FILES}")
 
 install(TARGETS altr_opencl
     LIBRARY DESTINATION platforms

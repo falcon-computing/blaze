@@ -498,8 +498,13 @@ void AppCommManager::process(socket_ptr sock) {
       { PLACE_TIMER1("waiting for task");
       // wait on task finish
       uint64_t wait_time = 0;
+
       // longest wait time is 16 x finish_time
-      uint64_t max_wait_time = finish_time << 4; 
+      // or 30 seconds
+      uint64_t max_wait_time;
+      if (finish_time > 0) max_wait_time = finish_time << 4; 
+      else                 max_wait_time = 30*1e9;
+
       while (task->status != Task::FINISHED && 
              task->status != Task::FAILED) {
 
@@ -509,7 +514,7 @@ void AppCommManager::process(socket_ptr sock) {
         // check if the queue delay is too big
         wait_time += 1*1000;
 
-        if (finish_time > 0 && max_wait_time < wait_time) {
+        if (max_wait_time < wait_time) {
           // handle time out in a catch block
           RVLOG(ERROR, 1) << "Task time out";
           

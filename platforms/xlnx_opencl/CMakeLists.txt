@@ -23,8 +23,13 @@ add_dependencies(xlnx_opencl
 target_link_libraries(xlnx_opencl
     xilinxopencl)
 
+set(HEADER_FILES
+    ${include_dir}/OpenCLBlock.h
+    ${include_dir}/OpenCLCommon.h
+    ${include_dir}/OpenCLEnv.h)
+
 set_target_properties(xlnx_opencl PROPERTIES
-    PUBLIC_HEADER "${include_dir}/OpenCLEnv.h;${include_dir}/OpenCLCommon.h")
+    PUBLIC_HEADER "${HEADER_FILES}")
 
 install(TARGETS xlnx_opencl
     LIBRARY DESTINATION platforms

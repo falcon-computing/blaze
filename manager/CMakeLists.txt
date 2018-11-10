@@ -15,10 +15,16 @@ target_include_directories(blaze PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_dependencies(blaze Google FalconLM KSight)
 target_link_libraries(blaze blaze_message)
 
+#file(GLOB HEADER_FILES ${include_dir}/*.h)
 set(HEADER_FILES
+    ${include_dir}/AppCommManager.h
     ${include_dir}/BaseClient.h
+    ${include_dir}/Block.h
     ${include_dir}/Client.h
     ${include_dir}/Common.h
+    ${include_dir}/CommManager.h
+    ${include_dir}/ConfigTable.h
+    ${include_dir}/PlatformManager.h
     ${include_dir}/ReserveClient.h
     ${include_dir}/Task.h
     ${include_dir}/TaskEnv.h)

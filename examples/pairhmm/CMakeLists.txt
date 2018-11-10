@@ -17,8 +17,8 @@ target_link_libraries(PairHMMTask
     blaze_message
     xilinxopencl)
 
-install(TARGETS PairHMMTask
-    LIBRARY DESTINATION examples)
+#install(TARGETS PairHMMTask
+#    LIBRARY DESTINATION examples)
 
 else()
   message(STATUS "skip examples/PairHMMTask which depends on Xilinx")

@@ -85,19 +85,19 @@ static int app_port = 7777;
 //std::string lnx_opencl_path = platform_dir + "/xlnx_opencl/xlnx_opencl.so";
 
 inline std::string pathToArrayTest() {
-  return get_bin_dir() + "/tasks/arrayTest/libarrayTest.so";
+  return get_bin_dir() + "/tasks/libarrayTest.so";
 }
 
 inline std::string pathToDelay() {
-  return get_bin_dir() + "/tasks/delay/libdelay.so";
+  return get_bin_dir() + "/tasks/libdelay.so";
 }
 
 inline std::string pathToLoopBack() {
-  return get_bin_dir() + "/tasks/loopBack/libloopBack.so";
+  return get_bin_dir() + "/tasks/libloopBack.so";
 }
 
 inline std::string pathToDelayWEst() {
-  return get_bin_dir() + "/tasks/delay_w_est/libdelay_w_est.so";
+  return get_bin_dir() + "/tasks/libdelay_w_est.so";
 }
 
 
