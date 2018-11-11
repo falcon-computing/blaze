@@ -503,7 +503,7 @@ void AppCommManager::process(socket_ptr sock) {
       // or 30 seconds
       uint64_t max_wait_time;
       if (finish_time > 0) max_wait_time = finish_time << 4; 
-      else                 max_wait_time = 30*1e9;
+      else                 max_wait_time = (uint64_t)30*1e6;
 
       while (task->status != Task::FINISHED && 
              task->status != Task::FAILED) {
@@ -519,6 +519,8 @@ void AppCommManager::process(socket_ptr sock) {
           RVLOG(ERROR, 1) << "Task time out";
           
           handleTaskTimeout(sock, acc_id, task);
+
+          break;
         }
       }
       }
@@ -890,7 +892,7 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
     ;
   }
 
-  if (num_timeout_[acc_id].load() > 10) {
+  if (num_timeout_[acc_id].load() > 3) {
     // treat this accelerator as bad, unregister it
     if (platform_manager->accExists(acc_id)) {
       platform_manager->removeAcc("", acc_id, 
