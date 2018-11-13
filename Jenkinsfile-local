@@ -14,12 +14,12 @@ agent {label 'merlin'}
                        	sh "source /curr/software/util/modules-tcl/init/bash"
 			version= sh(returnStdout: true, script: 'git describe --tag').trim()
                         sh "echo $version"
-                        sh "module load xrt; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=Internal -DDEPLOYMENT_DST= -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-local/blaze .. "
+                        sh "module load xrt; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST= -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-local/blaze .. "
                         sh "make -j 8"
                         sh "make install"
-			sh "cd ~/falcon-local;tar zcf blaze-$version.tgz blaze/; mv blaze-$version.tgz ~/artifacts/local"
-			sh "cd ~/artifacts/local; echo s3://fcs-cicd-test/release/blaze/blaze-$version.tgz > latest"
-			sh "cd ~/artifacts/local; aws s3 cp blaze-$version.tgz s3://fcs-cicd-test/release/blaze/blaze-$version.tgz"
+			sh "cd ~/falcon-local;tar zcf blaze-$version-Internal.tgz blaze/; mv blaze-$version-Internal.tgz ~/artifacts/local"
+			sh "cd ~/artifacts/local; echo s3://fcs-cicd-test/release/blaze/blaze-$version-Internal.tgz > latest"
+			sh "cd ~/artifacts/local; aws s3 cp blaze-$version.tgz s3://fcs-cicd-test/release/blaze/blaze-$version-Internal.tgz"
                         sh "cd ~/artifacts/local; aws s3 cp latest s3://fcs-cicd-test/release/blaze/latest"
                         sh "cd ~/artifacts/local; rm -f latest"
 			}
