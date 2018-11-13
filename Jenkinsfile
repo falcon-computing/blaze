@@ -17,11 +17,11 @@ agent {label 'merlin'}
                         sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST=aws -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon2/blaze .. "
                         sh "make -j 8"
                         sh "make install"
-			sh "cd ~/falcon2;tar zcf blaze-$version-aws.tgz blaze/; mv blaze-$version-aws.tgz ~/artifacts"
-			sh "cd ~/artifacts; echo s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz > latest"
-			sh "cd ~/artifacts; aws s3 cp blaze-$version-aws.tgz s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz"
-                        sh "cd ~/artifacts; aws s3 cp latest s3://fcs-cicd-test/release/aws/blaze/latest"
-                        sh "cd ~/artifacts; rm -f latest"
+			sh "cd ~/falcon2;tar zcf blaze-$version-aws.tgz blaze/; mv blaze-$version-aws.tgz ~/artifacts/aws"
+			sh "cd ~/artifacts/aws; echo s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz > latest"
+			sh "cd ~/artifacts/aws; aws s3 cp blaze-$version-aws.tgz s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz"
+                        sh "cd ~/artifacts/aws; aws s3 cp latest s3://fcs-cicd-test/release/aws/blaze/latest"
+                        sh "cd ~/artifacts/aws; rm -f latest"
 			}
 		     }
                   }
