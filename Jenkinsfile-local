@@ -10,11 +10,11 @@ agent {label 'merlin'}
                         sh "mkdir release"
                         dir("release"){
 //                            sh "rsync -av --exclude=.* /curr/limark/genome-release/build/local/ /curr/limark/falcon-local/"
-                       	sh "cp /curr/limark/Code-latest/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-local/blaze/bin"
+                       	sh "cp /curr/limark/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-local/blaze/bin"
                        	sh "source /curr/software/util/modules-tcl/init/bash"
 			version= sh(returnStdout: true, script: 'git describe --tag').trim()
                         sh "echo $version"
-                        sh "module load xrt; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST= -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-local/blaze .. "
+                        sh "module load xrt; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=Internal -DDEPLOYMENT_DST= -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-local/blaze .. "
                         sh "make -j 8"
                         sh "make install"
 			sh "cd ~/falcon-local;tar zcf blaze-$version.tgz blaze/; mv blaze-$version.tgz ~/artifacts/local"
