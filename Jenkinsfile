@@ -20,8 +20,8 @@ agent {label 'merlin'}
 			sh "cd ~/falcon2;tar zcf blaze-$version-aws.tgz blaze/; mv blaze-$version-aws.tgz ~/artifacts"
 			sh "cd ~/artifacts; echo s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz > latest"
 			sh "cd ~/artifacts; aws s3 cp blaze-$version-aws.tgz s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz"
-                        sh "cd ~/; aws s3 cp latest s3://fcs-cicd-test/release/aws/blaze/latest"
-                        sh "cd ~/; rm -f latest"
+                        sh "cd ~/artifacts; aws s3 cp latest s3://fcs-cicd-test/release/aws/blaze/latest"
+                        sh "cd ~/artifacts; rm -f latest"
 			}
 		     }
                   }
