@@ -19,7 +19,7 @@ agent {label 'merlin'}
                         sh "make install"
 			sh "cd ~/falcon-local;tar zcf blaze-$version-Internal.tgz blaze/; mv blaze-$version-Internal.tgz ~/artifacts/local"
 			sh "cd ~/artifacts/local; echo s3://fcs-cicd-test/release/blaze/blaze-$version-Internal.tgz > latest"
-			sh "cd ~/artifacts/local; aws s3 cp blaze-$version.tgz s3://fcs-cicd-test/release/blaze/blaze-$version-Internal.tgz"
+			sh "cd ~/artifacts/local; aws s3 cp blaze-$version-Internal.tgz s3://fcs-cicd-test/release/blaze/blaze-$version-Internal.tgz"
                         sh "cd ~/artifacts/local; aws s3 cp latest s3://fcs-cicd-test/release/blaze/latest"
                         sh "cd ~/artifacts/local; rm -f latest"
 			}
