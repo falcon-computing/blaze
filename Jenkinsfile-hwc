@@ -4,36 +4,28 @@ agent {label 'merlin'}
         stage ("build-hwc-blaze") {
             steps {
                  dir("ws-blaze") {
-		             checkout scm
+		 checkout scm
                  script {
                         sh "rm -rf release"
                         sh "mkdir release"
                         dir("release"){
 //                            sh "rsync -av --exclude=.* /curr/limark/genome-release/build/local/ /curr/limark/falcon-hwc/"
-                            sh "cp /curr/limark/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-hwc/blaze/bin"
-                            sh "source /curr/software/util/modules-tcl/init/bash"
-                            sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=Internal on Huawei Cloud -DDEPLOYMENT_DST=hwc -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-hwc/blaze .. "
-                            sh "make -j 8"
-                            sh "make install"
-			                      sh "cd ~/falcon-hwc;tar zcf blaze-Internal-hwc.tgz blaze/; mv blaze-Internal-hwc.tgz ~/"
-			                      link = sh(returnStdout: true, script: 'cd ~/; link=s3://fcs-cicd-test/release/hwc/blaze/blaze-Internal-hwc.tgz; echo $link; echo $link > latest')
-                        	  sh "cd ~/; aws s3 cp blaze-Internal-hwc.tgz s3://fcs-cicd-test/release/hwc/blaze/blaze-Internal-hwc.tgz"
-                        	  sh "cd ~/; aws s3 cp latest s3://fcs-cicd-test/release/hwc/blaze/latest"
-                        	  sh "cd ~/; rm -f latest"
-                            }
-                        }
-                    }
-                }
+                       	sh "cp /curr/limark/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-hwc/blaze/bin"
+                       	sh "source /curr/software/util/modules-tcl/init/bash"
+			version= sh(returnStdout: true, script: 'git describe --tag').trim()
+                        sh "echo $version"
+                        sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST=hwc -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-hwc/blaze .. "
+                        sh "make -j 8"
+                        sh "make install"
+			sh "cd ~/falcon-hwc;tar zcf blaze-$version-hwc.tgz blaze/; mv blaze-$version-hwc.tgz ~/artifacts/hwc"
+			sh "cd ~/artifacts/hwc; echo s3://fcs-cicd-test/release/hwc/blaze/blaze-$version-hwc.tgz > latest"
+			sh "cd ~/artifacts/hwc; aws s3 cp blaze-$version-hwc.tgz s3://fcs-cicd-test/release/hwc/blaze/blaze-$version-hwc.tgz"
+                        sh "cd ~/artifacts/hwc; aws s3 cp latest s3://fcs-cicd-test/release/hwc/blaze/latest"
+                        sh "cd ~/artifacts/hwc; rm -f latest"
+			}
+		     }
+                  }
+               }
             }
         }
-	post {
-            always {
-
-                emailext attachLog: true, body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}console",
-                    recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-                    subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}",
-                    to: 'udara@limarktech.com, roshantha@limarktech.com'
-
-        }
-    }
-}    
+    }     
