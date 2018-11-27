@@ -9,7 +9,7 @@ agent {label 'merlin'}
                         sh "rm -rf release"
                         sh "mkdir release"
                         dir("release"){
-//                            sh "rsync -av --exclude=.* /curr/limark/genome-release/build/local/ /curr/limark/falcon-hwc/"
+			sh " cd ~/Code-latest/genome-release; git pull"
                        	sh "cp /curr/limark/Code-latest/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-hwc/blaze/bin"
                        	sh "source /curr/software/util/modules-tcl/init/bash"
 			version= sh(returnStdout: true, script: 'git describe --tag').trim()
