@@ -29,8 +29,13 @@
 
 using namespace blaze;
 
+class signal_exception : public std::runtime_error {
+ public:
+  signal_exception(): std::runtime_error("caught signal") {;}
+};
+
 void sigint_handler(int s) {
-  throw std::runtime_error("");
+  throw signal_exception();
 }
 
 int main(int argc, char** argv) {
@@ -88,6 +93,7 @@ int main(int argc, char** argv) {
                  << "' as local directory, using '/tmp' instead.";
   }
 
+  try {
   // setup PlatformManager
   PlatformManager platform_manager(conf);
 
@@ -154,18 +160,17 @@ int main(int argc, char** argv) {
   }
 
   while (1) {
-    try {
-      boost::this_thread::sleep_for(boost::chrono::seconds(5)); 
-      //print_timers();
+    boost::this_thread::sleep_for(boost::chrono::seconds(5)); 
+    //print_timers();
 #ifndef NO_PROFILE
-      if (gf_profile) {
-        ksight::ksight.print(); 
-      }
+    if (gf_profile) {
+      ksight::ksight.print(); 
+    }
 #endif
-    }
-    catch(std::runtime_error const& ) {
-      break;
-    }
+  }
+  } // try
+  catch (std::runtime_error const& ) {
+    VLOG(1) << "Caught signal, cleaning up"; 
   }
 
   return 0;
