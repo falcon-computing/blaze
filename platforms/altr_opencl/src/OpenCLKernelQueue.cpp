@@ -2,6 +2,11 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/thread/thread.hpp>
 
+#ifdef NDEBUG
+#define LOG_HEADER  "OpenCLKernelQueue"
+#endif
+#include <glog/logging.h>
+
 #include "blaze/Task.h"
 #include "blaze/TaskEnv.h"
 #include "blaze/TaskManager.h"

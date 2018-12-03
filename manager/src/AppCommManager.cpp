@@ -516,7 +516,7 @@ void AppCommManager::process(socket_ptr sock) {
 
         if (max_wait_time < wait_time) {
           // handle time out in a catch block
-          RVLOG(ERROR, 1) << "Task time out";
+          LOG(ERROR) << "Task time out";
           
           handleTaskTimeout(sock, acc_id, task);
 
