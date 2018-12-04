@@ -897,6 +897,7 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
     if (platform_manager->accExists(acc_id)) {
       platform_manager->removeAcc("", acc_id, 
           platform_manager->getPlatformIdByAccId(acc_id));
+
       VLOG(1) << "Remove acc: " << acc_id << " from nam";
     }
   }

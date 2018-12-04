@@ -97,9 +97,10 @@ void TaskManager::enqueue(std::string app_id, Task* task) {
 }
 
 bool TaskManager::schedule() {
+  boost::mutex::scoped_lock lock(scheduler_lock_);
 
   if (app_queues.empty()) {
-    return true;
+    return false;
   }
   // iterate through all app queues and record which are non-empty
   std::vector<std::string> ready_queues;
@@ -116,7 +117,7 @@ bool TaskManager::schedule() {
   }
   this->unlock();
   if (ready_queues.empty()) {
-    return true;
+    return false;
   }
 
   Task* next_task;
@@ -127,7 +128,7 @@ bool TaskManager::schedule() {
 
   if (app_queues.find(ready_queues[idx_next]) == app_queues.end()) {
     DLOG(ERROR) << "Did not find app_queue, unexpected";
-    return false;
+    return true;
   }
   else {
     app_queues[ready_queues[idx_next]]->pop(next_task);
@@ -138,29 +139,30 @@ bool TaskManager::schedule() {
     VLOG(1) << "Schedule a task to execute from " << ready_queues[idx_next];
   }
 
-  return false;
+  return true;
 }
 
 // return true if the execution queue is empty
 bool TaskManager::execute() {
+  boost::mutex::scoped_lock lock(executor_lock_);
 
   // wait if there is no task to be executed
   if (execution_queue.empty()) {
-    return true;
+    return false;
   }
   // get next task and remove it from the task queue
   // this part is thread-safe with boost::lockfree::queue
   Task* task;
   execution_queue.pop(task);
 
-  if (!task) {
-    LOG(ERROR) << "Task already destroyed";
-    return false;
-  }
-
-  VLOG(1) << "Started a new task";
-
   try {
+    if (!task) {
+      LOG(ERROR) << "Task already destroyed";
+      return false;
+    }
+
+    VLOG(2) << "Started a new task";
+
     // record task execution time
     uint64_t start_time = getUs();
 
@@ -173,7 +175,7 @@ bool TaskManager::execute() {
   catch (std::runtime_error &e) {
     LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
   }
-  return false;
+  return true;
 }
 
 bool TaskManager::popReady(Task* &task) {
@@ -201,10 +203,8 @@ void TaskManager::do_execute() {
   VLOG(1) << "Started an executor for " << acc_id;
 
   // continuously execute tasks from the task queue
-  while (power || !scheduler_idle || !executor_idle) { 
-    executor_idle = false;
-    executor_idle = execute();
-    if (executor_idle) {
+  while (power) { 
+    if (execute()) {
       boost::this_thread::sleep_for(boost::chrono::microseconds(100)); 
     }
   }
@@ -216,11 +216,9 @@ void TaskManager::do_schedule() {
   
   VLOG(1) << "Started an scheduler for " << acc_id;
 
-  while (power || !scheduler_idle) {
+  while (power) {
     // return true if the app queues are all empty
-    scheduler_idle = false;
-    scheduler_idle = schedule();
-    if (scheduler_idle) {
+    if (schedule()) {
       boost::this_thread::sleep_for(boost::chrono::microseconds(100));
     }
   }
@@ -228,9 +226,9 @@ void TaskManager::do_schedule() {
   VLOG(1) << "Scheduler for " << acc_id << " stopped";
 }
 
-bool TaskManager::isBusy() {
-  return !scheduler_idle || !executor_idle;
-}
+//bool TaskManager::isBusy() {
+//  return scheduler_lock_.try_lock() || executor_lock_.try_lock();
+//}
 
 void TaskManager::start() {
   startExecutor();
@@ -239,6 +237,8 @@ void TaskManager::start() {
 
 void TaskManager::stop() {
   power = false;
+  boost::mutex::scoped_lock l1(scheduler_lock_);
+  boost::mutex::scoped_lock l2(executor_lock_);
 }
 
 void TaskManager::startExecutor() {

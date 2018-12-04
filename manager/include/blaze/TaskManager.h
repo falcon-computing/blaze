@@ -25,8 +25,6 @@ public:
     std::string _acc_id,
     Platform *_platform
   ): power(true),
-     scheduler_idle(true),
-     executor_idle(true),
      nextTaskId(0),
      queue_delay(0),
      acc_id(_acc_id),
@@ -57,7 +55,6 @@ public:
 
   void start();
   void stop();
-  bool isBusy();
 
   bool isEmpty();
 
@@ -71,8 +68,34 @@ public:
   void set_conf(Task* task, ConfigTable_ptr conf);
 
 private:
+  // Enable signal all the worker threads (scheduler, executor)
+  bool power;
 
+  // Locate TaskEnv and for logging purpose
+  std::string acc_id;
+
+  Platform *platform;
+
+  TaskQueue execution_queue;
   boost::thread_group task_workers;
+
+  // These two flag let TaskManager exits gracefully:
+  // When power=false, but the app_queues and execution_queue
+  // are still not empty, clear the queue before exits
+  boost::mutex scheduler_lock_;
+  boost::mutex executor_lock_;
+
+  mutable boost::atomic<int> nextTaskId;
+
+  // estimated time for all tasks in current queue (in ns)
+  mutable boost::atomic<uint64_t> queue_delay;
+
+  // application queues mapped by application id
+  std::map<std::string, TaskQueue_ptr> app_queues;
+
+  // Task implementation loaded from user acc_impl
+  Task* (*createTask)();
+  void (*destroyTask)(Task*);
 
   // schedule a task from app queues to execution queue  
   bool schedule();
@@ -80,39 +103,11 @@ private:
   // execute front task in the queue
   bool execute();
 
-  // Enable signal all the worker threads (scheduler, executor)
-  bool power;
-
-  // These two flag let TaskManager exits gracefully:
-  // When power=false, but the app_queues and execution_queue
-  // are still not empty, clear the queue before exits
-  bool scheduler_idle;
-  bool executor_idle;
-
-  // Locate TaskEnv and for logging purpose
-  std::string acc_id;
-
-  mutable boost::atomic<int> nextTaskId;
-
-  //estimated time for the current queue to finished, units: nanosecs
-  mutable boost::atomic<uint64_t> queue_delay;
-
-  // Task implementation loaded from user acc_impl
-  Task* (*createTask)();
-  void (*destroyTask)(Task*);
-
-  Platform *platform;
-
   // thread function body for scheduler and executor
   void do_schedule();
   void do_execute();
 
   void updateDelayModel(Task* task, int estimateTime, int realTime);
-
-  // application queues mapped by application id
-  std::map<std::string, TaskQueue_ptr> app_queues;
-
-  TaskQueue execution_queue;
 };
 
 const TaskManager_ptr NULL_TASK_MANAGER;
