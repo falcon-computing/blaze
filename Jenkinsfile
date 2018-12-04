@@ -16,6 +16,7 @@ agent {label 'merlin'}
                         sh "echo $version"
                         sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST=aws -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon2/blaze .. "
                         sh "make -j 8"
+			sh "make test"
                         sh "make install"
 			sh "cd ~/falcon2;tar zcf blaze-$version-aws.tgz blaze/; mv blaze-$version-aws.tgz ~/artifacts/aws"
 			sh "cd ~/artifacts/aws; echo s3://fcs-cicd-test/release/aws/blaze/blaze-$version-aws.tgz > latest"
