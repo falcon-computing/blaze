@@ -266,7 +266,7 @@ void Client::start(bool blocking) {
     }
   }
   catch (std::exception &e) {
-    VLOG(1) << "Task failed because: " << e.what();
+    VLOG(1) << "Task failed";
     VLOG(1) << "Perform computation on CPU";
     
     compute();
