@@ -98,9 +98,9 @@ void QueueManager::remove(std::string id) {
   task_manager->stop();
 
   // wait for TaskManager to exit gracefully
-  while (task_manager->isBusy()) {
-    boost::this_thread::sleep_for(boost::chrono::microseconds(1000));
-  }
+  //while (task_manager->isBusy()) {
+  //  boost::this_thread::sleep_for(boost::chrono::microseconds(1000));
+  //}
   DVLOG(1) << "TaskManager for " << id << " is successfully stopped";
 
   // release the loaded library using dlclose
