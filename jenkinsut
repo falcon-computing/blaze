@@ -9,9 +9,10 @@ agent {label 'merlin'}
                         sh "rm -rf release"
                         sh "mkdir release"
                         dir("release"){
-                            sh "cp /curr/limark/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon2/blaze/bin"
+				sh "cd ~/Code-latest/genome-release; git pull"
+                            sh "cp ~/Code-latest/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon2/blaze/bin"
                             sh "source /curr/software/util/modules-tcl/init/bash"
-                            sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=Internal on AWS -DDEPLOYMENT_DST=aws -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon2/blaze .. "
+                            sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=aws -DDEPLOYMENT_DST=aws -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon2/blaze .. "
                             sh "make -j 8"
                             sh "make install"
                             sh "make test"
@@ -27,7 +28,7 @@ agent {label 'merlin'}
                             sh "rm -rf release"
                             sh "mkdir release"
                             dir("release"){
-                                sh "cp /curr/limark/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-hwc/blaze/bin"
+                                sh "cp ~/Code-latest/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-hwc/blaze/bin"
                                 sh "source /curr/software/util/modules-tcl/init/bash"
                                 sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=hwc -DDEPLOYMENT_DST=hwc -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-hwc/blaze .. "
                                 sh "make -j 8"
@@ -45,7 +46,7 @@ agent {label 'merlin'}
                                 sh "rm -rf release"
                                 sh "mkdir release"
                                 dir("release"){
-                                    sh "cp /curr/limark/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-local/blaze/bin"
+                                    sh "cp ~/Code-latest/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/falcon-local/blaze/bin"
                                     sh "source /curr/software/util/modules-tcl/init/bash"
                                     sh "module load xrt; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=Internal on AWS -DDEPLOYMENT_DST=Internal -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-local/blaze .. "
                                     sh "make -j 8"
