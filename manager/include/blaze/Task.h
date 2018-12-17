@@ -99,6 +99,8 @@ private:
    
   bool isReady();
 
+  void dumpInput();
+
   enum {
     NOTREADY,
     READY,

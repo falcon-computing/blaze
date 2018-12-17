@@ -230,13 +230,8 @@ TEST_F(ClientTests, TestTaskEstimation) {
 
   // finally test platform destroy feature
   boost::thread_group tgroup;
-  for (int t = 0; t < 16; t++) {
-    if (t == 0) {
-      tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 50000));
-    }
-    else {
-      tgroup.create_thread(boost::bind(runDelayWEst, 2, 10000, 0));
-    }
+  for (int t = 0; t < 8; t++) {
+    tgroup.create_thread(boost::bind(runDelayWEst, 2, 1000, 5000));
   }
   tgroup.join_all();
   

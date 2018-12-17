@@ -1,5 +1,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
+#include <fstream>
 #include <stdio.h>
 
 #ifdef NDEBUG
@@ -154,6 +155,35 @@ void Task::addInputBlock(
         status = READY;
       }
     }
+  }
+}
+
+void Task::dumpInput() {
+  // only dump when input is ready
+  if (status != NOTREADY) {
+    std::string uid = getUid();
+    std::string ts  = getTS();
+    for (int i = 0; i < num_input; i++) {
+      std::stringstream dump_fname;
+      dump_fname << "/tmp/blaze-task" 
+                 << "-" << uid
+                 << "-" << ts
+                 << "-i" << i
+                 << ".dat";
+      
+      std::ofstream fout(dump_fname.str(), std::ios::out | std::ios::binary);
+      int64_t par_id = input_blocks[i];
+      if (input_table.count(par_id) == 0) {
+        // internal error
+        DLOG(ERROR) << "block not found";
+        return;
+      }
+      DataBlock_ptr b = input_table[par_id];
+      if (b) {
+        fout.write((char*)b->getData(), b->getSize());
+      }
+      fout.close();
+    } 
   }
 }
 
