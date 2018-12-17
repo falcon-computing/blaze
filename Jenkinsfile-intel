@@ -1,0 +1,32 @@
+pipeline {
+agent {label 'merlin'}
+    stages {
+        stage ("build-Intel-pac-blaze") {
+            steps {
+                 dir("ws-intel-pac-blaze") {
+		              checkout scm
+                 script {
+                        sh "rm -rf release"
+                        sh "mkdir release"
+                        dir("release"){
+			            sh " cd ~/Code-latest/genome-release; git pull"
+                       	sh "cp /curr/limark/Code-latest/genome-release/build/common/tools/bin/sdaccel.ini /curr/limark/intel-build/blaze/bin"
+                       	sh "source /curr/software/util/modules-tcl/init/bash"
+			            version= sh(returnStdout: true, script: 'git describe --tag').trim()
+                        sh "echo $version"
+                        sh "module load aocl/17.1.1-pac; cmake3 -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST=local -DCMAKE_INSTALL_PREFIX=/curr/limark/intel-build/blaze .. "
+                        sh "make -j 8"
+//			            sh "make test"
+                        sh "make install"
+			            sh "cd ~/intel-build/;tar zcf blaze-$version-local.tgz blaze/; mv blaze-$version-local.tgz ~/artifacts/intel"
+			            sh "cd ~/artifacts/intel; echo s3://fcs-cicd-test/release/intel/blaze/blaze-$version-local.tgz > latest"
+			            sh "cd ~/artifacts/intel; aws s3 cp blaze-$version-local.tgz s3://fcs-cicd-test/release/intel/blaze/blaze-$version-local.tgz"
+                        sh "cd ~/artifacts/intel; aws s3 cp latest s3://fcs-cicd-test/release/intel/blaze/latest"
+                        sh "cd ~/artifacts/intel; rm -f latest"
+                        }
+			        }
+		        }
+            }
+        }
+    }
+}
