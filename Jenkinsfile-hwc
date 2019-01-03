@@ -1,3 +1,4 @@
+//HWC Blaze build
 pipeline {
 agent {label 'merlin'}
     stages {
@@ -16,6 +17,7 @@ agent {label 'merlin'}
                         sh "echo $version"
                         sh "module load sdx/17.4; cmake -DCMAKE_BUILD_TYPE=Release -DRELEASE_VERSION=$version -DDEPLOYMENT_DST=hwc -DCMAKE_INSTALL_PREFIX=/curr/limark/falcon-hwc/blaze .. "
                         sh "make -j 8"
+			sh "make test"
                         sh "make install"
 			sh "cd ~/falcon-hwc;tar zcf blaze-$version-hwc.tgz blaze/; mv blaze-$version-hwc.tgz ~/artifacts/hwc"
 			sh "cd ~/artifacts/hwc; echo s3://fcs-cicd-test/release/hwc/blaze/blaze-$version-hwc.tgz > latest"
