@@ -326,8 +326,9 @@ void OpenCLQueueManager::setup_kernels(std::string acc_id)
       cl_program program = env->getProgram();
       cl_kernel kernel = clCreateKernel(program, kernel_name.c_str(), &err);
       if (!kernel || err != CL_SUCCESS) {
-        DLOG(ERROR) << "invalid OpenCLEnv for kernel: " << kernel_name;
-        continue;
+        std::stringstream ss;
+        ss << "Cannot create kernel: " << kernel_name << ": " << err;
+        throw internalError(ss.str());
       }
       sub_kernels_list.push_back(kernel);
     }
@@ -340,8 +341,9 @@ void OpenCLQueueManager::setup_kernels(std::string acc_id)
         cl_int err = 0;
         cl_kernel sub_kernel = clCreateKernel(program, sub_kname.c_str(), &err);
         if (!sub_kernel || err != CL_SUCCESS) {
-          DLOG(ERROR) << "invalid OpenCLEnv for sub-kernel: " << sub_kname;
-          continue;
+          std::stringstream ss;
+          ss << "Cannot create sub-kernel: " << sub_kname << ": " << err;
+          throw internalError(ss.str());
         }
         sub_kernels_list.push_back(sub_kernel);
       }

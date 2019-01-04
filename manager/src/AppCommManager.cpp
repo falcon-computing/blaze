@@ -500,10 +500,10 @@ void AppCommManager::process(socket_ptr sock) {
       uint64_t wait_time = 0;
 
       // longest wait time is 16 x finish_time
-      // or 30 seconds
+      // or 180 seconds
       uint64_t max_wait_time;
       if (finish_time > 0) max_wait_time = finish_time << 4; 
-      else                 max_wait_time = (uint64_t)30*1e6;
+      else                 max_wait_time = (uint64_t)180*1e6;
 
       while (task->status != Task::FINISHED && 
              task->status != Task::FAILED) {
@@ -512,13 +512,17 @@ void AppCommManager::process(socket_ptr sock) {
             boost::chrono::microseconds(1)); 
 
         // check if the queue delay is too big
-        wait_time += 1*1000;
+        if (task->status == Task::EXECUTING) {
+          wait_time += 1*1000;
+        }
 
         if (max_wait_time < wait_time) {
-          // handle time out in a catch block
           LOG(ERROR) << "Task time out";
-          
+
           handleTaskTimeout(sock, acc_id, task);
+
+          // TODO: dump task data, disable in release
+          task->dumpInput();
 
           break;
         }
@@ -867,6 +871,8 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
     std::string acc_id,
     Task_ptr task) {
 
+  /*
+   * remove checking on timeout times
   if (!num_timeout_.count(acc_id)) {
     // potential race condition here, since the map is not
     // locked, but probably can ignore for now
@@ -875,6 +881,7 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
   else {
     num_timeout_[acc_id].fetch_add(1);
   }
+  */
 
   // check task status, if task is not executed, simply release it
   //   TaskManager will check if pointer is valid before executing
@@ -892,24 +899,13 @@ void AppCommManager::handleTaskTimeout(socket_ptr sock,
     ;
   }
 
-  if (num_timeout_[acc_id].load() > 3) {
-    // treat this accelerator as bad, unregister it
-    if (platform_manager->accExists(acc_id)) {
-      platform_manager->removeAcc("", acc_id, 
-          platform_manager->getPlatformIdByAccId(acc_id));
+  // treat this accelerator as bad, unregister it
+  if (platform_manager->accExists(acc_id)) {
+    platform_manager->removeAcc("", acc_id, 
+        platform_manager->getPlatformIdByAccId(acc_id));
 
-      VLOG(1) << "Remove acc: " << acc_id << " from nam";
-    }
-  }
-  else {
-    // if task is already executed and acc is not deleted,
-    // keep waiting for task to avoid seg faults
-    while (task->status == Task::EXECUTING) {
-      boost::this_thread::sleep_for(
-          boost::chrono::microseconds(100)); 
-    }
+    VLOG(1) << "Remove acc: " << acc_id << " from nam";
   }
 }
-
 } // namespace blaze
 

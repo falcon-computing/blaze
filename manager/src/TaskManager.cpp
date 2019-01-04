@@ -17,6 +17,7 @@ namespace blaze {
 
 TaskManager::~TaskManager() {
   power = false; 
+  task_workers.interrupt_all();
   task_workers.join_all();
   DVLOG(2) << "TaskManager is destroyed";
 }
