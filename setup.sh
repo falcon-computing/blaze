@@ -1,6 +1,8 @@
 #!/bin/bash
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+#echo $DIR
+#exit
 source $DIR/Makefile.config
 
 export BLAZE_HOME=$DIR

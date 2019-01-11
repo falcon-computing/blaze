@@ -44,6 +44,8 @@ CommManager::CommManager(
   // start io service processing loop
   io_service::work work(*ios);
 
+  DLOG(ERROR) << "@@@@pp: _max_threads : "<<_max_threads;
+
   for (int t=0; t<_max_threads; t++) 
   {
     comm_threads.create_thread(

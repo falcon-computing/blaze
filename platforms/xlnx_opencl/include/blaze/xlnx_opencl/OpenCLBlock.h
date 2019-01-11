@@ -17,6 +17,7 @@ public:
       int _item_length,
       int _item_size,
       int _align_width = 0,
+      int _srv_port = 0,
       DataBlock::Flag _flag = DataBlock::OWNED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr);
 

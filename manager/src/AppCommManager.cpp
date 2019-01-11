@@ -216,6 +216,7 @@ void AppCommManager::process(socket_ptr sock) {
           else {
             // if the input block is non-cachable
             if (recv_block.has_cached() && !recv_block.cached()) {
+              VLOG(1) <<"@@@@@@@@@pp: AppCommMangaer: recv_block "<<i<<" cached false";
 
               wait_accdata = true;
 
@@ -231,6 +232,7 @@ void AppCommManager::process(socket_ptr sock) {
               cache_table.insert(std::make_pair(blockId, false));
             }
             else {
+              VLOG(1) <<"@@@@@@@@@pp: AppCommMangaer: recv_block "<<i<<" cached true";
               DVLOG(2) << "Add a cachable block to task, id=" << blockId;
 
               if (block_manager->contains(blockId)) {
@@ -352,6 +354,11 @@ void AppCommManager::process(socket_ptr sock) {
 
           DataBlock_ptr block;
 
+          //peipei added:
+          int port = recv_block.port();
+          fprintf(stderr, "@@pp: AppCommMangaer.cpp, get the port number as %d\n", port);
+          
+
           // 2.1 Getting data ready for the block 
           if (!block_status.first) { // block is not cached
 
@@ -397,12 +404,17 @@ void AppCommManager::process(socket_ptr sock) {
                 {
                   DVLOG(2) << "Skip cache for block " << blockId;
 
+                  fprintf(stderr, "@@@pp: AppCommMangaer.cpp, create_block DataBlock::SHARED, data_msg: %d, num_elements: %d, element_length: %d, element_size: %d \n", i, num_elements, element_length, element_size);
                   // the block should skip cache
                   // and force allocation to be shared mode so that
                   // client is in-charge of deleting
+                  
+                  //block = block_manager->create_block(path,
+                  //    num_elements, element_length, element_size,
+                  //    align_width, DataBlock::SHARED);
                   block = block_manager->create_block(path,
                       num_elements, element_length, element_size,
-                      align_width, DataBlock::SHARED);
+                      align_width, port, DataBlock::SHARED);
                 }
                 else {
                   // the block needs to be created and add to cache
@@ -561,12 +573,22 @@ void AppCommManager::process(socket_ptr sock) {
           block_info->set_num_elements(block->getNumItems());	
           block_info->set_element_length(block->getItemLength());	
           block_info->set_element_size(block->getItemSize());	
+          int block_port = block->getPort();
+          block_info->set_port(block_port);
+          fprintf(stderr, "@@@@pp: AppCommMangaer, write port number as %d\n", block_port);
           if (block->getFlag() == DataBlock::OWNED) {
+            
+      VLOG(1) <<"@@@@@@@@@pp: AppCommManager:: outputBlock Flag is : DataBlock::OWNED \n";
             // block is going to be owned by NAM, so client don't 
             // delete it, NAM needs to make sure it block is not
             // deleted before client finish reading
             block_info->set_cached(true);
             wait_ack = true;
+          }
+          
+          else{
+      VLOG(1) <<"@@@@@@@@@pp: AppCommManager:: outputBlock Flag is not : DataBlock::OWNED \n";
+
           }
 
           outId ++;

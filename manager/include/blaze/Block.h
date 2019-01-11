@@ -17,6 +17,10 @@
  * on other memory space (e.g. FPGA device memory)
  */
 
+//peipei added
+//using namespace boost::asio;
+//peipei added end
+
 namespace blaze {
 
 class DataBlock
@@ -34,6 +38,7 @@ public:
       int _item_length,
       int _item_size,
       int _align_width = 0,
+      int srv_port = 0,
       Flag _flag = SHARED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr);
  
@@ -89,6 +94,11 @@ public:
   bool isReady();
   void setReady();
 
+  //peipei added:
+  int getPort(){ return srv_port; }
+  void process(socket_ptr);
+
+
 protected:
   Flag flag_;       
 
@@ -117,9 +127,25 @@ private:
       int _item_size,
       int _align_width = 0);
   void map_region();
+
+
+//peipei added:
+  int           srv_port;
+  std::string   ip_address;
+
+  ios_ptr       ios;
+  endpoint_ptr  endpoint;
+  acceptor_ptr  acceptor;
+  boost::thread_group comm_threads;
+  void startAccept();
+
+  void handleAccept(
+      const boost::system::error_code& error,
+      socket_ptr socket);
 };
 
 const DataBlock_ptr NULL_DATA_BLOCK;
+
 
 }
 #endif

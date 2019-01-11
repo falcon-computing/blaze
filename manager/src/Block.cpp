@@ -73,6 +73,7 @@ DataBlock::DataBlock(
     int _item_length,
     int _item_size,
     int _align_width,
+    int _port, // port to connect
     Flag _flag,
     ConfigTable_ptr _conf):
   num_items(_num_items),
@@ -80,6 +81,7 @@ DataBlock::DataBlock(
   align_width(_align_width),
   flag_(_flag),
   mm_file_path_(path),
+  srv_port(_port), // 
   conf_(_conf)
 {
   PLACE_TIMER1("constrct 1");
@@ -91,6 +93,42 @@ DataBlock::DataBlock(
   }
   map_region();
   is_ready_ = true;
+  fprintf(stderr, "@@@@pp: Block.cpp, SHARED, port: %d\n", srv_port);
+
+  std::string _address="127.0.0.1";
+  ios_ptr      _ios(new boost::asio::io_service);
+  endpoint_ptr _endpoint(new boost::asio::ip::tcp::endpoint(
+              boost::asio::ip::address::from_string(_address), 
+              srv_port));
+
+
+  ios = _ios;
+  endpoint = _endpoint;
+
+  try { 
+      fprintf(stderr, "@@@@pp: Block.cpp, try to connect once 0!\n");
+      socket_ptr sock(new boost::asio::ip::tcp::socket(*ios));
+
+      sock->connect(*endpoint);
+      sock->set_option(boost::asio::ip::tcp::no_delay(true));
+      fprintf(stderr, "@@@@pp: Block.cpp, try to connect once 1!\n");
+
+      int msg_size = 0;
+
+      sock->receive(
+              boost::asio::buffer(
+                  reinterpret_cast<char*>(&msg_size), 
+                  sizeof(int)), 0);
+
+      fprintf(stderr, "@@@@pp: Block.cpp, should receive 101: actual: %d\n", msg_size);
+      //sock_ = sock;
+      //connected_ = true;
+  }
+  catch (const boost::system::system_error &e) {
+      DLOG(ERROR) << "Cannot establish communication with port:" << srv_port;
+  } 
+
+
 }
 
 // allocate a block with a pre-allocated pth
@@ -128,11 +166,15 @@ DataBlock::DataBlock(
     fbuf.pubseekoff(size_-1, std::ios_base::beg);
     fbuf.sputc(0);
 
-    DVLOG(1) << "Allocate block at " << mm_file_path_;
+    VLOG(1) << "Allocate block at " << mm_file_path_;
   }
 
+    VLOG(1) << "@@pp: Block.cpp: before map_region(), Allocate block at " << mm_file_path_;
   map_region();
+    VLOG(1) << "@@pp: Block.cpp: after  map_region(), Allocate block at " << mm_file_path_<<", num_iterms: "<<num_items<<", item_length: "<<item_length<<", item_size: "<<_item_size;
 
+    fprintf(stderr, "@@@@pp: Block.cpp !!, mm_file_path_:%s, %d, %d, %d\n", mm_file_path_.c_str(), _num_items, _item_length, _item_size);
+    //fflush(stdout);
   // setup the flags
   if (_flag == SHARED) {
     // block is to share with client/host
@@ -143,6 +185,78 @@ DataBlock::DataBlock(
     // but will be deleted by owner
     is_ready_ = false;
   }
+
+    // peipei added:
+    srv_port = 0;
+    fprintf(stderr,"@@@@pp: Block.cpp, create the ios service and port listening part\n");
+
+    std::string _address="127.0.0.1";
+    ios_ptr      _ios(new boost::asio::io_service);
+    endpoint_ptr _endpoint(new boost::asio::ip::tcp::endpoint(
+                boost::asio::ip::address::from_string(_address), 
+                0));
+    acceptor_ptr _acceptor(new boost::asio::ip::tcp::acceptor(*_ios, *_endpoint));
+    
+    ios = _ios;
+    endpoint = _endpoint;
+    acceptor = _acceptor;
+    //_acceptor->listen();
+    srv_port=_acceptor->local_endpoint().port();
+    // start io service processing loop
+    boost::asio::io_service::work work(*ios);
+
+    //DLOG(ERROR) << "@@@@pp: _max_threads : "<<_max_threads;
+
+    for (int t=0; t<1; t++) 
+    {
+        comm_threads.create_thread(
+                boost::bind(&boost::asio::io_service::run, ios.get()));
+    }
+
+    // asynchronously start listening for new connections
+    startAccept();
+    fprintf(stderr,"@@@@pp: 2, Block.cpp !!,Listening for new connections at %s: %d\n",
+    _address.c_str(), srv_port);
+
+}
+
+
+void DataBlock::startAccept() {
+  socket_ptr sock(new boost::asio::ip::tcp::socket(*ios));
+  acceptor->async_accept(*sock,
+      boost::bind(&DataBlock::handleAccept,
+                  this,
+                  boost::asio::placeholders::error,
+                  sock));
+}
+
+void DataBlock::handleAccept(
+    const boost::system::error_code& error,
+    socket_ptr sock) 
+{
+  if (!error) {
+    ios->post(boost::bind(&DataBlock::process, this, sock));
+    startAccept();
+  }
+}
+
+void DataBlock::process(socket_ptr sock) {
+
+  // turn off Nagle Algorithm to improve latency
+  sock->set_option(boost::asio::ip::tcp::no_delay(true));
+
+  // set socket buffer size to be 4MB
+  boost::asio::socket_base::receive_buffer_size option(4*1024*1024);
+  sock->set_option(option); 
+
+  int msg_size = 101;
+  fprintf(stderr, "@@@@pp: Block.cpp, send part 0!\n");
+
+  sock->send(
+          boost::asio::buffer(
+              reinterpret_cast<char*>(&msg_size), 
+              sizeof(int)), 0);
+  fprintf(stderr, "@@@@pp: Block.cpp, send part 1!\n");
 }
 
 DataBlock::DataBlock(const DataBlock &block) {
@@ -163,6 +277,8 @@ DataBlock::DataBlock(const DataBlock &block) {
   is_ready_  = block.is_ready_;
 
   mm_region_ = block.mm_region_;
+  //peipei added:
+  //srv_port = block.srv_port;  
 }
 
 DataBlock::~DataBlock() {
@@ -170,8 +286,16 @@ DataBlock::~DataBlock() {
     boost::interprocess::file_mapping::remove(mm_file_path_.c_str());
     boost::filesystem::remove(boost::filesystem::path(mm_file_path_));
     DVLOG(1) << "Release block at " << mm_file_path_;
+    fprintf(stderr, "Release block %s: %d, %d, %d\n", mm_file_path_.c_str(), num_items, item_length, item_size);
+    
+    //peipei added
+ ios->stop();
+  comm_threads.interrupt_all();
+  comm_threads.join_all();
+  fprintf(stderr,"Block.cpp, DataBlock %d stopped listending\n", mm_file_path_.c_str());
   }
   // mm_region_ should be released by itself
+
 }
 
 std::string DataBlock::get_path() {

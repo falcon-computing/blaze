@@ -69,12 +69,13 @@ public:
   virtual DataBlock_ptr create_block(std::string path,
       int num_items, int item_length, int item_size, 
       int align_width = 0,
+      int port = 0,
       DataBlock::Flag flag = DataBlock::OWNED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr)
   {
     DataBlock_ptr block(new OpenCLBlock(this,
           path, num_items, item_length, item_size,
-          align_width, flag, conf));
+          align_width, port, flag, conf));
 
     return block;
   }

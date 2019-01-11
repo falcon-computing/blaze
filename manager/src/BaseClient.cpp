@@ -23,6 +23,7 @@ BaseClient::BaseClient(int port, std::string ip):
 void BaseClient::connect() {
   if (connected_) return;
   try { 
+      fprintf(stderr, "@@@@pp: BaseClient.cpp, try to connect once!\n");
     socket_ptr sock(new ip::tcp::socket(*ios_));
 
     sock->connect(*endpoint_);

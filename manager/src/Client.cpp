@@ -94,6 +94,7 @@ void* Client::createInput(
           DataBlock::OWNED));
 
     input_blocks_[idx] = block;
+    printf("@@@@@@@@@pp: Client.cpp create Input DataBlock:%d, path is %s, num_items: %d, item_length: %d, item_size: %d \n", idx, block->get_path().c_str(), num_items, item_length, item_length*data_width);
     //DVLOG(1) << "Allocate block " << idx;
 
     // generate block info include (id, cached)
@@ -109,8 +110,10 @@ void* Client::createInput(
     }
     block_info_[idx] = std::make_pair(block_id, cached);
 
+
     return block->getData();
   }
+
 }
 
 void* Client::createOutput(
@@ -333,6 +336,10 @@ void Client::prepareData(TaskMsg &accdata_msg, TaskMsg &reply_msg) {
       data_msg->set_element_size(info.data_width * info.item_length);
       
       VLOG(1) << "Finish writing " << i;
+      // peipei added:
+      int block_port = block->getPort();
+      data_msg->set_port(block_port);
+      fprintf(stderr,"@@@@pp: Client.cpp, write port number as %d\n", block_port);
     }
     blockIdx ++;
   }
@@ -365,22 +372,26 @@ void Client::processOutput(TaskMsg &msg) {
     int num_items    = data_msg.num_elements();	
     int item_length  = data_msg.element_length();	
     int item_size    = data_msg.element_size();	
+    int block_port   = data_msg.port();
 
     std::string path = data_msg.file_path();
     VLOG(1) << "Reading output from " << path;
 
+    printf("@@@@@@@@@pp: Client.cpp create Output DataBlock, path is %s, num_items: %d, item_length: %d, item_size: %d \n", path.c_str(), num_items, item_length, item_size);
     if (data_msg.has_cached() && data_msg.cached()) {
       // if the block is cached, that means it is owned
       // by NAM, so we don't delete it 
       DataBlock_ptr block(new DataBlock(
             path, num_items, item_length, item_size, 
-            0, DataBlock::SHARED));
+            0, block_port, DataBlock::SHARED));
+      printf("@@@@@@@@@pp: Client.cpp create OutputBlock %d, SHARED, port:%d \n", i, block_port);
 
       output_blocks_[i] = block;
 
       send_ack_ = true;
     }
     else {
+      printf("@@@@@@@@@pp: Client.cpp cached false: create OutputBlock:%d \n", i);
       DataBlock_ptr block(new DataBlock(
             path, num_items, item_length, item_size, 
             0, DataBlock::OWNED));

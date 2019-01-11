@@ -33,7 +33,8 @@ message DataMsg {
   optional int64 file_size = 9;
   optional int64 file_offset = 10;
   optional string mask_path = 11;
-  repeated KeyValue ext_flag = 12;
+  optional int32 port = 12;
+  repeated KeyValue ext_flag = 13; 
 }
 
 message TaskMsg {
