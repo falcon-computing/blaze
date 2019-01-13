@@ -513,7 +513,7 @@ void AppCommManager::process(socket_ptr sock) {
 
         // check if the queue delay is too big
         if (task->status == Task::EXECUTING) {
-          wait_time += 1*1000;
+          wait_time ++;
         }
 
         if (max_wait_time < wait_time) {
