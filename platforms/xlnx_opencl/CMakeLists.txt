@@ -8,10 +8,9 @@ set(PlatformXilinxIncludePath ${CMAKE_CURRENT_SOURCE_DIR}/include
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${XILINX_SDX}/runtime/include/1_2)
+    ${XilinxOCL_INCLUDE_DIRS})
 
-link_directories(
-    ${XILINX_SDX}/runtime/lib/x86_64)
+link_directories(${XilinxOCL_LIBRARY_DIRS})
 
 add_library(xlnx_opencl SHARED ${SRC_LIST})
 add_dependencies(xlnx_opencl 
@@ -21,7 +20,7 @@ add_dependencies(xlnx_opencl
     KSight)
 
 target_link_libraries(xlnx_opencl
-    xilinxopencl)
+    ${XilinxOCL_LIBRARIES})
 
 set(HEADER_FILES
     ${include_dir}/OpenCLBlock.h

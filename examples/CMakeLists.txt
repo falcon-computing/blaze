@@ -13,23 +13,19 @@ function(compile_task proj_name)
 endfunction(compile_task)
 
 function(compile_xlnx_task proj_name)
-  if(DEFINED ENV{XILINX_SDX})
-    set(XILINX_SDX $ENV{XILINX_SDX})
+  if(XilinxOCL_FOUND)
     include_directories(
         ${PlatformXilinxIncludePath}
-        ${XILINX_SDX}/runtime/include/1_2)
-    link_directories(
-        ${XILINX_SDX}/runtime/lib/x86_64)
+        ${XilinxOCL_INCLUDE_DIRS})
+    link_directories(${XilinxOCL_LIBRARY_DIRS})
 
     compile_task(${proj_name})
 
-    target_link_libraries(${proj_name} xilinxopencl)
+    target_link_libraries(${proj_name} ${XilinxOCL_LIBRARIES})
   else()
     message(STATUS "skip examples/${proj_name} which depends on Xilinx")
   endif()
 endfunction(compile_xlnx_task)
 
 add_subdirectory(arrayTest)
-add_subdirectory(bwa-sw)
 add_subdirectory(pi)
-add_subdirectory(pairhmm)
