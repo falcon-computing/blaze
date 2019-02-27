@@ -220,21 +220,15 @@ TEST_F(ClientTests, TestTaskEstimation) {
 
   boost::this_thread::sleep_for(boost::chrono::microseconds(1000)); 
 
-  // a task with less CPU time should be rejected
-  ASSERT_FALSE(runDelayWEst(1, 2, 0));  
+  // a task with less CPU time than wait time should be rejected
+  ASSERT_FALSE(runDelayWEst(1, 100, 0));  
 
   // a task running long will trigger a timeout
   ASSERT_FALSE(runDelayWEst(2, 1000, 16*200));  
 
   long_task.join();
 
-  // finally test platform destroy feature
-  boost::thread_group tgroup;
-  for (int t = 0; t < 8; t++) {
-    tgroup.create_thread(boost::bind(runDelayWEst, 2, 1000, 5000));
-  }
-  tgroup.join_all();
-  
+  // after timeout the corresponding acc will be removed
   ASSERT_FALSE(platform_manager.accExists("test"));
 
   // other acc should not be affected

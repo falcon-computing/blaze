@@ -11,6 +11,7 @@
 #endif
 #include <glog/logging.h>
 
+#include "acc_conf.pb.h"
 #include "blaze/AppCommManager.h"
 #include "blaze/Block.h"
 #include "blaze/BlockManager.h"
@@ -19,7 +20,7 @@
 #include "blaze/PlatformManager.h"
 #include "blaze/Task.h"
 #include "blaze/TaskManager.h"
-#include "acc_conf.pb.h"
+#include "task.pb.h"
 
 namespace blaze {
 
@@ -503,7 +504,7 @@ void AppCommManager::process(socket_ptr sock) {
       // or 180 seconds
       uint64_t max_wait_time;
       if (finish_time > 0) max_wait_time = finish_time << 4; 
-      else                 max_wait_time = (uint64_t)180*1e6;
+      else                 max_wait_time = (uint64_t)180*1e9;
 
       while (task->status != Task::FINISHED && 
              task->status != Task::FAILED) {
@@ -513,7 +514,7 @@ void AppCommManager::process(socket_ptr sock) {
 
         // check if the queue delay is too big
         if (task->status == Task::EXECUTING) {
-          wait_time ++;
+          wait_time += 1000;
         }
 
         if (max_wait_time < wait_time) {
@@ -580,23 +581,24 @@ void AppCommManager::process(socket_ptr sock) {
         try {
           send(finish_msg, sock);
           RVLOG(INFO, 2) << "Sent an ACCFINISH";
-        } catch (std::exception &e) {
-          RVLOG(ERROR, 1) << "Cannot send ACCFINISH";
-        }
 
-        // wait for client ack to keep the task context
-        try {
-          TaskMsg ack_msg;
-          recv(ack_msg, sock);
-
-          if (ack_msg.type() == ACCFINISH) {
-            DVLOG(2) << "Got client ack message";
-          }
-          else {
-            throw AccFailure("Fail to get client ACK");
+          // wait for client ack to keep the task context
+          if (wait_ack) {
+            TaskMsg m;
+            recv(m, sock);
+            if (m.type() == MsgType::ACCFINISH) {
+              DVLOG(2) << "Got client ack message";
+            }
+            else {
+              RVLOG(ERROR, 1) << "ACK type is " << m.type()
+                << " instead of ACCFINISH";
+              std::string msg;
+              m.SerializeToString(&msg);
+              RVLOG(ERROR, 1) << "  " << msg;
+            }
           }
         } catch (std::exception &e) {
-          throw AccFailure("Fail to get client ACK");
+          RVLOG(ERROR, 1) << "Error while finishing task: " << e.what();
         }
       }
       else {
