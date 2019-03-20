@@ -14,6 +14,7 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
+#include <gflags/gflags.h>
 #define LOG_HEADER "main"
 #include <glog/logging.h>
 
@@ -39,6 +40,11 @@ void sigint_handler(int s) {
 }
 
 int main(int argc, char** argv) {
+
+  // Initialize Google Flags
+  google::SetVersionString(VERSION);
+  google::SetUsageMessage(argv[0]);
+  google::ParseCommandLineFlags(&argc, &argv, true);
 
   FLAGS_logtostderr = 1;
   google::InitGoogleLogging(argv[0]);
