@@ -24,6 +24,8 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Google REQUIRED)
 find_package(FalconLM REQUIRED)
 find_package(KSight REQUIRED)
+find_package(XilinxOCL)
+find_package(IntelOCL)
 
 # get version str from git
 execute_process(

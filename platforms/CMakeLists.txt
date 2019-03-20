@@ -4,17 +4,14 @@ include_directories(
 
 # check xlnx platform
 set(BUILD_PLATFORM_MODULE false)
-if(DEFINED ENV{XILINX_SDX})
-  message(STATUS "XILINX_SDX is defined, enable xlnx_opencl")
-  set(XILINX_SDX $ENV{XILINX_SDX})
+if(XilinxOCL_FOUND)
+  message(STATUS "enable xlnx_opencl")
   add_subdirectory(xlnx_opencl)
   set(BUILD_PLATFORM_MODULE true)
 endif()
 
-if(DEFINED ENV{ALTERAOCLSDKROOT})
-  message(STATUS "ALTERAOCLSDKROOT is defined, enable altr_opencl")
-  set(ALTERAOCLSDKROOT $ENV{ALTERAOCLSDKROOT})
-  find_package( IntelAltera REQUIRED )
+if(IntelOCL_FOUND)
+  message(STATUS "enable altr_opencl")
   add_subdirectory(altr_opencl)
   set(BUILD_PLATFORM_MODULE true)
 endif()

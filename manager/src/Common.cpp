@@ -120,11 +120,14 @@ namespace blaze {
       // TODO: mysterious issue, for receiving the acc request message
       //boost::this_thread::sleep_for(boost::chrono::microseconds(5)); 
 
-      char* msg_data = new char[msg_size];
-  
+      char* msg_data = new char[msg_size + 1];
+
       socket->receive(
           boost::asio::buffer(msg_data, msg_size), 0);
-  
+      msg_data[msg_size] = '\0';
+
+      DVLOG(2) << "recv msg(" << msg_size << "): " << msg_data;
+
       if (!msg.ParseFromArray(msg_data, msg_size)) {
         throw commError("Failed to parse input message");
       }
@@ -151,6 +154,8 @@ namespace blaze {
 
       msg.SerializeToArray(msg_data, msg_size);
   
+      DVLOG(2) << "send msg(" << msg_size << "): " << msg_data;
+
       socket->send(
           boost::asio::buffer(msg_data, msg_size),0);
 

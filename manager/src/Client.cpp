@@ -255,10 +255,11 @@ void Client::start(bool blocking) {
     // reply an ACCFINISH if one or more output blocks
     // are owned by NAM
     if (send_ack_) {
-      TaskMsg msg;
-      msg.set_type(ACCFINISH);
+      TaskMsg m;
+      m.set_type(MsgType::ACCFINISH);
       try {
-        send(msg);
+        send(m);
+        RVLOG(INFO, 1) << "Sent ACK to NAM";
       } catch (std::exception &e) {
         RVLOG(ERROR, 1) << "Fail to send ACK to NAM";
         // do nothing if we cannot send an ACK message

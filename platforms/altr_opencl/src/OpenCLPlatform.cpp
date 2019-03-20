@@ -47,6 +47,8 @@ OpenCLPlatform::OpenCLPlatform(
       DLOG(ERROR) << "clGetPlatformInfo(CL_PLATFORM_NAME) "
         << "failed on platform " << platform_idx;;
     }
+    DLOG(INFO) << "Found platform: " << cl_platform_name;
+
     if (strstr(cl_platform_name, "Intel")!=NULL ||
         strstr(cl_platform_name, "Altera")!=NULL) {
       // found platform

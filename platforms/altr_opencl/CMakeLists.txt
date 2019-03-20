@@ -8,21 +8,19 @@ set(PlatformAlteraIncludePath ${CMAKE_CURRENT_SOURCE_DIR}/include
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${IntelAltera_INCLUDE_DIRS})
+    ${IntelOCL_INCLUDE_DIRS})
 
-link_directories(
-    ${IntelAltera_LIBRARY_DIRS})
+link_directories(${IntelOCL_LIBRARY_DIRS})
 
 add_library(altr_opencl SHARED ${SRC_LIST})
 add_dependencies(altr_opencl 
     blaze
     blaze_message
-    IntelAltera
     Google
     KSight)
 
 target_link_libraries(altr_opencl
-    ${IntelAltera_LIBRARIES})
+    ${IntelOCL_LIBRARIES})
 
 set(HEADER_FILES
     ${include_dir}/OpenCLBlock.h
