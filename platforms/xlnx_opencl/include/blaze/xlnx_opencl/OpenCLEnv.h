@@ -59,6 +59,7 @@ public:
       DataBlock::Flag flag = DataBlock::SHARED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr)
   {
+      fprintf(stderr, "@@@@pp: OpenCLEnv.h should create output block once\n");
     DataBlock_ptr block(new OpenCLBlock(this,
           num_items, item_length, item_size, 
           align_width, flag, conf));
@@ -69,13 +70,14 @@ public:
   virtual DataBlock_ptr create_block(std::string path,
       int num_items, int item_length, int item_size, 
       int align_width = 0,
+      std::string ip_address = "127.0.0.1",
       int port = 0,
       DataBlock::Flag flag = DataBlock::OWNED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr)
   {
     DataBlock_ptr block(new OpenCLBlock(this,
           path, num_items, item_length, item_size,
-          align_width, port, flag, conf));
+          align_width, ip_address, port, flag, conf));
 
     return block;
   }

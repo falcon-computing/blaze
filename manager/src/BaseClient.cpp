@@ -5,12 +5,17 @@
 #include <glog/logging.h>
 #include "blaze/BaseClient.h"
 
+#include <ifaddrs.h>
+#include <netinet/in.h> 
 namespace blaze {
 
 BaseClient::BaseClient(int port, std::string ip):
     port_(port), ip_(ip), connected_(false)
 {
   // setup socket connection
+  //pp added
+  fprintf(stderr,"@@@@pp: BaseClient.cpp ip_ is %s\n", ip_.c_str());
+
   ios_ptr ios(new io_service);
   endpoint_ptr endpoint(new ip::tcp::endpoint(
         ip::address::from_string(ip),

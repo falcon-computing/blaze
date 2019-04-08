@@ -20,7 +20,7 @@ public:
       PlatformManager* _platform,
       std::string address = "127.0.0.1",
       int ip_port = 1027
-    ): CommManager(_platform, address, ip_port, 24)
+    ): CommManager(_platform, address, ip_port, 64)
   {;}
 
 private:

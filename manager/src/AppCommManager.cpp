@@ -53,6 +53,7 @@ void AppCommManager::process(socket_ptr sock) {
 
     std::string app_id;
     std::string acc_id;
+    std::string client_ip;
 
     // a table containing information of each input block
     // - partition_id: cached, sampled
@@ -79,9 +80,11 @@ void AppCommManager::process(socket_ptr sock) {
       }
       acc_id = task_msg.acc_id();
       app_id = task_msg.app_id();
+      client_ip = task_msg.client_ip();
 
       VLOG(1) << "Received an request for " << acc_id
-        << " from app " << app_id;
+        << " from app " << app_id ;
+      fprintf(stderr, "@@@@pp: AppCommManager.cpp, client_ip is %s\n", client_ip.c_str());
 
       /* Receive acc_id to identify the corresponding TaskManager, 
        * with which create a new Task. 
@@ -412,9 +415,11 @@ void AppCommManager::process(socket_ptr sock) {
                   //block = block_manager->create_block(path,
                   //    num_elements, element_length, element_size,
                   //    align_width, DataBlock::SHARED);
+                  //std::string ip_address="10.0.0.31";
+                  std::string ip_address=client_ip;
                   block = block_manager->create_block(path,
                       num_elements, element_length, element_size,
-                      align_width, port, DataBlock::SHARED);
+                      align_width, ip_address, port, DataBlock::SHARED);
                 }
                 else {
                   // the block needs to be created and add to cache
@@ -517,6 +522,7 @@ void AppCommManager::process(socket_ptr sock) {
       if (finish_time > 0) max_wait_time = finish_time << 4; 
       else                 max_wait_time = (uint64_t)30*1e6;
 
+      fprintf(stderr, "@@pp, AppCommManager, max_wait_time is %d\n", max_wait_time);
       while (task->status != Task::FINISHED && 
              task->status != Task::FAILED) {
 
@@ -524,7 +530,7 @@ void AppCommManager::process(socket_ptr sock) {
             boost::chrono::microseconds(1)); 
 
         // check if the queue delay is too big
-        wait_time += 1*1000;
+        wait_time += 1;
 
         if (max_wait_time < wait_time) {
           // handle time out in a catch block

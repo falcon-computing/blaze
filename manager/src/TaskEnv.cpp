@@ -28,13 +28,14 @@ DataBlock_ptr TaskEnv::create_block(
     int item_length,
     int item_size, 
     int align_width,
+    std::string ip_address,
     int port, 
     DataBlock::Flag flag,
     ConfigTable_ptr conf)
 {
   DataBlock_ptr block(new DataBlock(path,
         num_items, item_length, item_size, 
-        align_width, port, flag, conf));
+        align_width, ip_address, port, flag, conf));
   return block;
 }
 

@@ -80,6 +80,8 @@ void CommManager::handleAccept(
     socket_ptr sock) 
 {
   if (!error) {
+
+    fprintf(stderr, "@@@@pp: CommManager.cpp, process from %s:%d\n", ip_address.c_str(), srv_port);
     ios->post(boost::bind(&CommManager::process, this, sock));
     startAccept();
   }

@@ -20,13 +20,14 @@ OpenCLBlock::OpenCLBlock(OpenCLEnv* _env,
       int _item_length,
       int _item_size,
       int _align_width,
+      std::string _ip_address,
       int _srv_port,
       DataBlock::Flag _flag,
       ConfigTable_ptr conf):
   env(_env), 
   is_allocated_(false),
   buffer_(nullptr),
-  DataBlock(path, _num_items, _item_length, _item_size, _align_width, _srv_port, _flag, conf)
+  DataBlock(path, _num_items, _item_length, _item_size, _align_width, _ip_address, _srv_port, _flag, conf)
 {
   ;
 }
@@ -178,6 +179,7 @@ void OpenCLBlock::readData(void* dst, size_t size) {
       throw runtimeError(__func__);
     }
 
+    fprintf(stderr, "@@@@pp: OpenCLBlock.cpp, readData size is %d\n", size_);
     clWaitForEvents(1, &event);
     clReleaseEvent(event);
   }

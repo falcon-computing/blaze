@@ -35,12 +35,13 @@ DataBlock_ptr BlockManager::create_block(
       std::string path,
       int num_items, int item_length, int item_size, 
       int align_width, 
+      std::string ip_address,
       int port,
       DataBlock::Flag flag)
 {
   return platform->getEnv().lock()->create_block(path,
                 num_items, item_length, item_size,
-                align_width, port, flag);
+                align_width, ip_address, port, flag);
 }
 
 // create a block if it does not exist in the manager

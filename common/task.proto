@@ -33,7 +33,7 @@ message DataMsg {
   optional int64 file_size = 9;
   optional int64 file_offset = 10;
   optional string mask_path = 11;
-  optional int32 port = 12;
+  optional int32 port = 12;//pp added
   repeated KeyValue ext_flag = 13; 
 }
 
@@ -44,6 +44,7 @@ message TaskMsg {
   repeated DataMsg data = 4;
   optional AccMsg acc = 5;
   optional string msg = 6;
+  optional string client_ip=7;//pp added
 }
 
 message AccMsg {

@@ -71,6 +71,7 @@ public:
   virtual DataBlock_ptr create_block(std::string path,
       int num_items, int item_length, int item_size, 
       int align_width = 0, 
+      std::string ip_address="127.0.0.1",
       int port = 0, 
       DataBlock::Flag flag = DataBlock::OWNED);
 

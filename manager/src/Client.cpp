@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <sstream>
 #include <iomanip>
+#include <ifaddrs.h>
+#include <netinet/in.h> 
 
 #define LOG_HEADER "Client"
 #include <glog/logging.h>
@@ -15,7 +17,9 @@ Client::Client(
     int _num_inputs, 
     int _num_outputs,
     int port):
-  BaseClient(port, "127.0.0.1"),
+  //BaseClient(port, "127.0.0.1"),
+  //BaseClient(port, "10.0.0.33"),
+  BaseClient(port, "10.0.5.84"),
   acc_id(_acc_id), 
   num_inputs(_num_inputs),
   num_outputs(_num_outputs),
@@ -82,6 +86,8 @@ void* Client::createInput(
     if (input_blocks_[idx]->getSize() < num_items * item_length * data_width) {
       throw invalidParam("input block size too big");
     }
+    int64_t used_size = num_items * item_length * data_width;
+    input_blocks_[idx]->setUsedSize(used_size);
     return input_blocks_[idx]->getData();
   }
   else {
@@ -284,6 +290,39 @@ void Client::prepareRequest(TaskMsg &msg) {
   msg.set_acc_id(acc_id);
   msg.set_app_id(app_id);
 
+  fprintf(stderr, "@@@@pp: Client.cpp, set_client_ip: %s\n", ip_.c_str());
+  std::string client_ip;
+  struct ifaddrs* ifAddrStruct = NULL;
+  getifaddrs(&ifAddrStruct);
+  for (struct ifaddrs* ifa = ifAddrStruct; 
+       ifa != NULL; 
+       ifa = ifa->ifa_next) 
+  {
+    if (!ifa->ifa_addr) {
+      continue;
+    }
+    // check if is a valid IP4 Address
+    if (ifa->ifa_addr->sa_family == AF_INET) {
+
+      // obtain the ip address as a string
+      void* tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+      char addressBuffer[INET_ADDRSTRLEN];
+
+      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+
+      std::string ip_addr(addressBuffer);
+      if(ip_addr.find("10.0.") != std::string::npos){
+          fprintf(stderr, "@@@@pp: Client.cpp, ip_addr here is %s\n", ip_addr.c_str());
+          client_ip = ip_addr.c_str();
+      }
+      fprintf(stderr, "@@@@pp: Client.cpp, ip_addr has %s\n", ip_addr.c_str());
+    }
+  }
+  fprintf(stderr, "@@@@pp: Client.cpp, client_ip has %s\n", client_ip.c_str());
+
+
+  msg.set_client_ip(client_ip);
+
   for (int i = 0; i < num_inputs; i++) {
     DataMsg *data_msg = msg.add_data();
     
@@ -378,12 +417,14 @@ void Client::processOutput(TaskMsg &msg) {
     VLOG(1) << "Reading output from " << path;
 
     printf("@@@@@@@@@pp: Client.cpp create Output DataBlock, path is %s, num_items: %d, item_length: %d, item_size: %d \n", path.c_str(), num_items, item_length, item_size);
+        //std::string ip_address="10.0.0.33";
+        std::string ip_address="10.0.5.84";
     if (data_msg.has_cached() && data_msg.cached()) {
       // if the block is cached, that means it is owned
       // by NAM, so we don't delete it 
       DataBlock_ptr block(new DataBlock(
             path, num_items, item_length, item_size, 
-            0, block_port, DataBlock::SHARED));
+            0, ip_address, block_port, DataBlock::SHARED));
       printf("@@@@@@@@@pp: Client.cpp create OutputBlock %d, SHARED, port:%d \n", i, block_port);
 
       output_blocks_[i] = block;
@@ -394,7 +435,7 @@ void Client::processOutput(TaskMsg &msg) {
       printf("@@@@@@@@@pp: Client.cpp cached false: create OutputBlock:%d \n", i);
       DataBlock_ptr block(new DataBlock(
             path, num_items, item_length, item_size, 
-            0, DataBlock::OWNED));
+            0, ip_address, block_port, DataBlock::OWNED));// @@@@pp: needs changed back without ip_address, block_port
 
       output_blocks_[i] = block;
     }

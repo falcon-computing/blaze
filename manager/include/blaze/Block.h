@@ -38,6 +38,7 @@ public:
       int _item_length,
       int _item_size,
       int _align_width = 0,
+      std::string ip_address = "127.0.0.1",
       int srv_port = 0,
       Flag _flag = SHARED,
       ConfigTable_ptr conf = NULL_ConfigTable_ptr);
@@ -97,6 +98,10 @@ public:
   //peipei added:
   int getPort(){ return srv_port; }
   void process(socket_ptr);
+  int getUsedSize() {return used_size_;}
+  void setUsedSize(int64_t used_size){ used_size_ = used_size; }
+  void updateBlockInfo(int _num_items, int _item_length, int _item_size);
+  void* debugGetData();
 
 
 protected:
@@ -110,6 +115,7 @@ protected:
   int length;       /* total number of elements */
 
   int64_t size_;     /* total byte size of the data block */
+  int64_t used_size_; /* acutal used bytes */
 
   bool is_aligned_;
   bool is_ready_;
