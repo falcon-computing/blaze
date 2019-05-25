@@ -18,12 +18,12 @@ public:
 
   virtual uint64_t estimateTaskTime(){
     uint64_t delay = *((uint64_t*)getInput(0));
-    return delay*1e3;
+    return delay*1e6;
   }
 
   virtual uint64_t estimateClientTime(){
     uint64_t delay = *((uint64_t*)getInput(1));
-    return delay*1e3;
+    return delay*1e6;
   }
 
   // overwrites the compute function
@@ -33,14 +33,14 @@ public:
     uint64_t force_delay = *((uint64_t*)getInput(2));
 
     if (force_delay == 0) {
-      VLOG(1) << "delay for " << delay << " us";
+      VLOG(1) << "delay for " << delay << " ms";
       boost::this_thread::sleep_for(
-          boost::chrono::microseconds(delay)); 
+          boost::chrono::milliseconds(delay)); 
     }
     else {
-      VLOG(1) << "delay for " << force_delay << " us";
+      VLOG(1) << "delay for " << force_delay << " ms";
       boost::this_thread::sleep_for(
-          boost::chrono::microseconds(force_delay)); 
+          boost::chrono::milliseconds(force_delay)); 
     }
   }
 };

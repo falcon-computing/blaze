@@ -1,5 +1,8 @@
 #ifndef TASK_H
 #define TASK_H
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <string>
 #include <utility>
 
@@ -12,7 +15,9 @@ namespace blaze {
  * Task is the base clase of an accelerator task
  * will be extended by user 
  */
-class Task {
+class Task 
+: public boost::basic_lockable_adapter<boost::mutex>
+{
 
 friend class AccAgent;
 friend class AppCommManager;
@@ -22,6 +27,17 @@ friend class TaskManager;
 public:
   Task(int _num_args);
   virtual ~Task();
+
+  // enum type for task status
+  enum STATUS {
+    NOTREADY,
+    READY,
+    EXECUTING,
+    FINISHED,
+    FAILED,
+    TIMEOUT,
+    COMMITTED
+  };
 
   // main function to be overwritten by accelerator implementations
   virtual void compute() {;}
@@ -33,16 +49,13 @@ public:
   virtual void prepare() {;}
 
   // wrapper around compute(), added indicator for task status
-  void execute() {
-    status = EXECUTING;
-    try {
-      compute();
-      status = FINISHED;
-    } catch (std::exception &e) {
-      status = FAILED; 
-      throw std::runtime_error(e.what());
-    }
-  }
+  void execute();
+
+  // check status
+  STATUS get_status();
+
+  // wait for task status to update
+  void wait();
   
   // get config for input blocks
   // TODO: need a way to specify general configs
@@ -101,14 +114,9 @@ private:
 
   void dumpInput();
 
-  enum {
-    NOTREADY,
-    READY,
-    EXECUTING,
-    FINISHED,
-    FAILED,
-    COMMITTED
-  } status;
+  void set_status(STATUS s);
+
+  STATUS status_;
 
   // an unique id within each TaskQueue
   int task_id;
@@ -124,6 +132,13 @@ private:
 
   // number of input blocks that has data initialized
   int num_ready;
+
+  // manage multi-thread execution of the task
+  boost::condition_variable cv_;
+  boost::mutex mtx_;
+
+  // condition variable to check timeout
+  const int timeout_seconds_ = 60;
 };
 }
 #endif

@@ -216,17 +216,17 @@ TEST_F(ClientTests, TestTaskEstimation) {
   ASSERT_FALSE(runDelayWEst(10, 1, 0));  
 
   // start a long running task in the background
-  boost::thread long_task(boost::bind(runDelayWEst, 2000, 10000, 0));
+  boost::thread long_task(boost::bind(runDelayWEst, 200, 1000, 0));
 
-  boost::this_thread::sleep_for(boost::chrono::microseconds(1000)); 
+  boost::this_thread::sleep_for(boost::chrono::milliseconds(1)); 
 
   // a task with less CPU time than wait time should be rejected
   ASSERT_FALSE(runDelayWEst(1, 100, 0));  
 
-  // a task running long will trigger a timeout
-  ASSERT_FALSE(runDelayWEst(2, 1000, 16*200));  
-
   long_task.join();
+
+  // a task running long will trigger a timeout
+  ASSERT_FALSE(runDelayWEst(2, 100, 20*100));  
 
   // after timeout the corresponding acc will be removed
   ASSERT_FALSE(platform_manager.accExists("test"));

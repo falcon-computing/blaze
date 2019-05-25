@@ -465,6 +465,7 @@ void AppCommManager::process(socket_ptr sock) {
             }
 #endif
           }
+          RVLOG(INFO, 2) << "readying block " << blockId;
           try {
             // add missing block to Task input_table, block should be ready
             task->inputBlockReady(blockId, block);
@@ -497,43 +498,21 @@ void AppCommManager::process(socket_ptr sock) {
       task_manager.lock()->enqueue(app_id, task.get());
 
       { PLACE_TIMER1("waiting for task");
-      // wait on task finish
-      uint64_t wait_time = 0;
-
-      // longest wait time is 16 x finish_time
-      // or 180 seconds
-      uint64_t max_wait_time;
-      if (finish_time > 0) max_wait_time = finish_time << 4; 
-      else                 max_wait_time = (uint64_t)180*1e9;
-
-      while (task->status != Task::FINISHED && 
-             task->status != Task::FAILED) {
-
-        boost::this_thread::sleep_for(
-            boost::chrono::microseconds(1)); 
-
-        // check if the queue delay is too big
-        if (task->status == Task::EXECUTING) {
-          wait_time += 1000;
-        }
-
-        if (max_wait_time < wait_time) {
-          LOG(ERROR) << "Task time out";
-
-          handleTaskTimeout(sock, acc_id, task);
-
-          // TODO: dump task data, disable in release
-          task->dumpInput();
-
-          break;
-        }
+        task->wait();
       }
-      }
+      DLOG(INFO) << "Task status is updated";
 
       // 3. Handle ACCFINISH message and output data
       TaskMsg finish_msg;
+      if (task->get_status() == Task::TIMEOUT) {
 
-      if (task->status == Task::FINISHED) {
+        handleTaskTimeout(sock, acc_id, task);
+
+        // TODO: dump task data, disable in release
+        task->dumpInput();
+      }
+      else if (task->get_status() == Task::FINISHED) {
+
         uint64_t expected_delay_time = task->estimateTaskTime();
 
         if (!task_manager.lock()) {

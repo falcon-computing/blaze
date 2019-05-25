@@ -18,7 +18,8 @@ public:
   // call base class' method
   virtual void add(AccWorker &conf);
 
-  //virtual void remove(std::string id);
+  // overriding parent virtual function
+  void remove(std::string id);
 
   void start();
 

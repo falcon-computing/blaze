@@ -145,6 +145,17 @@ void OpenCLQueueManager::add(AccWorker &conf) {
   curr_acc_ = conf.id();
 }
 
+void OpenCLQueueManager::remove(std::string id) {
+  DVLOG(1) << "Removing opencl queue for " << id;
+
+  // calling parent remove for task manager removal
+  QueueManager::remove(id);
+
+  // remove kernel for acc:id
+  remove_kernels(id);
+
+}
+
 void OpenCLQueueManager::start() {
   // do nothing since the executors are already started
   //DVLOG(1) << "FPGAQueue started";
@@ -389,7 +400,7 @@ void OpenCLQueueManager::remove_kernels(std::string acc_id)
       clReleaseKernel(env->getKernel(i));
 
     // remove TaskEnv_ptr from env_table_
-    env_table_.erase(k);
+    //env_table_.erase(k);
   }
 }
 

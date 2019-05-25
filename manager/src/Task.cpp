@@ -20,7 +20,7 @@
 namespace blaze {
 
 Task::Task(int _num_args):
-    status(NOTREADY), 
+    status_(NOTREADY), 
     num_input(_num_args),
     num_ready(0)
 {
@@ -152,7 +152,7 @@ void Task::addInputBlock(
     if (block->isReady()) {
       num_ready ++;
       if (num_ready == num_input) {
-        status = READY;
+        set_status(READY);
       }
     }
   }
@@ -160,7 +160,7 @@ void Task::addInputBlock(
 
 void Task::dumpInput() {
   // only dump when input is ready
-  if (status != NOTREADY) {
+  if (get_status() != NOTREADY) {
     std::string uid = getUid();
     std::string ts  = getTS();
     for (int i = 0; i < num_input; i++) {
@@ -200,7 +200,7 @@ void Task::inputBlockReady(int64_t partition_id, DataBlock_ptr block) {
     }
     num_ready ++;
     if (num_ready == num_input) {
-      status = READY;
+      set_status(READY);
     }
   }
   else {
@@ -226,7 +226,7 @@ bool Task::getOutputBlock(DataBlock_ptr &block) {
 
     // no more output blocks means all data are consumed
     if (output_blocks.empty()) {
-      status = COMMITTED;
+      set_status(COMMITTED);
     }
     return true;
   }
@@ -238,7 +238,7 @@ bool Task::getOutputBlock(DataBlock_ptr &block) {
 // check if all the blocks in task's input list is ready
 bool Task::isReady() {
 
-  if (status == READY) {
+  if (get_status() == READY) {
     return true; 
   }
   else if (input_table.size() < num_input) {
@@ -256,7 +256,9 @@ bool Task::isReady() {
       num_ready_curr ++;
     }
     if (ready && num_ready_curr == num_input) {
-      status = READY;
+      DLOG(INFO) << "Setting status to ready";
+      set_status(READY);
+      DLOG(INFO) << "Set status to ready";
       return true;
     }
     else {
@@ -265,5 +267,62 @@ bool Task::isReady() {
   }
 }
 
+void Task::set_status(STATUS s) {
+  boost::lock_guard<Task> guard(*this);
+  status_ = s;
+}
+
+Task::STATUS Task::get_status() {
+  boost::lock_guard<Task> guard(*this);
+  return status_;
+}
+
+void Task::wait() {
+  boost::unique_lock<boost::mutex> l(mtx_);
+
+  // calculate timeout threshold
+  uint64_t task_time = this->estimateTaskTime();
+  DLOG(INFO) << "estimated time: " << task_time;
+  uint64_t timeout_us = 0;
+  if (task_time <= 0) {
+    timeout_us = timeout_seconds_ * 1e6;
+  }
+  else {
+    // 16x estimated task time ns to us
+    timeout_us = (task_time << 4) / 1000;
+  }
+
+  if (cv_.wait_for(l, boost::chrono::microseconds(timeout_us)) == 
+      boost::cv_status::timeout) {
+
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task timeout in " << 
+      timeout_us << " us";
+
+    set_status(TIMEOUT);
+  }
+}
+
+void Task::execute() {
+
+  // handling timeout
+  set_status(EXECUTING);
+
+  try {
+    // record task execution time
+    uint64_t start_time = getUs();
+  
+    compute();
+
+    uint64_t delay_time = getUs() - start_time;
+    VLOG(1) << "Task finishes in " << delay_time << " us";
+
+    set_status(FINISHED);
+  } catch (std::exception &e) {
+    set_status(FAILED);
+    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task failed: " << e.what();
+  }  
+  // notify that task is done
+  cv_.notify_one();
+}
 
 } // namespace

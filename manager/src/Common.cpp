@@ -126,7 +126,7 @@ namespace blaze {
           boost::asio::buffer(msg_data, msg_size), 0);
       msg_data[msg_size] = '\0';
 
-      DVLOG(2) << "recv msg(" << msg_size << "): " << msg_data;
+      // DVLOG(2) << "recv msg(" << msg_size << "): " << msg_data;
 
       if (!msg.ParseFromArray(msg_data, msg_size)) {
         throw commError("Failed to parse input message");
@@ -154,7 +154,7 @@ namespace blaze {
 
       msg.SerializeToArray(msg_data, msg_size);
   
-      DVLOG(2) << "send msg(" << msg_size << "): " << msg_data;
+      // DVLOG(2) << "send msg(" << msg_size << "): " << msg_data;
 
       socket->send(
           boost::asio::buffer(msg_data, msg_size),0);

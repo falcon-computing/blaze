@@ -107,6 +107,7 @@ void QueueManager::remove(std::string id) {
   // reset errors
   dlerror();
 
+#if 0 // don't unload task
   void* handle = tasklib_table[id];
 
   dlclose(handle);
@@ -127,6 +128,7 @@ void QueueManager::remove(std::string id) {
     tasklib_table.erase(id);
     this->unlock();
   }
+#endif
 }
 
 TaskEnv* QueueManager::getTaskEnv(Task* task) {

@@ -39,11 +39,15 @@ OpenCLKernelQueue::OpenCLKernelQueue(
 }
 
 OpenCLKernelQueue::~OpenCLKernelQueue() {
+  power_ = false;
+
   // interrupt threads
   preparer_->interrupt();
   preparer_->join();
   executor_->interrupt();
   executor_->join();
+
+  DVLOG(1) << "Destroyed kernel queue";
 }
 
 bool OpenCLKernelQueue::enqueue(Task* task) {
@@ -131,7 +135,7 @@ void OpenCLKernelQueue::do_execute() {
       task->execute();
     }
     catch (std::runtime_error &e) {
-      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task::compute() error " << e.what();
+      LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task::execute() error " << e.what();
     }
 
     // decrease wait time and num_task
@@ -140,5 +144,7 @@ void OpenCLKernelQueue::do_execute() {
       wait_time_.fetch_sub(task->estimateTaskTime());
     }
   }
+  VLOG(1) << "OpenCLKernelQueue for " << 
+    conf_->get_conf<std::string>("kernel_name") << " stopped";
 }
 } // namespace blaze

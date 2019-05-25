@@ -156,26 +156,19 @@ bool TaskManager::execute() {
   Task* task;
   execution_queue.pop(task);
 
-  try {
-    if (!task) {
-      LOG(ERROR) << "Task already destroyed";
-      return false;
-    }
-
-    VLOG(2) << "Started a new task";
-
-    // record task execution time
-    uint64_t start_time = getUs();
-
-    // start execution
-    task->execute();
-
-    uint64_t delay_time = getUs() - start_time;
-    VLOG(1) << "Task finishes in " << delay_time << " us";
-  } 
-  catch (std::runtime_error &e) {
-    LOG_IF(ERROR, VLOG_IS_ON(1)) << "Task error " << e.what();
+  if (!task) {
+    LOG(ERROR) << "Task already destroyed";
+    return false;
   }
+
+  VLOG(2) << "Started a new task";
+
+  // record task execution time
+  uint64_t start_time = getUs();
+
+  // start execution
+  task->execute();
+
   return true;
 }
 
