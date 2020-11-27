@@ -1,7 +1,7 @@
 include(ExternalProject)
 ExternalProject_Add(glog-download
     PREFIX "glog"
-    URL ${CMAKE_SOURCE_DIR}/deps/glog-falcon.tar.gz
+    URL ${DEPS}/glog-falcon.tar.gz
     SOURCE_DIR "${CMAKE_BINARY_DIR}/glog/install"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -9,7 +9,7 @@ ExternalProject_Add(glog-download
 
 ExternalProject_Add(gflags-download
     PREFIX "gflags"
-    URL ${CMAKE_SOURCE_DIR}/deps/gflags.tar.gz
+    URL ${DEPS}/gflags.tar.gz
     SOURCE_DIR "${CMAKE_BINARY_DIR}/gflags/install"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -17,7 +17,7 @@ ExternalProject_Add(gflags-download
 
 ExternalProject_Add(googletest-download
     PREFIX "googletest"
-    URL ${CMAKE_SOURCE_DIR}/deps/googletest.tar.gz
+    URL ${DEPS}/googletest.tar.gz
     SOURCE_DIR "${CMAKE_BINARY_DIR}/googletest/install"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
