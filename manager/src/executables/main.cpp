@@ -18,7 +18,6 @@
 #define LOG_HEADER "main"
 #include <glog/logging.h>
 
-#include "falcon-lic/genome.h"
 
 #include "blaze/AppCommManager.h"
 #include "blaze/BlockManager.h"
@@ -49,13 +48,6 @@ int main(int argc, char** argv) {
   FLAGS_logtostderr = 1;
   google::InitGoogleLogging(argv[0]);
 
-  int licret = license_verify();
-  if (licret != 0) {
-    LOG(ERROR) << "Cannot authorize software usage: " << licret;
-    LOG(ERROR) << "Please contact support@falcon-computing.com for details.";
-    return licret;
-  }
-  
   srand(time(NULL));
 
   if (argc < 2) {

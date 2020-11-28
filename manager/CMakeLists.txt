@@ -12,7 +12,7 @@ set(ManagerIncludePath ${CMAKE_CURRENT_SOURCE_DIR}/include
 add_library(blaze STATIC ${SRC_LIST})
 target_include_directories(blaze PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_dependencies(blaze Google FalconLM KSight)
+add_dependencies(blaze Google KSight)
 target_link_libraries(blaze blaze_message)
 
 #file(GLOB HEADER_FILES ${include_dir}/*.h)
@@ -32,21 +32,19 @@ set(HEADER_FILES
 set_target_properties(blaze PROPERTIES PUBLIC_HEADER "${HEADER_FILES}")
 
 add_executable(nam ${CMAKE_CURRENT_SOURCE_DIR}/src/executables/main.cpp)
-add_dependencies(nam Google FalconLM KSight)
+add_dependencies(nam Google KSight)
 
 target_link_libraries(nam
     blaze
     ${Google_LIBRARIES}
-    ${FalconLM_LIBRARIES}
     ${KSight_LIBRARIES}
     ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(admin ${CMAKE_CURRENT_SOURCE_DIR}/src/executables/admin.cpp)
-add_dependencies(admin Google FalconLM KSight)
+add_dependencies(admin Google KSight)
 target_link_libraries(admin
     blaze
     ${Google_LIBRARIES}
-    ${FalconLM_LIBRARIES}
     ${KSight_LIBRARIES}
     ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 

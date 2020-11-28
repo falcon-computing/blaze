@@ -7,7 +7,6 @@
 #include <glog/logging.h>
 
 #include "blaze/Admin.h"
-#include "falcon-lic/genome.h"
 
 using namespace blaze;
 
@@ -17,13 +16,6 @@ int main(int argc, char** argv) {
 
   FLAGS_logtostderr = 1;
   FLAGS_v = 1;
-
-  int licret = license_verify();
-  if (licret != 0) {
-    LOG(ERROR) << "Cannot authorize software usage: " << licret;
-    LOG(ERROR) << "Please contact support@falcon-computing.com for details.";
-    return licret;
-  }
 
   srand(time(NULL));
 

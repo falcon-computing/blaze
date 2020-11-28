@@ -22,7 +22,6 @@ find_package(ZLIB REQUIRED)
 
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Google REQUIRED)
-find_package(FalconLM REQUIRED)
 find_package(KSight REQUIRED)
 find_package(XilinxOCL)
 find_package(IntelOCL)
@@ -71,13 +70,11 @@ set(PLATFORMS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/platforms")
 
 include_directories(
     ${Google_INCLUDE_DIRS}
-    ${FalconLM_INCLUDE_DIRS}
     ${KSight_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS})
 
 link_directories(
     ${Google_LIBRARY_DIRS}
-    ${FalconLM_LIBRARY_DIRS}
     ${KSight_LIBRARY_DIRS}
     ${Boost_LIBRARY_DIRS})
 
