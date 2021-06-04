@@ -156,7 +156,7 @@
     <aws.java.sdk.version>1.9.16</aws.java.sdk.version>
     <aws.kinesis.client.version>1.2.1</aws.kinesis.client.version>
     <!--  org.apache.httpcomponents/httpclient-->
-    <commons.httpclient.version>4.3.2</commons.httpclient.version>
+    <commons.httpclient.version>4.5.13</commons.httpclient.version>
     <!--  commons-httpclient/commons-httpclient-->
     <httpclient.classic.version>3.1</httpclient.classic.version>
     <commons.math3.version>3.4.1</commons.math3.version>
